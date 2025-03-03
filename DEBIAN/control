@@ -1,0 +1,7 @@
+Package: flowno-docs
+Version: 0.1.0
+Section: docs
+Priority: optional
+Architecture: all
+Maintainer: Tyler Parker <tparker@computemachines.com>
+Description: HTML documentation for Flowno.

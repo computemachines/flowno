@@ -1,0 +1,12 @@
+typing_extensions>=4.7.0
+pytest>=7.0.0,<8.0.0
+pytest-timeout
+pytest-xdist
+basedpyright
+black
+docopt
+python-dotenv
+sphinx
+sphinx-rtd-theme
+sphinx-autobuild
+plantweb

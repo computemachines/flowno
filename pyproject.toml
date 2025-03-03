@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowno"
+authors = [
+    {name = "Tyler Parker", email = "tparker@computemachines.com"},
+]
+version = "0.1.0"
+description = "A Python DSL for writing dataflow programs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text="MIT" }
+keywords = ["dataflow", "dsl", "python"]
+dependencies = [
+    "typing-extensions",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+
+    "License :: OSI Approved :: MIT License",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://flowno.net"
+Documentation = "https://flowno.net/docs"
+Repository = "https://github.com/computemachines/flowno"
+Issues = "https://github.com/computemachines/flowno/issues"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

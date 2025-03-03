@@ -1,0 +1,14 @@
+.env
+.nvim/
+.venv/
+.venv11/
+.vscode/
+/build/
+dist/
+/docs/build/
+/package-root/
+*_id_rsa
+*.pyc
+*.egg-info/
+/docs/generated/
+/docs/source/**/_autosummary/
