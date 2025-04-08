@@ -97,6 +97,23 @@ class EventLoop:
             return True
         return False
 
+    def create_task(
+        self,
+        raw_task: RawTask[Command, Any, Any],
+    ) -> TaskHandle[Command]:
+        """
+        Create a new task handle for the given raw task and enqueue
+        the task in the event loop's task queue.
+        
+        Args:
+            raw_task: The raw task to create a handle for.
+        
+        Returns:
+            A TaskHandle object representing the created task.
+        """
+        self.tasks.append((raw_task, None, None))
+        return TaskHandle(self, raw_task)
+
     def _handle_command(
         self,
         current_task_packet: TaskHandlePacket[Command, Any, Any, Exception],
