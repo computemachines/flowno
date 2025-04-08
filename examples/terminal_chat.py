@@ -87,7 +87,7 @@ client.json_encoder = MessageJSONEncoder()
 
 
 @node(stream_in=["response_chunks"])
-async def TerminalChat(response_chunks: Optional[Stream[str]] = None) -> str:
+async def TerminalChat(response_chunks: Stream[str] | None = None) -> str:
     """
     If provided with a stream of response chunks, print them as they are
     produced, then prompt the user for input.
@@ -167,7 +167,7 @@ def main():
         # These statements can be put in any order
         # Notice how f.history is used before it is defined
         f.inference = Inference(f.history)
-        f.terminal_chat = TerminalChat(ChunkSentences(f.inference))
+        f.terminal_chat = TerminalChat(f.inference)
         f.history = ChatHistory(f.terminal_chat, f.inference)
 
     # Run the flow with instrumentation for debug logging.

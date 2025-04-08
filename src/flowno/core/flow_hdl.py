@@ -32,6 +32,9 @@ import logging
 from types import TracebackType
 from typing import Any, ClassVar, cast
 
+from flowno.core.event_loop.commands import Command
+from flowno.core.event_loop.types import RawTask
+from flowno.core.event_loop.tasks import TaskHandle
 from flowno.core.flow.flow import Flow
 from flowno.core.node_base import (
     DraftInputPortRef,
@@ -157,6 +160,23 @@ class FlowHDL:
             terminate_on_node_error=terminate_on_node_error,
             _debug_max_wait_time=_debug_max_wait_time,
         )
+
+
+    def create_task(
+        self,
+        raw_task: RawTask[Command, Any, Any],
+    ) -> "TaskHandle[Command]":
+        """
+        Create a new task handle for the given raw task and enqueue
+        the task in the event loop's task queue.
+        
+        Args:
+            raw_task: The raw task to create a handle for.
+        
+        Returns:
+            A TaskHandle object representing the created task.
+        """
+        return self._flow.event_loop.create_task(raw_task)
 
     def _finalize(self) -> None:
         """Finalize the graph by replacing connections to placeholders with

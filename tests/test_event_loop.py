@@ -2,8 +2,7 @@ from time import time
 from timeit import timeit
 
 import pytest
-from flowno import AsyncQueue as Queue
-from flowno import EventLoop, sleep, spawn
+from flowno import EventLoop, sleep, spawn, AsyncQueue
 from flowno.core.event_loop.primitives import azip
 from flowno.core.event_loop.synchronization import CountdownLatch
 from flowno.io.http_client import HttpClient, OkStreamingResponse
@@ -70,7 +69,7 @@ def test_queue():
     loop = EventLoop()
 
     async def queue_test():
-        q = Queue[int]()
+        q = AsyncQueue[int]()
         await q.put(1)
         await q.put(2)
         await q.put(3)
@@ -83,13 +82,13 @@ def test_queue():
 
 def test_queue_spsc():
     @log_async
-    async def producer(q: Queue[int]):
+    async def producer(q: AsyncQueue[int]):
         for i in range(10):
             await q.put(i)
             _ = await sleep(0.1)
 
     @log_async
-    async def consumer(q: Queue[int]):
+    async def consumer(q: AsyncQueue[int]):
         total = 0
         for i in range(10):
             value = await q.get()
@@ -100,7 +99,7 @@ def test_queue_spsc():
 
     @log_async
     async def main():
-        q = Queue[int]()
+        q = AsyncQueue[int]()
         t1 = await spawn(producer(q))
         t2 = await spawn(consumer(q))
         await t1.join()
@@ -112,19 +111,19 @@ def test_queue_spsc():
 
 
 def test_queue_mpsc():
-    async def producer(q: Queue[int]):
+    async def producer(q: AsyncQueue[int]):
         for i in range(10):
             await q.put(i)
             _ = await sleep(0.1)
 
-    async def consumer(q: Queue[int]):
+    async def consumer(q: AsyncQueue[int]):
         total = 0
         async for value in q:
             total += value
         return total
 
     async def main():
-        q = Queue[int]()
+        q = AsyncQueue[int]()
         t1 = await spawn(producer(q))
         t2 = await spawn(producer(q))
         t3 = await spawn(consumer(q))
@@ -143,13 +142,13 @@ def test_queue_mpsc():
 
 def test_queue_mpmc():
     @log_async
-    async def producer(q: Queue[int]):
+    async def producer(q: AsyncQueue[int]):
         for i in range(10):
             await q.put(i)
             _ = await sleep(0.1)
 
     @log_async
-    async def consumer(q: Queue[int]):
+    async def consumer(q: AsyncQueue[int]):
         total = 0
         async for value in q:
             total += value
@@ -157,7 +156,7 @@ def test_queue_mpmc():
 
     @log_async
     async def main():
-        q = Queue[int]()
+        q = AsyncQueue[int]()
         t1 = await spawn(producer(q))
         t3 = await spawn(consumer(q))
         t4 = await spawn(consumer(q))
@@ -285,3 +284,26 @@ def test_azip():
 
     loop = EventLoop()
     loop.run_until_complete(main(), join=True)
+
+
+def test_put_item_from_outside():
+    """
+    Test that we can put an item into a queue from outside the event loop.
+
+    I'm not going to use threads, I'm just going to call non-async code
+    inside the event loop.
+    """
+    loop = EventLoop()
+
+    async def put_item(q: AsyncQueue[str]):
+        await q.put("hello")
+
+    async def queue_test():
+        q = AsyncQueue[str]()
+
+        loop.create_task(put_item(q))
+
+
+        assert await q.get() == "hello"
+
+    loop.run_until_complete(queue_test(), join=True)
