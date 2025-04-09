@@ -17,6 +17,8 @@ This can be used as a standalone event loop without the rest of the Flowno runti
 import heapq
 import logging
 import selectors
+import socket
+import threading
 from collections import defaultdict, deque
 from timeit import default_timer as timer
 from typing import Any, Literal, TypeVar, cast
@@ -85,6 +87,10 @@ class EventLoop:
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
         self._debug_max_wait_time: float | None = None
+        self._loop_thread: threading.Thread | None = None
+        self._wakeup_reader, self._wakeup_writer = socket.socketpair()
+        self._wakeup_reader.setblocking(False)
+        self._wakeup_writer.setblocking(False)
 
     def has_living_tasks(self) -> bool:
         """Return True if there are any tasks still needing processing."""
@@ -112,6 +118,14 @@ class EventLoop:
             A TaskHandle object representing the created task.
         """
         self.tasks.append((raw_task, None, None))
+        
+        # If called from another thread, wake up the event loop
+        if self._loop_thread is not None and threading.current_thread() != self._loop_thread:
+            try:
+                self._wakeup_writer.send(b'\x00')
+            except (BlockingIOError, socket.error):
+                pass
+                
         return TaskHandle(self, raw_task)
 
     def _handle_command(
@@ -345,7 +359,15 @@ class EventLoop:
             Exception: Any exception raised by the root task is propagated if join=True.
         """
         self._debug_max_wait_time = _debug_max_wait_time
+        self._loop_thread = threading.current_thread()
         self.tasks.append((root_task, None, None))
+        
+        # Register wakeup socket with selector
+        # Blank metadata for wakeup socket. Never used.
+        metadata = InstrumentationMetadata(
+            _task=None, _command=None, socket_handle=None
+        )
+        sel.register(self._wakeup_reader, selectors.EVENT_READ, metadata)
         
         while self.has_living_tasks():
             # Determine the timeout for selector based on tasks and sleeping tasks.
@@ -363,6 +385,19 @@ class EventLoop:
             
             for key, _mask in sel.select(timeout):
                 data = cast(InstrumentationMetadata, key.data)
+                if key.fileobj == self._wakeup_reader:
+                    # Clear wakeup signal
+                    try:
+                        self._wakeup_reader.recv(1024)
+                    except (BlockingIOError, socket.error):
+                        pass
+                    continue  # Skip further processing for wakeup socket
+                
+                # Handle regular socket commands
+                if data._command is None:
+                    # Skip processing if no command (shouldn't happen for regular sockets)
+                    continue
+                
                 match data._command:
                     case SocketAcceptCommand():
                         get_current_instrument().on_socket_accept_ready(
@@ -377,7 +412,8 @@ class EventLoop:
                             ReadySocketInstrumentationMetadata.from_instrumentation_metadata(data)
                         )
                     case _:
-                        raise ValueError("Unknown selector command data type")
+                        raise ValueError(f"Unknown selector command data type: {type(data._command)}")
+                
                 self.tasks.append((data._task, None, None))
                 _ = sel.unregister(key.fileobj)
                 self.waiting_on_network.remove(data._task)

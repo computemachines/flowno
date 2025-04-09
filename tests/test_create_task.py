@@ -118,8 +118,8 @@ def test_create_task_runs2():
         (0.1, "TASK CREATING"),
         (0.1, "TASK CREATED"),
         (0.1, "TASK EXECUTING"),
-        (0.5, "MAIN GOT VALUE hello"),
-        (0.5, "MAIN END"),
-        (0.5, "TASK FINISHED"),
+        (0.1, "MAIN GOT VALUE hello"),
+        (0.1, "MAIN END"),
+        (0.1, "TASK FINISHED"),
     ])
 
