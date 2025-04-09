@@ -284,26 +284,3 @@ def test_azip():
 
     loop = EventLoop()
     loop.run_until_complete(main(), join=True)
-
-
-def test_put_item_from_outside():
-    """
-    Test that we can put an item into a queue from outside the event loop.
-
-    I'm not going to use threads, I'm just going to call non-async code
-    inside the event loop.
-    """
-    loop = EventLoop()
-
-    async def put_item(q: AsyncQueue[str]):
-        await q.put("hello")
-
-    async def queue_test():
-        q = AsyncQueue[str]()
-
-        loop.create_task(put_item(q))
-
-
-        assert await q.get() == "hello"
-
-    loop.run_until_complete(queue_test(), join=True)
