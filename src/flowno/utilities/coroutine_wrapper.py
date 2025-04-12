@@ -43,6 +43,9 @@ class CoroutineWrapper(Coroutine[Yield, object, T]):
         self._func_name = func_name  # Name of the coroutine function
         self._arg_str = arg_str  # String representation of arguments
 
+    def __repr__(self) -> str:
+        return f"CoroutineWrapper({self._func_name}({self._arg_str}))"
+
     @override
     def send(self, value: object) -> Yield:
         try:
