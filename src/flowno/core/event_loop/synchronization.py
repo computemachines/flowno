@@ -93,8 +93,7 @@ class CountdownLatch:
         if count < 0:
             raise ValueError("CountdownLatch count must be non-negative")
         self._count = count
-        # We initialize an AsyncQueue with maxsize = count to implement the latch behavior
-        self._queue = AsyncQueue(maxsize=count)
+        self._queue = AsyncQueue()
 
     @property
     def count(self) -> int:
@@ -133,7 +132,16 @@ class CountdownLatch:
         for _ in range(self._count):
             await self._queue.get()
 
-    async def count_down(self) -> None:
+    class ZeroLatchError(Exception):
+        """
+        Exception raised when trying to count down a latch that is already at zero.
+        
+        This exception is used internally to indicate that the latch has already
+        been counted down to zero, and no further countdowns are possible.
+        """
+        pass
+
+    async def count_down(self, exception_if_zero: bool = False) -> None:
         """
         Decrement the latch count by one.
         
@@ -143,9 +151,22 @@ class CountdownLatch:
         If the latch is already at zero, this method logs a warning.
         """
         if self._count == 0:
-            logger.warn("counted down on disabled latch")
+            if exception_if_zero:
+                raise self.ZeroLatchError("Cannot count down a latch that is already at zero")
+            else:
+                logger.warning(f"counted down on already zero latch: {self}")
         else:
+            logger.debug(f"counting down latch: {self}")
             await self._queue.put(None)
+    
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the CountdownLatch.
+        
+        This representation includes the current count and the maximum size of the queue.
+        """
+        current_latch_count = len(self._queue._get_waiting)
+        return f"CountdownLatch(original_count={self._count}, remaining_counts={current_latch_count})"
 
 
 class Barrier:

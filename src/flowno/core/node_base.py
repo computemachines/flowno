@@ -583,7 +583,13 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
             if input_port.connected_output is None or input_port_index in defaulted_inputs:
                 continue
             upstream_node = input_port.connected_output.node
-            await upstream_node._barrier0.count_down()
+            try: 
+                await upstream_node._barrier0.count_down(exception_if_zero=True)
+            except Exception as e:
+                logger.warning(f"count_down_upstream_latches({self}, {defaulted_inputs})")
+                logger.warning(f"Error counting down upstream latches: {e}")
+                logger.warning(f"Upstream node: {upstream_node}")
+                logger.warning(f"Input port index: {input_port_index}")
 
     @final
     def push_data(self, data: ReturnTupleT_co | None, run_level: RunLevel = 0) -> None:
@@ -846,7 +852,12 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
         )
 
         with get_current_flow_instrument().on_barrier_node_read(self.output.node, 1):
-            await self.output.node._barrier1.count_down()
+            try:
+                await self.output.node._barrier1.count_down(exception_if_zero=True)
+            except Exception as e:
+                logger.warning(f"Stream {self} anext count_down error: {e}")
+                logger.warning(f"Node: {self.output.node}")
+                logger.warning(f"Input port index: {self.input.port_index}")
 
         # Instrumentation: Stream processed next item
         get_current_flow_instrument().on_stream_next(self, data)
