@@ -64,7 +64,7 @@ from typing import Any, TypeVar, cast, overload
 
 from typing_extensions import Unpack
 
-from .commands import SleepCommand, SpawnCommand
+from .commands import SleepCommand, SpawnCommand, ExitCommand
 from .selectors import SocketHandle, TLSSocketHandle
 from .tasks import TaskHandle
 from .types import DeltaTime, RawTask
@@ -119,6 +119,38 @@ def sleep(duration: DeltaTime) -> Generator[SleepCommand, None, DeltaTime]:
     yield SleepCommand(desired_end)
     actual_end = timer()
     return actual_end - start
+
+
+@coroutine
+def exit(return_value: Any = None, exception: Exception | None = None) -> Generator[ExitCommand, None, None]:
+    """
+    Forcibly terminate the event loop.
+    
+    This is a primitive that allows immediate termination of the event loop,
+    regardless of any remaining tasks or operations. It's similar to sys.exit()
+    but specific to the Flowno event loop.
+    
+    Args:
+        return_value: Optional value to return from run_until_complete (when join=True).
+        exception: Optional exception to raise from run_until_complete.
+        
+    Returns:
+        This function never returns normally as it terminates the event loop.
+        
+    Examples:
+        >>> async def early_exit():
+        ...     print("About to exit")
+        ...     await exit()  # Terminates the event loop immediately
+        ...     print("This will never be executed")
+        
+        >>> async def exit_with_result():
+        ...     await exit("success")  # Will be returned if join=True
+        
+        >>> async def exit_with_error():
+        ...     await exit(exception=ValueError("Something went wrong"))
+    """
+    yield ExitCommand(return_value, exception)
+    # This point is never reached as the event loop will terminate
 
 
 def socket(

@@ -22,7 +22,7 @@ import os
 from importlib.metadata import PackageNotFoundError, version
 
 from .core.event_loop.event_loop import EventLoop
-from .core.event_loop.primitives import azip, sleep, socket, spawn
+from .core.event_loop.primitives import azip, exit, sleep, socket, spawn
 from .core.event_loop.queues import AsyncQueue
 from .core.event_loop.selectors import SocketHandle
 from .core.flow.flow import Flow, TerminateLimitReached
@@ -91,6 +91,7 @@ __all__ = [
     "node",
     "Flow",
     "azip",
+    "exit",
     "spawn",
     "sleep",
     "socket",

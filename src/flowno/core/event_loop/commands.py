@@ -188,3 +188,20 @@ class QueueNotifyGettersCommand(Generic[_T], Command):
     """
 
     queue: "AsyncQueue[_T]"
+
+
+@dataclass
+class ExitCommand(Command):
+    """
+    Internal command to forcibly terminate the event loop.
+
+    :param return_value: Optional value to return from run_until_complete (when join=True).
+    :param exception: Optional exception to raise from run_until_complete.
+
+    .. note::
+       This command causes the event loop to terminate immediately, regardless of
+       any remaining tasks. Similar to sys.exit() but specific to the event loop.
+    """
+
+    return_value: object = None
+    exception: Exception | None = None

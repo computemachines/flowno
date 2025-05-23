@@ -1,3 +1,3 @@
-from .primitives import sleep, socket, spawn
+from .primitives import exit, sleep, socket, spawn
 
-__all__ = ["sleep", "socket", "spawn"]
+__all__ = ["exit", "sleep", "socket", "spawn"]

@@ -25,6 +25,7 @@ from typing import Any, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
     Command,
+    ExitCommand,
     JoinCommand,
     QueueCloseCommand,
     QueueGetCommand,
@@ -91,6 +92,7 @@ class EventLoop:
         self._wakeup_reader, self._wakeup_writer = socket.socketpair()
         self._wakeup_reader.setblocking(False)
         self._wakeup_writer.setblocking(False)
+        self._exit_requested: tuple[bool, object, Exception | None] = (False, None, None)
 
     def has_living_tasks(self) -> bool:
         """Return True if there are any tasks still needing processing."""
@@ -272,6 +274,19 @@ class EventLoop:
             queue = command.queue
             self.handle_queue_close(queue)
             self.tasks.append((current_task_packet[0], None, None))
+        elif isinstance(command, ExitCommand):
+            # Handle the exit command
+            
+            # Mark the task as finished regardless of whether we're exiting normally or with an exception
+            # This prevents "event loop exited without completing the root task" errors
+            self.finished[current_task_packet[0]] = command.return_value
+            
+            # If there's an exception, raise it immediately (will be caught in run_until_complete)
+            if command.exception is not None:
+                raise command.exception
+            else:
+                # Set the exit flag with the return value and no exception
+                self._exit_requested = (True, command.return_value, None)
         else:
             return False
         return True
@@ -360,6 +375,7 @@ class EventLoop:
         """
         self._debug_max_wait_time = _debug_max_wait_time
         self._loop_thread = threading.current_thread()
+        self._exit_requested = (False, None, None)  # Reset exit flag
         self.tasks.append((root_task, None, None))
         
         # Register wakeup socket with selector
@@ -370,6 +386,17 @@ class EventLoop:
         sel.register(self._wakeup_reader, selectors.EVENT_READ, metadata)
         
         while self.has_living_tasks():
+            # Check if exit was requested
+            exit_requested, exit_value, exit_exception = self._exit_requested
+            if exit_requested:
+                # Handle any requested exit
+                if exit_exception is not None:
+                    raise exit_exception
+                elif join:
+                    return cast(_ReturnT, exit_value)
+                else:
+                    return None
+                
             # Determine the timeout for selector based on tasks and sleeping tasks.
             if self.tasks:
                 timeout = 0
