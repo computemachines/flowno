@@ -78,7 +78,7 @@ jobs:
         id: get_deb_name
         run: |
           # Adjust the pattern if your .deb package name is different.
-          DEB_NAME=$(basename dist/flowno-docs_0.1.0_all.deb)
+          DEB_NAME=$(basename dist/flowno-docs_0.1.3_all.deb)
           echo "DEB_NAME=$DEB_NAME" >> $GITHUB_ENV
           echo "Package name is $DEB_NAME"
 

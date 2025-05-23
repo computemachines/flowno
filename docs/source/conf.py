@@ -11,7 +11,7 @@ import sphinx
 project = "Flowno"
 copyright = "2025, Tyler Parker"
 author = "Tyler Parker"
-release = "0.1.0"
+release = "0.1.3"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
