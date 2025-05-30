@@ -755,7 +755,27 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 else:
                     raise MissingDefaultError(self, input_port_index)
         return self.GatheredInputs(tuple(positional_args), defaulted_ports)
-
+    def debug_print(self) -> None:
+        """
+        Print detailed debug information about this node, including its inputs, outputs, and data.
+        """
+        print(f"FinalizedNode: {self}")
+        print(f"  Instance ID: {self._instance_id}")
+        print(f"  Original Call: {self._original_call}")
+        print(f"  Inputs:")
+        for idx, port in self._input_ports.items():
+            print(f"    Input {idx}:")
+            print(f"      Connected Output: {port.connected_output}")
+            print(f"      Minimum Run Level: {port.minimum_run_level}")
+            print(f"      Default Value: {getattr(port, 'default_value', None)}")
+            print(f"      Stitch Level 0: {getattr(port, 'stitch_level_0', None)}")
+        print(f"  Connected Output Nodes:")
+        for out_idx, nodes in self._connected_output_nodes.items():
+            print(f"    Output {out_idx}: {[str(n) for n in nodes]}")
+        print(f"  Data Generations:")
+        for gen, data in self._data.items():
+            print(f"    Generation {gen}: {data}")
+        print(f"  Current Generation: {self.generation}")
 
 class Stream(Generic[_InputType], AsyncIterator[_InputType]):
     """A stream of values from one node to another.

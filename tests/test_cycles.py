@@ -8,6 +8,8 @@ and termination behavior within the FlowHDL context.
 import logging
 
 from flowno import FlowHDL, node, TerminateLimitReached
+from flowno.core.flow.instrumentation import FlowLogInstrument
+from flowno.core.event_loop.instrumentation import LogInstrument as EventLoopLogInstrument
 from flowno.core.node_base import NodePlaceholder
 from flowno.core.types import OutputPortIndex
 from pytest import raises
@@ -136,7 +138,6 @@ def test_simple_toggle_false_cycle_3():
 async def Swap(x: int = -10, y: int = 13) -> tuple[int, int]:
     return y, x
 
-
 @node
 async def Add(x: int, y: int) -> int:
     return x + y
@@ -229,8 +230,10 @@ def test_simple_swapper_cycle_2():
         f.swap = Swap(f.swap.output(0), f.swap.output(1))
     assert not isinstance(f.swap, NodePlaceholder)
 
-    with raises(TerminateLimitReached):
-        f.run_until_complete(stop_at_node_generation={f.swap: (1,)})
+    with FlowLogInstrument():
+        with EventLoopLogInstrument():
+            with raises(TerminateLimitReached):
+                f.run_until_complete(stop_at_node_generation={f.swap: (1,)})
 
     assert f.swap.get_data() == (-10, 13)
 

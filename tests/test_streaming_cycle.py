@@ -3,7 +3,7 @@ import logging
 import pytest
 from flowno import FlowHDL, Stream, node
 from flowno.core.flow.flow import TerminateLimitReached
-from flowno.core.flow.instrumentation import LogInstrument as FlowLogInstrument
+from flowno.core.flow.instrumentation import FlowLogInstrument as FlowLogInstrument
 from flowno.core.node_base import NodePlaceholder
 from pytest import mark, raises
 

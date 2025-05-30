@@ -59,7 +59,6 @@ LOG_LEVEL = os.environ.get("FLOWNO_LOG_LEVEL", "ERROR").upper()
 # Example: LOG_TAG_FILTER="flow,event"
 raw_tag_filter = os.environ.get("FLOWNO_LOG_TAG_FILTER", "ALL")
 
-# Split on commas, strip whitespace, and lowercase everything
 tag_list = [t.strip().lower() for t in raw_tag_filter.split(",")]
 
 # Get the root logger
@@ -75,16 +74,13 @@ handler = logging.StreamHandler()
 handler.setLevel(LOG_LEVEL)
 handler.addFilter(TagFilter(tag_list))
 
-# Optionally, set a formatter
 formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
 handler.setFormatter(formatter)
 
-# Add the custom handler to the root logger
 logger.addHandler(handler)
 
-# Log messages without 'extra'
 logger.info(f"Log level set to {LOG_LEVEL}")
-logger.info(f"Log filter set to {tag_list}")  # Removed 'extra'
+logger.info(f"Log filter set to {tag_list}")
 
 
 __all__ = [
