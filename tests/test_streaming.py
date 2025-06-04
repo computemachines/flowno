@@ -13,7 +13,7 @@ from flowno.core.event_loop.primitives import azip, sleep
 from flowno.core.event_loop.queues import AsyncQueue
 from flowno.core.flow.flow import Flow
 from flowno.core.flow.flow import TerminateLimitReached
-from flowno.core.flow.instrumentation import FlowLogInstrument as FlowLogInstrument
+from flowno.core.flow.instrumentation import LogInstrument as FlowLogInstrument
 from flowno.core.node_base import DraftNode, NodePlaceholder
 from flowno.core.streaming_node import StreamingNode0
 from pytest import raises

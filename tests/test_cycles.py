@@ -8,7 +8,7 @@ and termination behavior within the FlowHDL context.
 import logging
 
 from flowno import FlowHDL, node, TerminateLimitReached
-from flowno.core.flow.instrumentation import FlowLogInstrument
+from flowno.core.flow.instrumentation import LogInstrument as FlowLogInstrument
 from flowno.core.event_loop.instrumentation import LogInstrument as EventLoopLogInstrument
 from flowno.core.node_base import NodePlaceholder
 from flowno.core.types import OutputPortIndex
