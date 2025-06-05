@@ -54,8 +54,8 @@ class FlowHDLView:
         exc_tb: TracebackType | None,
     ) -> bool:
         """Finalize the graph when exiting the context by calling :meth:`_finalize`."""
-        self.__class__.contextStack.popitem()
-        self._finalize()
+        _, draft_nodes = self.__class__.contextStack.popitem()
+        self._finalize(draft_nodes)
         return False
 
     @override
@@ -103,7 +103,7 @@ class FlowHDLView:
         else:
             raise RuntimeError("No FlowHDL context is active to register the node.")
     
-    def _finalize(self) -> None:
+    def _finalize(self, draft_nodes: list[DraftNode]) -> None:
         """Finalize the graph by replacing connections to placeholders with
         connections to the actual nodes.
 
