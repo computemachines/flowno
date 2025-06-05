@@ -54,25 +54,23 @@ logger = logging.getLogger(__name__)
 
 
 class FlowHDL(FlowHDLView):
-    """Context manager for building dataflow graphs.
+    """Context manager for constructing and executing dataflow graphs.
 
-    The FlowHDL context allows:
+    ``FlowHDL`` extends :class:`FlowHDLView` with the ability to run the
+    resulting :class:`~flowno.core.flow.flow.Flow`.  Within the ``with`` block
+    users may assign draft nodes to attributes and reference not-yet-defined
+    nodes freely.  When the context exits, all placeholders are resolved and the
+    underlying :class:`Flow` is finalized.
 
-    - Assigning nodes as attributes
-    - Forward-referencing nodes that haven't been defined yet
-    - Automatic resolution of placeholder references when exiting the context
-
-    Attributes within the context become nodes in the final flow. The context
-    automatically finalizes all node connections when exited.
-
-    Use the special syntax:
-
+    Example
+    -------
     >>> with FlowHDL() as f:
-    ...     f.node1 = Node1(f.node2)
-    ...     f.node2 = Node2()
+    ...     f.result = Add(f.a, f.b)
+    ...     f.a = Source(1)
+    ...     f.b = Source(2)
     >>> f.run_until_complete()
 
-    User defined attributes should not start with an underscore.
+    User defined attribute names should not start with an underscore.
 
     :canonical: :py:class:`flowno.core.flow_hdl.FlowHDL`
     """
@@ -81,6 +79,7 @@ class FlowHDL(FlowHDLView):
     """Keywords that should not be treated as nodes in the graph."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._flow: Flow = Flow(is_finalized=False)
     
     @override
