@@ -605,6 +605,7 @@ class EventLoop:
         except:
             self._uninstall_signal_handlers()
             raise
+        return return_value
 
     def _run_event_loop_core(
         self,
