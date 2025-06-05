@@ -1,27 +1,17 @@
 import pytest
 import inspect
+from flowno import node
 from flowno.core.flow_hdl import FlowHDL
 from flowno.core.flow_hdl_view import FlowHDLView
 from flowno.core.node_base import DraftNode, OutputPortRefPlaceholder, DraftInputPortRef
 from typing import Any
 
-#––– HELPERS –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-# Suppose you have a trivial node decorator that makes a DraftNode:
-# (If you already have a real @node in your code, import that instead.)
-def make_simple_node(fn):
-    """
-    A stand‐in: wrap the function in whatever DraftNode factory your code uses.
-    For illustration, assume @node returns a DraftNode subclass.
-    """
-    from flowno.decorators.node import node as real_node
-    return real_node(fn)
-
-@make_simple_node
+@node
 async def Add(x: int, y: int) -> int:
     return x + y
 
-@make_simple_node
+@node
 async def Source(value: Any) -> Any:
     return value
 
@@ -41,9 +31,6 @@ def test_set_and_get_simple_attribute():
     hdl.bar = 456
     # Accessing hdl.bar should return whatever was in _nodes
     assert hdl.bar == 456
-    # Accessing a completely unset public attribute should raise AttributeError via __getattribute__
-    with pytest.raises(AttributeError):
-        _ = hdl.nonexistent
 
 
 def test_getattr_returns_placeholder_before_finalize():
@@ -116,7 +103,7 @@ def test_unconnected_input_without_default_value_raises():
     finalize() should raise. We simulate this by making a node with required args
     and never wiring it.
     """
-    @make_simple_node
+    @node
     async def NeedsTwo(x, y):
         return x + y
 
@@ -126,3 +113,14 @@ def test_unconnected_input_without_default_value_raises():
     with pytest.raises(AttributeError) as excinfo:
         f._finalize()
     assert "is not connected and has no default value" in str(excinfo.value)
+
+def test_accessing_nonexistent_node_after_finalize_raises():
+    """
+    After finalizing, trying to access a node that was never defined should raise.
+    """
+
+    with FlowHDL() as f:
+        pass
+
+    with pytest.raises(AttributeError) as excinfo:
+        _ = f.non_existent_node
