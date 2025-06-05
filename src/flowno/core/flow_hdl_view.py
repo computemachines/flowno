@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 _Ts = TypeVarTuple("_Ts")
 _ReturnTupleT_co = TypeVar("_ReturnTupleT_co", covariant=True, bound=tuple[object, ...])
 
+
 class FlowHDLView:
     """Base implementation of the :class:`FlowHDL` attribute protocol.
 
@@ -33,7 +34,7 @@ class FlowHDLView:
 
     _is_finalized: bool
     _flow: Flow
-    
+
     KEYWORDS: ClassVar[list[str]] = []
 
     contextStack: ClassVar[OrderedDict[Self, list[DraftNode]]] = OrderedDict()
@@ -102,40 +103,49 @@ class FlowHDLView:
             cls.contextStack[last_hdl].append(node)
         else:
             raise RuntimeError("No FlowHDL context is active to register the node.")
-    
+
     def _finalize(self, draft_nodes: list[DraftNode]) -> None:
-        """Finalize the graph by replacing connections to placeholders with
-        connections to the actual nodes.
+        """Finalize all the draft nodes instantiated in the FlowHDL context.
 
-        Example: Out of order definition of nodes is allowed, as long as the
-        connections are fully defined before the graph is finalized.
+        Replace nodes defined in the FlowHDL context with their finalized
+        counterparts, resolving all `OutputPortRefPlaceholder` instances to
+        actual `DraftOutputPortRefs`.
 
-        >>> with FlowHDL() as f:
-        ...     hdl.a = Node1(f.b)
-        ...     hdl.b = Node2()
+        Args:
+            draft_nodes (list[DraftNode]): A list of draft nodes that were created
+                within this "layer" of the FlowHDL context.
         """
         logger.info("Finalizing FlowHDL")
 
-        # loop over the members of the FlowHDL instance
+        finalized_nodes: dict[
+            DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        ] = dict()
+
+        # ======== Phase 1 ========
         # Replace all OutputPortRefPlaceholders with actual DraftOutputPortRefs
-        for node_name, unknown_node in self._nodes.items():
-            if not isinstance(unknown_node, DraftNode):
-                logger.warning("An unexpected object was assigned as an attribute to the FlowHDL context.")
-                continue
-            draft_node = cast(DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node)
+        # OutputPortRefPlaceholders are generated when using a forward reference
+        # on the FlowHDLView context.
+
+        for unknown_node in draft_nodes:
+            draft_node = cast(
+                DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node
+            )
 
             # DraftInputPorts can have OutputPortRefPlaceholders or DraftOutputPortRefs
             # Step 1) Replace placholders with drafts
             for input_port_index, input_port in draft_node._input_ports.items():
-                input_port_ref = DraftInputPortRef[object](draft_node, input_port_index)
-
                 if input_port.connected_output is None:
                     if input_port.default_value != inspect.Parameter.empty:
-                        logger.info(f"{input_port_ref} is not connected and but has a default value")
+                        logger.info(
+                            f"{draft_node.input(input_port_index)} is not connected and but has a default value"
+                        )
                         continue
                     else:
                         # TODO: Use the same underlined format as supernode.py
-                        raise AttributeError(f"{input_port_ref} is not connected and has no default value")
+                        raise AttributeError(
+                            f"{draft_node.input(input_port_index)} is not connected and has no default value"
+                        )
 
                 connected_output = input_port.connected_output
 
@@ -155,59 +165,48 @@ class FlowHDLView:
                         raise AttributeError(
                             (
                                 f"Attribute {connected_output.node.name} is not a DraftNode. "
-                                f"Cannot connect {node_name} to non-DraftNode {connected_output.node.name}"
+                                f"Cannot connect {draft_node} to non-DraftNode {connected_output.node.name}"
                             )
                         )
 
                     # the placeholder was defined on the FlowHDL instance and is a DraftNode, so connect the nodes
                     logger.debug(f"Connecting {output_source_node} to {input_port}")
-                    output_source_node.output(input_port.connected_output.port_index).connect(input_port_ref)
+                    output_source_node.output(
+                        input_port.connected_output.port_index
+                    ).connect(draft_node.input(input_port_index))
 
-        final_by_draft: dict[
-            DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],
-            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
-        ] = dict()
+        # ======== Phase 2 ========
+        # Now that all OutputPortRefPlaceholders have been replaced with
+        # DraftOutputPortRefs, we wrap each draft node in a blank finalized node
+        # and register it with the flow.
 
-        # traverse the entire graph, creating blank finalized nodes
-        visited: set[DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = set()
-
-        def visit_node(draft_node: DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> None:
-            logger.debug(f"{draft_node} Visiting")
-            if draft_node in visited:
-                logger.debug(f"{draft_node} Already visited")
-                return
-
-            visited.add(draft_node)
+        for draft_node in draft_nodes:
             finalized_node = draft_node._blank_finalized()
-            # finalized_node has empty _input_ports and _connected_output_nodes
-            final_by_draft[draft_node] = finalized_node
+            finalized_nodes[draft_node] = finalized_node
             self._flow.add_node(finalized_node)
 
-            for downstream_node in draft_node.get_output_nodes():
-                visit_node(downstream_node)
-            for upstream_node in draft_node.get_input_nodes():
-                visit_node(upstream_node)
+        # ======== Phase 3 ========
+        # Now that the finalized nodes exist, we can finalize wire up the connections.
 
-        logger.debug("DFS Traversing the flow graph to register nodes with the flow.")
-        for draft_node in self._nodes.values():
-            if isinstance(draft_node, DraftNode):
-                visit_node(draft_node)
-
-        # Now I need to fill in the empty _input_ports and _connection_output_ports
-        for draft_node, finalized_node in final_by_draft.items():
+        for draft_node, finalized_node in finalized_nodes.items():
             finalized_node._input_ports = {
-                index: draft_input_port._finalize(index, final_by_draft)
+                index: draft_input_port._finalize(index, finalized_nodes)
                 for index, draft_input_port in draft_node._input_ports.items()
             }
             finalized_node._connected_output_nodes = {
-                index: [final_by_draft[connected_draft] for connected_draft in connected_drafts]
+                index: [
+                    finalized_nodes[connected_draft]
+                    for connected_draft in connected_drafts
+                ]
                 for index, connected_drafts in draft_node._connected_output_nodes.items()
             }
 
-        # overwrite self._nodes[name] with the finalized node
+        # ======== Phase 4 ========
+        # Replace all DraftNodes in self._nodes with their finalized counterparts.
+
         for name, obj in self._nodes.items():
             if isinstance(obj, DraftNode):
-                self._nodes[name] = final_by_draft[obj]
+                self._nodes[name] = finalized_nodes[obj]
 
         self._is_finalized = True
         logger.debug("Finished Finalizing FlowHDL into Flow")
