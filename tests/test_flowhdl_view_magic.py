@@ -42,7 +42,7 @@ def test_getattr_returns_placeholder_before_finalize():
     placeholder = hdl.some_node  # not defined yet
     from flowno.core.node_base import NodePlaceholder
     assert isinstance(placeholder, NodePlaceholder)
-    assert placeholder.node.name == "some_node"
+    assert placeholder.name == "some_node"
 
 
 def test_connect_two_nodes_out_of_order_and_finalize():
@@ -65,10 +65,10 @@ def test_connect_two_nodes_out_of_order_and_finalize():
     # There should be exactly two input ports
     assert set(input_ports.keys()) == {0, 1}
     # upstream of input 0 is f.a, upstream of input 1 is f.b
-    upstreams = [p._connected_output_nodes for p in input_ports.values()]
-    # Each upstreams[i] should point to the finalized Source node
-    assert any(isinstance(node, FinalizedNode) for node in upstreams[0])
-    assert any(isinstance(node, FinalizedNode) for node in upstreams[1])
+    upstreams = [p.connected_output.node for p in input_ports.values()]
+    # Each upstream should be the finalized Source node we defined
+    assert upstreams[0] is f.a
+    assert upstreams[1] is f.b
 
 
 def test_missing_definition_raises_on_finalize():
@@ -88,10 +88,10 @@ def test_connect_to_non_draftnode_raises():
     Assign a non‐DraftNode to a name, then try to wire to it; finalize should complain.
     """
     f = FlowHDL()
-    # Put a raw integer under f.baz
-    f.baz = 999
-    # Then attempt to connect Add(f.baz, Source(1)) under f.x
+    # Reference f.baz before it is defined so a placeholder is captured
     f.x = Add(f.baz, Source(1))
+    # Now assign a non-DraftNode value to f.baz
+    f.baz = 999
     with pytest.raises(AttributeError) as excinfo:
         f._finalize()
     assert "baz" in str(excinfo.value)

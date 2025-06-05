@@ -16,7 +16,15 @@ from typing_extensions import Self, TypeVarTuple, Unpack, override
 logger = logging.getLogger(__name__)
 
 class FlowHDLView:
-    """The parent class for FlowHDL context.
+    """Base implementation of the :class:`FlowHDL` attribute protocol.
+
+    ``FlowHDLView`` acts like a simple namespace for draft nodes.  Public
+    attribute assignments are stored in ``self._nodes`` while private names
+    (those starting with ``_``) behave like normal Python attributes.  Accessing
+    an undefined public attribute before the view is finalized returns a
+    :class:`~flowno.core.node_base.NodePlaceholder` so that connections can be
+    declared before the target node is defined.  Once finalized, attribute
+    lookups behave normally and missing attributes raise :class:`AttributeError`.
     """
 
     _is_finalized: bool

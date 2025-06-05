@@ -244,8 +244,12 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             list[DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]],
         ] = defaultdict(list)
 
-        minimum_run_level = self._minimum_run_level or [0] * len(args)
-        for input_port_index in (InputPortIndex(index) for index in range(len(args))):
+        max_ports = max(len(args), len(self._minimum_run_level))
+        if self._minimum_run_level:
+            minimum_run_level = list(self._minimum_run_level) + [0] * (max_ports - len(self._minimum_run_level))
+        else:
+            minimum_run_level = [0] * max_ports
+        for input_port_index in (InputPortIndex(index) for index in range(max_ports)):
             self._input_ports[input_port_index].minimum_run_level = minimum_run_level[input_port_index]
 
         # loop over each argument and set up the corresponding input port
