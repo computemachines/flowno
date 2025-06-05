@@ -102,7 +102,11 @@ class FlowHDLView:
             last_hdl = next(reversed(cls.contextStack))
             cls.contextStack[last_hdl].append(node)
         else:
-            raise RuntimeError("No FlowHDL context is active to register the node.")
+            # raise RuntimeError("No FlowHDL context is active to register the node.")
+            logger.warning(
+                f"Node, {node}, registered outside of FlowHDL context. "
+                "This node will not be automatically finalized."
+            )
 
     def _finalize(self, draft_nodes: list[DraftNode]) -> None:
         """Finalize all the draft nodes instantiated in the FlowHDL context.

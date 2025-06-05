@@ -49,7 +49,6 @@ from flowno.utilities.helpers import (
 )
 from typing_extensions import TypeVarTuple, Unpack, deprecated, override
 
-from flowno.core.flow_hdl_view import FlowHDLView
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +198,7 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
         for input_port_index in (InputPortIndex(index) for index in range(max_ports)):
             self._input_ports[input_port_index].minimum_run_level = minimum_run_level[input_port_index]
 
+        from .flow_hdl_view import FlowHDLView
         FlowHDLView.register_node(self)
 
         # loop over each argument and set up the corresponding input port

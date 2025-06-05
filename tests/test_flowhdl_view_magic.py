@@ -75,10 +75,9 @@ def test_missing_definition_raises_on_finalize():
     """
     If we reference a placeholder inside FlowHDL but never define it, finalize should fail.
     """
-    f = FlowHDL()
-    f.foo = Add(f.bar, Source(3))  # f.bar never defined
     with pytest.raises(AttributeError) as excinfo:
-        f._finalize()
+        with FlowHDL() as f:
+            f.foo = Add(f.bar, Source(3))  # f.bar never defined
     # The message should mention that 'bar' is not defined
     assert "bar" in str(excinfo.value)
 
@@ -87,13 +86,14 @@ def test_connect_to_non_draftnode_raises():
     """
     Assign a non‐DraftNode to a name, then try to wire to it; finalize should complain.
     """
-    f = FlowHDL()
     # Reference f.baz before it is defined so a placeholder is captured
-    f.x = Add(f.baz, Source(1))
+
     # Now assign a non-DraftNode value to f.baz
-    f.baz = 999
     with pytest.raises(AttributeError) as excinfo:
-        f._finalize()
+        with FlowHDL() as f:
+            f.foo = Add(f.baz, Source(3))
+            f.baz = 999
+
     assert "baz" in str(excinfo.value)
 
 
@@ -108,10 +108,10 @@ def test_unconnected_input_without_default_value_raises():
         return x + y
 
     f = FlowHDL()
-    # f.one = NeedsTwo()  # never supplying both inputs
-    f.one = NeedsTwo(1)  # missing second argument y and no default
     with pytest.raises(AttributeError) as excinfo:
-        f._finalize()
+        with f:
+            # f.one = NeedsTwo()  # never supplying both inputs
+            f.one = NeedsTwo(1)  # missing second argument y and no default
     assert "is not connected and has no default value" in str(excinfo.value)
 
 def test_accessing_nonexistent_node_after_finalize_raises():
