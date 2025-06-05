@@ -534,8 +534,11 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                     # Skip this input port if it is not connected.
                     if consumer_input.connected_output is None:
                         continue
-                    # Check that this input port is connected to self.
-                    if consumer_input.connected_output.node is self:
+                    # Check that this input port is connected specifically to the current output port.
+                    if (
+                        consumer_input.connected_output.node is self
+                        and consumer_input.connected_output.port_index == output_port
+                    ):
                         # Check if this input port expects data at the specified run level.
                         if consumer_input.minimum_run_level == run_level:
                             ret.append(consumer_input)
