@@ -660,7 +660,6 @@ class Flow:
             MissingDefaultError: If a cycle is detected with no default values to break it
         """
         supernode_root = self._condensed_tree(node)
-        condensed_mermaid = supernode_root.generate_mermaid_charts_for_condensed_graph()
 
         nodes_to_force_evaluate: list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = []
         for supernode in self._find_leaf_supernodes(supernode_root):

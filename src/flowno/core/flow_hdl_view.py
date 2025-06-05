@@ -1,7 +1,7 @@
 import inspect
 import logging
 from types import TracebackType
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar, TypeVar, cast
 
 from flowno.core.flow.flow import Flow
 from flowno.core.node_base import (
@@ -12,8 +12,12 @@ from flowno.core.node_base import (
     OutputPortRefPlaceholder,
 )
 from typing_extensions import Self, TypeVarTuple, Unpack, override
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
+
+_Ts = TypeVarTuple("_Ts")
+_ReturnTupleT_co = TypeVar("_ReturnTupleT_co", covariant=True, bound=tuple[object, ...])
 
 class FlowHDLView:
     """Base implementation of the :class:`FlowHDL` attribute protocol.
@@ -32,10 +36,15 @@ class FlowHDLView:
     
     KEYWORDS: ClassVar[list[str]] = []
 
+    contextStack: ClassVar[OrderedDict[Self, list[DraftNode]]] = OrderedDict()
+
     def __init__(self) -> None:
         self._is_finalized = False
         self._nodes: dict[str, Any] = {}  # pyright: ignore[reportExplicitAny]
+
     def __enter__(self: Self) -> Self:
+        """Enter the context by adding this instance to the context stack."""
+        self.__class__.contextStack[self] = []
         return self
 
     def __exit__(
@@ -45,6 +54,7 @@ class FlowHDLView:
         exc_tb: TracebackType | None,
     ) -> bool:
         """Finalize the graph when exiting the context by calling :meth:`_finalize`."""
+        self.__class__.contextStack.popitem()
         self._finalize()
         return False
 
@@ -83,6 +93,15 @@ class FlowHDLView:
             raise AttributeError(f'Attribute "{key}" not found')
         return NodePlaceholder(key)
 
+    @classmethod
+    def register_node(cls, node: DraftNode[Unpack[_Ts], _ReturnTupleT_co]) -> None:
+        """Register a draft node in the context stack."""
+        if cls.contextStack:
+            # Get the last FlowHDL instance in the context stack
+            last_hdl = next(reversed(cls.contextStack))
+            cls.contextStack[last_hdl].append(node)
+        else:
+            raise RuntimeError("No FlowHDL context is active to register the node.")
     
     def _finalize(self) -> None:
         """Finalize the graph by replacing connections to placeholders with

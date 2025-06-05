@@ -49,6 +49,8 @@ from flowno.utilities.helpers import (
 )
 from typing_extensions import TypeVarTuple, Unpack, deprecated, override
 
+from flowno.core.flow_hdl_view import FlowHDLView
+
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
@@ -89,25 +91,6 @@ class SuperNode:
     def __hash__(self) -> int:
         return id(self.head)
 
-    @deprecated("Not used")
-    def generate_mermaid_charts_for_condensed_graph(self) -> str:
-        """
-        Generates two ouputs:
-          1) A mermaid diagram of the condensed graph.
-          2) A dictionary mapping each supernode to a mermaid diagram of its internal members.
-        """
-
-        # 1. Gather all supernodes in the DAG starting from root
-        all_supernodes = self.gather_supernodes()
-
-        # 2. Assign an ID to each supernode for the diagram
-        #    Example: S0, S1, S2, ...
-        supernode_ids = {snode: f"S{idx}" for idx, snode in enumerate(all_supernodes)}
-
-        # 3. Build one big mermaid graph for the condensed DAG
-        condensed_mermaid = SuperNode.build_condensed_mermaid(all_supernodes, supernode_ids)
-        return condensed_mermaid
-
     def gather_supernodes(self) -> list["SuperNode"]:
         """
         Simple DFS to collect every SuperNode reachable from `root`.
@@ -123,42 +106,6 @@ class SuperNode:
                     if dep not in visited:
                         stack.append(dep)
         return list(visited)
-
-    @staticmethod
-    @deprecated("Not used")
-    def build_condensed_mermaid(all_snodes: list["SuperNode"], supernode_ids: dict["SuperNode", str]) -> str:
-        """
-        Produce a single Mermaid diagram that shows all SuperNodes as nodes
-        and draws edges for each supernode.dependencies entry.
-        """
-        lines = [
-            "```mermaid",
-            "---",
-            "title: Condensed Graph of Considered Stale Connections",
-            "---",
-            "flowchart LR",
-        ]
-
-        for snode in all_snodes:
-            for dep in snode.dependencies:
-                lines.append(f"    {supernode_ids[dep]} --> {supernode_ids[snode]}")
-
-        for snode in all_snodes:
-            lines.append(f"    subgraph {supernode_ids[snode]}")
-            for node in snode.members.keys():
-                lines.append(f"        {_node_id(node)}[{_node_label(node)}]")
-                for input_port_index in node._input_ports:
-                    inport = node._input_ports[input_port_index]
-                    upstream_connection = inport.connected_output
-                    if upstream_connection is None:
-                        continue
-                    upstream_node = upstream_connection.node
-                    if upstream_node in snode.members:
-                        lines.append(f"        {_node_id(node)} --> {_node_id(upstream_node)}")
-            lines.append("    end")
-        lines.append("```")
-
-        return "\n".join(lines)
 
 
 @deprecated("Not used")
@@ -251,6 +198,8 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             minimum_run_level = [0] * max_ports
         for input_port_index in (InputPortIndex(index) for index in range(max_ports)):
             self._input_ports[input_port_index].minimum_run_level = minimum_run_level[input_port_index]
+
+        FlowHDLView.register_node(self)
 
         # loop over each argument and set up the corresponding input port
         for input_connection, arg in (
