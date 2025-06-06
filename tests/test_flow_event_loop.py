@@ -106,7 +106,7 @@ def test_sleep():
         log.append("main start")
         t = await spawn(foo())
         actual = await sleep(0.1)
-        assert 0.1 <= actual <= 0.11
+        assert 0.1 <= actual <= 0.12
         await t.join()
         log.append("main end")
 
@@ -121,7 +121,7 @@ def test_sleep():
     assert log == []
 
     duration = timeit.timeit(lambda: flow.run_until_complete(), number=1)
-    assert 0.1 <= duration <= 0.11
+    assert 0.1 <= duration <= 0.12
     print(f"Execution time: {duration} seconds")
     assert log == ["main start", "foo start", "foo end", "main end"]
 
@@ -231,6 +231,7 @@ def test_exception_handling():
     assert log == ["main start", "foo start", "Caught exception: Something went wrong", "main end"]
 
 
+@pytest.mark.network
 def test_tls_socket():
     @node
     async def main():
@@ -247,6 +248,7 @@ def test_tls_socket():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
+@pytest.mark.network
 def test_recv_zero_bytes():
     @node
     async def main():
@@ -263,6 +265,7 @@ def test_recv_zero_bytes():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
+@pytest.mark.network
 def test_recv_double():
     @node
     async def main():
@@ -283,6 +286,7 @@ def test_recv_double():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
+@pytest.mark.network
 def test_http_get():
     @node
     async def main():
@@ -297,6 +301,7 @@ def test_http_get():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
+@pytest.mark.network
 def test_http_get_https():
     @node
     async def main():

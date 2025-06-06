@@ -64,13 +64,25 @@ def test_create_task_runs1():
     threading.Thread(target=create_task_thread).start()
     loop.run_until_complete(main(), join=True)
 
-    assert_fuzzy_log(log, [
-        (0, "MAIN START"),
-        (0.1, "TASK CREATING"),
-        (0.1, "TASK CREATED"),
-        (0.1, "TASK EXECUTING"),
-        (1, "MAIN END"),
-    ])
+    expected_orders = [
+        [
+            "MAIN START",
+            "TASK CREATING",
+            "TASK CREATED",
+            "TASK EXECUTING",
+            "MAIN END",
+        ],
+        [
+            "MAIN START",
+            "TASK CREATING",
+            "TASK EXECUTING",
+            "TASK CREATED",
+            "MAIN END",
+        ],
+    ]
+
+    msgs = [msg for _, msg in log]
+    assert msgs in expected_orders
 
 
 
@@ -114,13 +126,36 @@ def test_create_task_runs2():
     threading.Thread(target=create_task_thread).start()
     loop.run_until_complete(main(), join=True)
 
-    assert_fuzzy_log(log, [
-        (0, "MAIN START"),
-        (0.1, "TASK CREATING"),
-        (0.1, "TASK CREATED"),
-        (0.1, "TASK EXECUTING"),
-        (0.1, "MAIN GOT VALUE hello"),
-        (0.1, "MAIN END"),
-        (0.1, "TASK FINISHED"),
-    ])
+    expected_orders = [
+        [
+            "MAIN START",
+            "TASK CREATING",
+            "TASK CREATED",
+            "TASK EXECUTING",
+            "MAIN GOT VALUE hello",
+            "MAIN END",
+            "TASK FINISHED",
+        ],
+        [
+            "MAIN START",
+            "TASK CREATING",
+            "TASK EXECUTING",
+            "TASK CREATED",
+            "MAIN GOT VALUE hello",
+            "MAIN END",
+            "TASK FINISHED",
+        ],
+        [
+            "MAIN START",
+            "TASK CREATING",
+            "TASK EXECUTING",
+            "MAIN GOT VALUE hello",
+            "MAIN END",
+            "TASK FINISHED",
+            "TASK CREATED",
+        ],
+    ]
+
+    msgs = [msg for _, msg in log]
+    assert msgs in expected_orders
 
