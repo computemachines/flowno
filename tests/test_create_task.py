@@ -94,6 +94,7 @@ def test_create_task_runs2():
         log.append((time.time() - start_time, msg))
 
     async def task(q: AsyncQueue[str]):
+        await sleep(0.05)
         append_to_log("TASK EXECUTING")
         await q.put("hello")
         append_to_log("TASK FINISHED")
