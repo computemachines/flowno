@@ -621,20 +621,23 @@ class Flow:
         if not self.unvisited:
             logger.warning("No nodes to run.")
 
-        initial_node = self.unvisited.pop(0)
-        get_current_flow_instrument().on_resolution_queue_put(self, initial_node)
-        await self.resolution_queue.put(initial_node)
+        while self.unvisited:
+            initial_node = self.unvisited.pop(0)
+            if self.resolution_queue.closed:
+                self.resolution_queue = AsyncSetQueue()
+            get_current_flow_instrument().on_resolution_queue_put(self, initial_node)
+            await self.resolution_queue.put(initial_node)
 
-        # blocks until a node is available or the queue is closed
-        async for current_node in self.resolution_queue:
-            get_current_flow_instrument().on_resolution_queue_get(self, current_node)
+            # blocks until a node is available or the queue is closed
+            async for current_node in self.resolution_queue:
+                get_current_flow_instrument().on_resolution_queue_get(self, current_node)
 
-            solution_nodes = self._find_node_solution(current_node)
-            get_current_flow_instrument().on_solving_nodes(self, current_node, solution_nodes)
+                solution_nodes = self._find_node_solution(current_node)
+                get_current_flow_instrument().on_solving_nodes(self, current_node, solution_nodes)
 
-            for leaf_node in solution_nodes:
-                self._mark_node_as_visited(leaf_node)
-                await _resume_node(leaf_node)
+                for leaf_node in solution_nodes:
+                    self._mark_node_as_visited(leaf_node)
+                    await _resume_node(leaf_node)
 
         # self.event_loop.clean_up()
         get_current_flow_instrument().on_flow_end(self)
