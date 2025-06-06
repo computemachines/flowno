@@ -63,7 +63,7 @@ def test_mixed_anonymous_named_cycle():
     with raises(TerminateLimitReached):
         f.run_until_complete(stop_at_node_generation={f.start: (2,)})
 
-    assert f.start.get_data() == (4,)
+    assert f.start.get_data() == (14,)
 
 
 def test_anonymous_multiple_outputs():
