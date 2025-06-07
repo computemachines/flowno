@@ -23,7 +23,7 @@ def test_set_and_get_simple_attribute():
     Assign a “private” (_something) vs. a public attribute name and ensure __setattr__/__getattribute__
     behave as expected. Anything starting with '_' should be stored on the instance, not in _nodes.
     """
-    hdl = FlowHDLView()
+    hdl = FlowHDLView(lambda _: None)  # Dummy callback for on_register_finalized_node
     # Setting a private attribute: goes to object __dict__, not _nodes
     hdl._foo = 123
     assert hdl._foo == 123
@@ -38,7 +38,7 @@ def test_getattr_returns_placeholder_before_finalize():
     If we reference an attribute in a FlowHDLView before it’s ever been set,
     __getattr__ should return a NodePlaceholder (not raise immediately).
     """
-    hdl = FlowHDLView()
+    hdl = FlowHDLView(lambda _: None)  # Dummy callback for on_register_finalized_node
     placeholder = hdl.some_node  # not defined yet
     from flowno.core.node_base import NodePlaceholder
     assert isinstance(placeholder, NodePlaceholder)
