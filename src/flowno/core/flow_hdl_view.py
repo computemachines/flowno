@@ -37,7 +37,7 @@ class FlowHDLView:
 
     _is_finalized: bool
 
-    KEYWORDS: ClassVar[list[str]] = []
+    KEYWORDS: ClassVar[list[str]] = ["register_child_result"]
 
     contextStack: ClassVar[OrderedDict[Self, list[DraftNode]]] = OrderedDict()
 
