@@ -24,7 +24,8 @@ async def Print(value: int, prefix: str = "Value: ") -> None:
 
 if __name__ == "__main__":
     with FlowHDL() as f:
-        f.result = MyGroup(42)
+        f.my_constant = MyConstant()
+        f.result = MyGroup(f.my_constant)
         f.print_result = Print(f.result)
 
     # No run_until_complete; just ensure group finalization messages appear
