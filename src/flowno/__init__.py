@@ -27,6 +27,7 @@ from .core.event_loop.queues import AsyncQueue
 from .core.event_loop.selectors import SocketHandle
 from .core.flow.flow import Flow, TerminateLimitReached
 from .core.flow_hdl import FlowHDL
+from .core.flow_hdl_view import FlowHDLView
 from .core.node_base import DraftNode, Stream
 from .core.group_node import DraftGroupNode
 from .decorators import node
@@ -92,12 +93,12 @@ __all__ = [
     "spawn",
     "sleep",
     "socket",
-    "nodes",
     "DraftNode",
     "DraftGroupNode",
     "Stream",
     "SocketHandle",
     "FlowHDL",
+    "FlowHDLView",
     "EventLoop",
     "AsyncQueue",
     "TerminateLimitReached",

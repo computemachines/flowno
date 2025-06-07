@@ -79,7 +79,10 @@ class FlowHDL(FlowHDLView):
     """Keywords that should not be treated as nodes in the graph."""
 
     def __init__(self) -> None:
-        super().__init__()
+        def _on_register_finalized_node(node: FinalizedNode) -> None:
+            """Callback to handle finalized nodes."""
+            self._flow.add_node(node)
+        super().__init__(on_register_finalized_node=_on_register_finalized_node)
         self._flow: Flow = Flow(is_finalized=False)
     
     @override

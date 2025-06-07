@@ -18,7 +18,6 @@ class DraftGroupNode(DraftNode[Unpack[_Ts], tuple[Any, ...]]):
     """Minimal draft group node used for experimenting with template groups."""
 
     original_func: ClassVar[Any]
-    _sub_view: 'FlowHDLView'
     _return_node: DraftNode
 
     @override
@@ -27,16 +26,20 @@ class DraftGroupNode(DraftNode[Unpack[_Ts], tuple[Any, ...]]):
         super().__init__(*args)
         from .flow_hdl_view import FlowHDLView
 
-        parent = next(reversed(FlowHDLView.contextStack))
-        with FlowHDLView() as sub_view:
-            sub_view._flow = getattr(parent, "_flow", None)  # type: ignore[attr-defined]
+        closest_context = next(reversed(FlowHDLView.contextStack))
+        if closest_context is None:
+            raise RuntimeError("A group node must be defined within a FlowHDL context")
+
+        with FlowHDLView(
+            on_register_finalized_node=closest_context._on_register_finalized_node
+        ) as sub_view:
             self._return_node = self.__class__.original_func(sub_view, *args)
-        self._sub_view = sub_view
+        self._debug_context_nodes = FlowHDLView.contextStack[sub_view]
 
     async def call(self, *args: Unpack[_Ts]):  # type: ignore[override]
         raise RuntimeError("Group nodes do not run")
 
     def debug_dummy(self) -> None:
         print(
-            f"[DEBUG] finalize group {self.__class__.__name__} with sub nodes {list(self._sub_view._nodes.keys())}"
+            f"[DEBUG] finalize group {self.__class__.__name__} with sub nodes {self._debug_context_nodes} and return node {self._return_node}"
         )
