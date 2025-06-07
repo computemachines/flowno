@@ -11,6 +11,7 @@ from flowno.core.node_base import (
     NodePlaceholder,
     OutputPortRefPlaceholder,
 )
+from flowno.core.group_node import DraftGroupNode
 from typing_extensions import Self, TypeVarTuple, Unpack, override
 from collections import OrderedDict
 
@@ -120,6 +121,10 @@ class FlowHDLView:
                 within this "layer" of the FlowHDL context.
         """
         logger.info("Finalizing FlowHDL")
+
+        for dn in draft_nodes:
+            if isinstance(dn, DraftGroupNode):
+                dn.debug_dummy()
 
         finalized_nodes: dict[
             DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],

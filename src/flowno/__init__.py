@@ -28,6 +28,7 @@ from .core.event_loop.selectors import SocketHandle
 from .core.flow.flow import Flow, TerminateLimitReached
 from .core.flow_hdl import FlowHDL
 from .core.node_base import DraftNode, Stream
+from .core.group_node import DraftGroupNode
 from .decorators import node
 
 try:
@@ -93,6 +94,7 @@ __all__ = [
     "socket",
     "nodes",
     "DraftNode",
+    "DraftGroupNode",
     "Stream",
     "SocketHandle",
     "FlowHDL",
