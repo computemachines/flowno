@@ -75,7 +75,12 @@ class FlowHDL(FlowHDLView):
     :canonical: :py:class:`flowno.core.flow_hdl.FlowHDL`
     """
 
-    KEYWORDS: ClassVar[list[str]] = ["KEYWORDS", "run_until_complete", "create_task"]
+    KEYWORDS: ClassVar[list[str]] = [
+        "KEYWORDS",
+        "run_until_complete",
+        "create_task",
+        "register_child_result",
+    ]
     """Keywords that should not be treated as nodes in the graph."""
 
     def __init__(self) -> None:
