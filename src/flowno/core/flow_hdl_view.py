@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import inspect
 import logging
 from types import TracebackType
@@ -11,6 +12,7 @@ from flowno.core.node_base import (
     NodePlaceholder,
     OutputPortRefPlaceholder,
 )
+from flowno.core.group_node import DraftGroupNode
 from typing_extensions import Self, TypeVarTuple, Unpack, override
 from collections import OrderedDict
 
@@ -33,15 +35,15 @@ class FlowHDLView:
     """
 
     _is_finalized: bool
-    _flow: Flow
 
     KEYWORDS: ClassVar[list[str]] = []
 
     contextStack: ClassVar[OrderedDict[Self, list[DraftNode]]] = OrderedDict()
 
-    def __init__(self) -> None:
+    def __init__(self, on_register_finalized_node: Callable[[FinalizedNode], None]) -> None:
         self._is_finalized = False
         self._nodes: dict[str, Any] = {}  # pyright: ignore[reportExplicitAny]
+        self._on_register_finalized_node = on_register_finalized_node
 
     def __enter__(self: Self) -> Self:
         """Enter the context by adding this instance to the context stack."""
@@ -121,6 +123,10 @@ class FlowHDLView:
         """
         logger.info("Finalizing FlowHDL")
 
+        for dn in draft_nodes:
+            if isinstance(dn, DraftGroupNode):
+                dn.debug_dummy()
+
         finalized_nodes: dict[
             DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],
             FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
@@ -187,7 +193,7 @@ class FlowHDLView:
         for draft_node in draft_nodes:
             finalized_node = draft_node._blank_finalized()
             finalized_nodes[draft_node] = finalized_node
-            self._flow.add_node(finalized_node)
+            self._on_register_finalized_node(finalized_node)
 
         # ======== Phase 3 ========
         # Now that the finalized nodes exist, we can finalize wire up the connections.
