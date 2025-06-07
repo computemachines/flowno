@@ -1,6 +1,7 @@
 from collections.abc import Callable
 import inspect
 import logging
+from dataclasses import dataclass
 from types import TracebackType
 from typing import Any, ClassVar, TypeVar, cast
 
@@ -40,14 +41,24 @@ class FlowHDLView:
 
     contextStack: ClassVar[OrderedDict[Self, list[DraftNode]]] = OrderedDict()
 
+    @dataclass
+    class FinalizationResult:
+        nodes: dict[str, Any]
+        finalized_nodes: dict[
+            DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        ]
+
     def __init__(self, on_register_finalized_node: Callable[[FinalizedNode], None]) -> None:
         self._is_finalized = False
         self._nodes: dict[str, Any] = {}  # pyright: ignore[reportExplicitAny]
+        self._child_results: list[FlowHDLView.FinalizationResult] = []
         self._on_register_finalized_node = on_register_finalized_node
 
     def __enter__(self: Self) -> Self:
         """Enter the context by adding this instance to the context stack."""
         self.__class__.contextStack[self] = []
+        self._child_results = []
         return self
 
     def __exit__(
@@ -58,7 +69,11 @@ class FlowHDLView:
     ) -> bool:
         """Finalize the graph when exiting the context by calling :meth:`_finalize`."""
         _, draft_nodes = self.__class__.contextStack.popitem()
-        self._finalize(draft_nodes)
+        finalize_connections = len(self.__class__.contextStack) == 0
+        result = self._finalize(draft_nodes, finalize_connections=finalize_connections)
+        if self.__class__.contextStack:
+            parent = next(reversed(self.__class__.contextStack))
+            parent.register_child_result(result)
         return False
 
     @override
@@ -110,7 +125,11 @@ class FlowHDLView:
                 "This node will not be automatically finalized."
             )
 
-    def _finalize(self, draft_nodes: list[DraftNode]) -> None:
+    def register_child_result(self, result: "FlowHDLView.FinalizationResult") -> None:
+        """Register a finalized child context result with this view."""
+        self._child_results.append(result)
+
+    def _finalize(self, draft_nodes: list[DraftNode], *, finalize_connections: bool = True) -> "FlowHDLView.FinalizationResult":
         """Finalize all the draft nodes instantiated in the FlowHDL context.
 
         Replace nodes defined in the FlowHDL context with their finalized
@@ -123,21 +142,28 @@ class FlowHDLView:
         """
         logger.info("Finalizing FlowHDL")
 
-        for dn in draft_nodes:
-            if isinstance(dn, DraftGroupNode):
-                dn.debug_dummy()
-
+        all_draft_nodes: list[DraftNode] = []
         finalized_nodes: dict[
             DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],
             FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
         ] = dict()
+
+        for child in self._child_results:
+            self._nodes.update(child.nodes)
+            finalized_nodes.update(child.finalized_nodes)
+            all_draft_nodes.extend(child.finalized_nodes.keys())
+
+        for dn in draft_nodes:
+            if isinstance(dn, DraftGroupNode):
+                dn.debug_dummy()
+            all_draft_nodes.append(dn)
 
         # ======== Phase 1 ========
         # Replace all OutputPortRefPlaceholders with actual DraftOutputPortRefs
         # OutputPortRefPlaceholders are generated when using a forward reference
         # on the FlowHDLView context.
 
-        for unknown_node in draft_nodes:
+        for unknown_node in all_draft_nodes:
             draft_node = cast(
                 DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node
             )
@@ -195,28 +221,32 @@ class FlowHDLView:
             finalized_nodes[draft_node] = finalized_node
             self._on_register_finalized_node(finalized_node)
 
-        # ======== Phase 3 ========
-        # Now that the finalized nodes exist, we can finalize wire up the connections.
+        if finalize_connections:
+            # ======== Phase 3 ========
+            # Now that the finalized nodes exist, we can finalize wire up the connections.
 
-        for draft_node, finalized_node in finalized_nodes.items():
-            finalized_node._input_ports = {
-                index: draft_input_port._finalize(index, finalized_nodes)
-                for index, draft_input_port in draft_node._input_ports.items()
-            }
-            finalized_node._connected_output_nodes = {
-                index: [
-                    finalized_nodes[connected_draft]
-                    for connected_draft in connected_drafts
-                ]
-                for index, connected_drafts in draft_node._connected_output_nodes.items()
-            }
+            for draft_node, finalized_node in finalized_nodes.items():
+                finalized_node._input_ports = {
+                    index: draft_input_port._finalize(index, finalized_nodes)
+                    for index, draft_input_port in draft_node._input_ports.items()
+                }
+                finalized_node._connected_output_nodes = {
+                    index: [
+                        finalized_nodes[connected_draft]
+                        for connected_draft in connected_drafts
+                    ]
+                    for index, connected_drafts in draft_node._connected_output_nodes.items()
+                }
 
-        # ======== Phase 4 ========
-        # Replace all DraftNodes in self._nodes with their finalized counterparts.
+            # ======== Phase 4 ========
+            # Replace all DraftNodes in self._nodes with their finalized counterparts.
 
-        for name, obj in self._nodes.items():
-            if isinstance(obj, DraftNode):
-                self._nodes[name] = finalized_nodes[obj]
+            for name, obj in self._nodes.items():
+                if isinstance(obj, DraftNode):
+                    self._nodes[name] = finalized_nodes[obj]
 
-        self._is_finalized = True
-        logger.debug("Finished Finalizing FlowHDL into Flow")
+            self._is_finalized = True
+            self._child_results = []
+            logger.debug("Finished Finalizing FlowHDL into Flow")
+
+        return FlowHDLView.FinalizationResult(nodes=dict(self._nodes), finalized_nodes=finalized_nodes)
