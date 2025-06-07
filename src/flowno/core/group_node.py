@@ -34,7 +34,7 @@ class DraftGroupNode(DraftNode[Unpack[_Ts], tuple[Any, ...]]):
             on_register_finalized_node=closest_context._on_register_finalized_node
         ) as sub_view:
             self._return_node = self.__class__.original_func(sub_view, *args)
-        self._debug_context_nodes = FlowHDLView.contextStack[sub_view]
+            self._debug_context_nodes = FlowHDLView.contextStack[sub_view]
 
     async def call(self, *args: Unpack[_Ts]):  # type: ignore[override]
         raise RuntimeError("Group nodes do not run")
