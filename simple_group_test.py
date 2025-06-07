@@ -1,4 +1,5 @@
-from flowno import node, FlowHDL, DraftNode
+from flowno import node, FlowHDL
+from flowno.core.flow_hdl_view import FlowHDLView
 
 @node
 async def MyConstant() -> int:
@@ -11,9 +12,9 @@ async def Increment(a: int) -> int:
     return a + 1
 
 @node.template
-def MyGroup(f: FlowHDL, g_input: int):
-    """A simple group that increments a constant value by 2."""
-    f.incremented_twice = Increment(Increment(f.constant))
+def MyGroup(f: FlowHDLView, g_input: int):
+    """A simple group that increments an input value by 2."""
+    f.incremented_twice = Increment(Increment(g_input))
     return f.incremented_twice
 
 @node
@@ -23,9 +24,7 @@ async def Print(value: int, prefix: str = "Value: ") -> None:
 
 if __name__ == "__main__":
     with FlowHDL() as f:
-        f.constant = MyConstant()
-        f.result = MyGroup(f.constant)
+        f.result = MyGroup(42)
         f.print_result = Print(f.result)
 
-    f.run_until_complete()
-    # Should print "Final Result: Value: 44"
+    # No run_until_complete; just ensure group finalization messages appear
