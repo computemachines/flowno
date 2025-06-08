@@ -202,12 +202,16 @@ class FlowHDLView:
                     )
                     conn.node = replacement
 
-        # Also ensure producers no longer list the dropped group nodes
+        # Also ensure producers no longer list the dropped group nodes. We
+        # already added the replacement node as a consumer when we rewired the
+        # input ports above, so simply drop the group node entries here.
         for producer in all_draft_nodes:
-            for consumers in producer._connected_output_nodes.values():
-                for idx, consumer in enumerate(list(consumers)):
-                    if isinstance(consumer, DraftGroupNode) and consumer in group_alias:
-                        consumers[idx] = group_alias[consumer]
+            for port_index, consumers in producer._connected_output_nodes.items():
+                producer._connected_output_nodes[port_index] = [
+                    c
+                    for c in consumers
+                    if not isinstance(c, DraftGroupNode)
+                ]
 
         # ======== Phase 1 ========
         # Replace all OutputPortRefPlaceholders with actual DraftOutputPortRefs
