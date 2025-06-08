@@ -163,6 +163,7 @@ class FlowHDLView:
         # draft nodes.
         for name, obj in list(self._nodes.items()):
             if isinstance(obj, DraftGroupNode):
+                # Emit debug information when we first encounter the group node.
                 obj.debug_dummy()
                 group_alias[obj] = obj._return_node
                 self._nodes[name] = obj._return_node
@@ -170,7 +171,10 @@ class FlowHDLView:
         clean_draft_nodes: list[DraftNode] = []
         for dn in draft_nodes:
             if isinstance(dn, DraftGroupNode):
-                dn.debug_dummy()
+                # Avoid printing debug info twice if the group was stored on
+                # this view and processed above.
+                if dn not in group_alias:
+                    dn.debug_dummy()
                 group_alias.setdefault(dn, dn._return_node)
                 continue
             all_draft_nodes.append(dn)
