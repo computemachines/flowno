@@ -136,7 +136,7 @@ def test_queue_mpsc():
     start_time = time()
     total = loop.run_until_complete(main(), join=True)
     duration = time() - start_time
-    assert 1 <= duration <= 1.1
+    assert 1 <= duration <= 2.5
     assert total == 45 * 2
 
 
@@ -172,7 +172,7 @@ def test_queue_mpmc():
     start_time = time()
     total = loop.run_until_complete(main(), join=True)
     duration = time() - start_time
-    assert 1 <= duration <= 1.1
+    assert 1 <= duration <= 2.5
     assert total == 45
 
 

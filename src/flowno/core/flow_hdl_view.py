@@ -157,6 +157,14 @@ class FlowHDLView:
         # Map DraftGroupNodes to the draft node returned from the template.
         group_alias: dict[DraftGroupNode, DraftNode] = {}
 
+        def resolve_target(node: DraftNode) -> DraftNode:
+            while isinstance(node, DraftGroupNode):
+                if node in group_alias:
+                    node = group_alias[node]
+                else:
+                    node = node._return_node
+            return node
+
         # Replace any DraftGroupNode references stored on this view with the
         # node that the group returned. These returned nodes are already part of
         # ``child.finalized_nodes`` and will be finalized alongside all other
@@ -165,8 +173,9 @@ class FlowHDLView:
             if isinstance(obj, DraftGroupNode):
                 # Emit debug information when we first encounter the group node.
                 obj.debug_dummy()
-                group_alias[obj] = obj._return_node
-                self._nodes[name] = obj._return_node
+                target = resolve_target(obj._return_node)
+                group_alias[obj] = target
+                self._nodes[name] = target
 
         clean_draft_nodes: list[DraftNode] = []
         for dn in draft_nodes:
@@ -175,7 +184,8 @@ class FlowHDLView:
                 # this view and processed above.
                 if dn not in group_alias:
                     dn.debug_dummy()
-                group_alias.setdefault(dn, dn._return_node)
+                target = resolve_target(dn._return_node)
+                group_alias.setdefault(dn, target)
                 continue
             all_draft_nodes.append(dn)
             clean_draft_nodes.append(dn)
@@ -193,6 +203,8 @@ class FlowHDLView:
                 ):
                     group_node = conn.node
                     replacement = group_alias[group_node]
+                    while isinstance(replacement, DraftGroupNode) and replacement in group_alias:
+                        replacement = group_alias[replacement]
                     # Remove consumer from the group node
                     try:
                         group_node._connected_output_nodes[conn.port_index].remove(
@@ -302,7 +314,10 @@ class FlowHDLView:
 
             for name, obj in self._nodes.items():
                 if isinstance(obj, DraftNode):
-                    self._nodes[name] = finalized_nodes[obj]
+                    target = obj
+                    while isinstance(target, DraftGroupNode) and target in group_alias:
+                        target = group_alias[target]
+                    self._nodes[name] = finalized_nodes[target]
 
             self._is_finalized = True
             self._child_results = []
