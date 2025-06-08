@@ -9,6 +9,7 @@ from flowno.core.flow.flow import Flow
 from flowno.core.node_base import (
     DraftInputPortRef,
     DraftNode,
+    DraftOutputPortRef,
     FinalizedNode,
     NodePlaceholder,
     OutputPortRefPlaceholder,
@@ -153,10 +154,60 @@ class FlowHDLView:
             finalized_nodes.update(child.finalized_nodes)
             all_draft_nodes.extend(child.finalized_nodes.keys())
 
+        # Map DraftGroupNodes to the draft node returned from the template.
+        group_alias: dict[DraftGroupNode, DraftNode] = {}
+
+        # Replace any DraftGroupNode references stored on this view with the
+        # node that the group returned. These returned nodes are already part of
+        # ``child.finalized_nodes`` and will be finalized alongside all other
+        # draft nodes.
+        for name, obj in list(self._nodes.items()):
+            if isinstance(obj, DraftGroupNode):
+                obj.debug_dummy()
+                group_alias[obj] = obj._return_node
+                self._nodes[name] = obj._return_node
+
+        clean_draft_nodes: list[DraftNode] = []
         for dn in draft_nodes:
             if isinstance(dn, DraftGroupNode):
                 dn.debug_dummy()
+                group_alias.setdefault(dn, dn._return_node)
+                continue
             all_draft_nodes.append(dn)
+            clean_draft_nodes.append(dn)
+
+        # Redirect any connections that target a DraftGroupNode to the draft
+        # node produced by the group.  The group node itself is dropped from the
+        # graph so upstream and downstream links must be rewired.
+        for draft_node in all_draft_nodes:
+            for input_port in draft_node._input_ports.values():
+                conn = input_port.connected_output
+                if (
+                    isinstance(conn, DraftOutputPortRef)
+                    and isinstance(conn.node, DraftGroupNode)
+                    and conn.node in group_alias
+                ):
+                    group_node = conn.node
+                    replacement = group_alias[group_node]
+                    # Remove consumer from the group node
+                    try:
+                        group_node._connected_output_nodes[conn.port_index].remove(
+                            draft_node
+                        )
+                    except (KeyError, ValueError):
+                        pass
+                    # Register consumer on the replacement node
+                    replacement._connected_output_nodes[conn.port_index].append(
+                        draft_node
+                    )
+                    conn.node = replacement
+
+        # Also ensure producers no longer list the dropped group nodes
+        for producer in all_draft_nodes:
+            for consumers in producer._connected_output_nodes.values():
+                for idx, consumer in enumerate(list(consumers)):
+                    if isinstance(consumer, DraftGroupNode) and consumer in group_alias:
+                        consumers[idx] = group_alias[consumer]
 
         # ======== Phase 1 ========
         # Replace all OutputPortRefPlaceholders with actual DraftOutputPortRefs
@@ -216,7 +267,7 @@ class FlowHDLView:
         # DraftOutputPortRefs, we wrap each draft node in a blank finalized node
         # and register it with the flow.
 
-        for draft_node in draft_nodes:
+        for draft_node in clean_draft_nodes:
             finalized_node = draft_node._blank_finalized()
             finalized_nodes[draft_node] = finalized_node
             self._on_register_finalized_node(finalized_node)
