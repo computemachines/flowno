@@ -1,6 +1,5 @@
 import pytest
 
-@pytest.mark.skip("Group nodes not yet implemented")
 def test_triple_product_group_node():
     from flowno import node, FlowHDL, FlowHDLView, DraftNode
 
@@ -28,7 +27,6 @@ def test_triple_product_group_node():
     assert f.result.output() == 26
 
 
-@pytest.mark.skip("Group nodes not yet implemented")
 def test_increment_group_node():
     """Illustrate a nested group that increments an input twice."""
     from flowno import node, FlowHDL, FlowHDLView, DraftNode
