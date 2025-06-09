@@ -22,7 +22,7 @@ class DraftGroupNode(DraftNode[Unpack[_Ts], tuple[Any, ...]]):
 
     @override
     def __init__(self, *args: Unpack[tuple[Any, ...]]):
-        print(f"[DEBUG] instantiate group {self.__class__.__name__}")
+        logger.debug(f"instantiate group {self.__class__.__name__}")
         super().__init__(*args)
         from .flow_hdl_view import FlowHDLView
 
