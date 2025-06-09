@@ -46,6 +46,9 @@ Examples:
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from typing_extensions import Unpack
 from typing import Any, Final, Literal, TypeVar, Union, overload, ClassVar
+import logging
+
+logger = logging.getLogger(__name__)
 
 from flowno.core.mono_node import (
     MonoNode,

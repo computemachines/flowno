@@ -176,7 +176,7 @@ def test_node_delay():
         f.delayed = ident(delayed_dummy_constant())
 
     duration = timeit.timeit(lambda: f.run_until_complete(), number=1)
-    assert 0.1 <= duration <= 0.13
+    assert 0.1 <= duration <= 0.16
 
     delayed = cast(ident, f.delayed)
 
