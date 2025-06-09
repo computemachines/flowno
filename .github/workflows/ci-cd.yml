@@ -92,15 +92,15 @@ jobs:
 
       - name: Upload Documentation Package to Server
         run: |
-          scp -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts $DEB_NAME root@computemachines.com:$DEB_NAME
+          scp -P 48231 -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts $DEB_NAME root@computemachines.com:$DEB_NAME
         env:
           DEB_NAME: ${{ env.DEB_NAME }}
 
       - name: Install Documentation Package on Server
         run: |
-          ssh -T -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts root@computemachines.com dpkg -i $DEB_NAME
+          ssh -p 48231 -T -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts root@computemachines.com dpkg -i $DEB_NAME
         env:
           DEB_NAME: ${{ env.DEB_NAME }}
       - name: Reload Daemon and Restart Nginx
         run: |
-          ssh -T -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts root@computemachines.com "systemctl daemon-reload && systemctl restart nginx"
+          ssh -p 48231 -T -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts root@computemachines.com "systemctl daemon-reload && systemctl restart nginx"
