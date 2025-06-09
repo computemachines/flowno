@@ -365,6 +365,31 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
                 nodes.append(input_port.connected_output.node)
         return nodes
 
+    def if_(self, predicate: "DraftOutputPortRef[object] | OutputPortRefPlaceholder | DraftNode | bool") -> "DraftGroupNode":
+        """Insert a :class:`PropagateIf` node before this node's first input."""
+
+        from flowno.decorators.node import template as _template
+        from .flow_hdl_view import FlowHDLView
+        from .group_node import DraftGroupNode
+
+        input_port = self._input_ports[InputPortIndex(0)]
+        original_conn = input_port.connected_output
+        if isinstance(original_conn, DraftOutputPortRef):
+            try:
+                original_conn.node._connected_output_nodes[original_conn.port_index].remove(self)
+            except ValueError:
+                pass
+        input_port.connected_output = None
+
+        propagate = PropagateIf(predicate, original_conn)
+        propagate.output(0).connect(self.input(0))
+
+        @_template
+        def _Identity(f: FlowHDLView) -> DraftNode:
+            return self
+
+        return _Identity()
+
     def _blank_finalized(self) -> "FinalizedNode[Unpack[_Ts], ReturnTupleT_co]":
         """Convert this draft node into a finalized node without connections."""
         return FinalizedNode(
@@ -1057,6 +1082,34 @@ class Constant(DraftNode[(), tuple[_T]]):
         Produce the single-value tuple containing our constant.
         """
         return (self.value,)
+
+
+class PropagateIf(DraftNode[bool, _T, tuple[_T]]):
+    """Conditionally propagate a value based on the predicate."""
+
+    _minimum_run_level: ClassVar[list[RunLevel]] = [0, 0]
+    _default_values: ClassVar[dict[int, object]] = {}
+
+    _original_call: ClassVar[OriginalCall] = OriginalCall(
+        inspect.signature(lambda predicate, x: None),
+        (lambda predicate, x: None).__code__,
+        func_name="call",
+        class_name="PropagateIf",
+    )
+
+    def __init__(self, predicate: bool | DraftNode | DraftOutputPortRef[object] | OutputPortRefPlaceholder, x: _T | DraftOutputPortRef[object] | OutputPortRefPlaceholder) -> None:  # type: ignore[override]
+        super().__init__(predicate, x)
+
+        self.__class__._original_call = OriginalCall(
+            inspect.signature(self.call),
+            self.call.__code__,
+            func_name="call",
+            class_name=self.__class__.__name__,
+        )
+
+    @override
+    async def call(self, predicate: bool, x: _T) -> tuple[_T]:
+        return (x,)
 
 
 # >>>>>>>> ChatGPT generated crap

@@ -31,6 +31,7 @@ from flowno.core.node_base import (
     MissingDefaultError,
     StalledNodeRequestCommand,
     SuperNode,
+    PropagateIf,
 )
 from flowno.core.types import Generation, InputPortIndex
 from flowno.utilities.helpers import cmp_generation
@@ -444,6 +445,12 @@ class Flow:
 
                 try:
                     self.set_defaulted_inputs(node, defaulted_inputs)
+                    predicate_val = None
+                    if isinstance(node._draft_node, PropagateIf):
+                        predicate_val = bool(positional_arg_values[0])
+                        if not predicate_val:
+                            # Skip propagation when predicate is False
+                            continue
                     returned = node.call(*positional_arg_values)
 
                     # make sure the user used async def.
@@ -529,6 +536,20 @@ class Flow:
         Args:
             out_node: The node whose dependents should be enqueued
         """
+        if isinstance(out_node._draft_node, PropagateIf):
+            pred_input = out_node._input_ports[InputPortIndex(0)]
+            connected = pred_input.connected_output
+            propagate = True
+            if connected is not None:
+                pred_node = connected.node
+                data = pred_node.get_data()
+                if data is not None:
+                    propagate = bool(data[connected.port_index])
+                else:
+                    propagate = False
+            if not propagate:
+                return
+
         output_nodes = out_node.get_output_nodes()
 
         if not self.resolution_queue.closed:
