@@ -6,5 +6,6 @@ User Guide
    quickstart
    key_concepts
    tutorial
+   groups
    troubleshooting
 

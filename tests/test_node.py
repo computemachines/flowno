@@ -71,7 +71,7 @@ class MockNode:
 
 def make_mock_nodes(generation_a: Generation, generation_b: Generation, stream: bool):
     with FlowHDL() as f:
-        f.node_a = MockNode()
+        f.node_a = MockNode(0)
         f.node_b = MockNode(f.node_a)
 
     if generation_a is not None:

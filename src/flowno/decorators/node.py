@@ -45,7 +45,10 @@ Examples:
 
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from typing_extensions import Unpack
-from typing import Any, Final, Literal, TypeVar, Union, overload
+from typing import Any, Final, Literal, TypeVar, Union, overload, ClassVar
+import logging
+
+logger = logging.getLogger(__name__)
 
 from flowno.core.mono_node import (
     MonoNode,
@@ -55,7 +58,7 @@ from flowno.core.mono_node import (
     MonoNode1,
     MonoNode2,
 )
-from flowno.core.node_base import DraftNode
+from flowno.core.node_base import DraftNode, OriginalCall
 from flowno.core.streaming_node import (
     StreamingNode,
     StreamingNode0,
@@ -310,3 +313,37 @@ def node(
         return node_meta_single_dec(stream_in=stream_in)
     else:
         return node_meta_multiple_dec(stream_in=stream_in)
+from inspect import signature, Parameter
+from flowno.core.group_node import DraftGroupNode
+
+
+def create_func_group_node_subclass(func: Callable[..., DraftNode]) -> type[DraftGroupNode]:
+    logger.debug(f"define template group {func.__name__}")
+    func_sig = signature(func)
+    params = list(func_sig.parameters.values())[1:]  # drop FlowHDLView parameter
+    default_values: dict[int, object] = {}
+    for idx, p in enumerate(params):
+        if p.default is not Parameter.empty:
+            default_values[idx] = p.default
+
+    class DynamicGroupNode(DraftGroupNode):
+        _minimum_run_level: ClassVar[list[int]] = []
+        _default_values: ClassVar[dict[int, object]] = default_values
+        _original_call = OriginalCall(
+            call_signature=func_sig,
+            call_code=func.__code__,
+            func_name=func.__name__,
+            class_name=None,
+        )
+        original_func = staticmethod(func)
+
+    DynamicGroupNode.__name__ = func.__name__
+    return DynamicGroupNode
+
+
+def template(func: Callable[..., DraftNode]) -> type[DraftGroupNode]:
+    return create_func_group_node_subclass(func)
+
+
+# expose attribute so users can write @node.template
+node.template = template

@@ -1,0 +1,1 @@
+Only run non `network` marked tests. E.g. `pytest -m "not network"`.

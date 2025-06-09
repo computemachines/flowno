@@ -73,25 +73,18 @@ async def Looper(x: int = 0) -> int:
 
 
 def test_simple_loop():
-
+    
     @node
     async def InnerLooper(x: int = 0) -> int:
         return x + 1
 
-    node1 = InnerLooper()
-    node1.output(0).connect(node1.input(0))
-
-    hdl = FlowHDL()
-
-    ctx = hdl.__enter__()
-    ctx._nodes["node1"] = node1
-    ctx.__exit__(None, None, None)
-
-    finalized_node1 = ctx._nodes["node1"]
-    assert finalized_node1 == ctx.node1
+    with FlowHDL() as f:
+        f.node1 = InnerLooper(f.node1.output(0))
+    
+    finalized_node1 = f.node1
 
     with raises(TerminateLimitReached):
-        hdl._flow.run_until_complete(stop_at_node_generation={finalized_node1: (1,)})
+        f._flow.run_until_complete(stop_at_node_generation={finalized_node1: (1,)})
     assert finalized_node1.get_data() == (2,)
 
 
