@@ -156,8 +156,3 @@ Python's `__getattr__` method. However, this approach enables:
 ## License
 
 Flowno is released under the MIT License.
-
-## Documentation Deployment
-
-The CI/CD workflow builds and deploys the documentation whenever a commit is pushed to `main`. To redeploy manually, open the **Actions** tab on GitHub, select the `CI/CD` workflow, and use the **Run workflow** button. Choose the branch you want to deploy (usually `main`) and start the run. The workflow's `docs_deploy` job will execute because the manual trigger uses the `workflow_dispatch` event.
-
