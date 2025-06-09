@@ -40,6 +40,6 @@ class DraftGroupNode(DraftNode[Unpack[_Ts], tuple[Any, ...]]):
         raise RuntimeError("Group nodes do not run")
 
     def debug_dummy(self) -> None:
-        print(
-            f"[DEBUG] finalize group {self.__class__.__name__} with sub nodes {self._debug_context_nodes} and return node {self._return_node}"
+        logger.debug(
+            f"finalize group {self.__class__.__name__} with sub nodes {self._debug_context_nodes} and return node {self._return_node}"
         )
