@@ -61,7 +61,9 @@ _InputType = TypeVar("_InputType")
 _ReturnT = TypeVar("_ReturnT")
 _Tout = TypeVar("_Tout", covariant=True)
 
-ObjectFinalizedNode: TypeAlias = "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
+ObjectFinalizedNode: TypeAlias = (
+    "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
+)
 
 
 @dataclass(eq=False)
@@ -78,7 +80,9 @@ class SuperNode:
     ]  # used to track the internal connections of the super-node
 
     dependent: "SuperNode | None" = None  # used to build the condensed graph/forest
-    dependencies: list["SuperNode"] = field(default_factory=list)  # used to build the condensed graph/forest
+    dependencies: list["SuperNode"] = field(
+        default_factory=list
+    )  # used to build the condensed graph/forest
 
     @override
     def __eq__(self, other: object) -> bool:
@@ -182,9 +186,13 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
 
     def __init__(self, *args: Unpack[tuple[object, ...]]) -> None:
         self._instance_id = self.increment_instance_counter()
-        logger.debug(f"Initializing {self.__class__.__name__}#{self._instance_id} with args {args}")
+        logger.debug(
+            f"Initializing {self.__class__.__name__}#{self._instance_id} with args {args}"
+        )
 
-        self._input_ports: defaultdict[InputPortIndex, DraftInputPort[object]] = defaultdict(DraftInputPort[object])
+        self._input_ports: defaultdict[InputPortIndex, DraftInputPort[object]] = (
+            defaultdict(DraftInputPort[object])
+        )
         self._connected_output_nodes: defaultdict[
             OutputPortIndex,
             list[DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]],
@@ -192,27 +200,36 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
 
         max_ports = max(len(args), len(self._minimum_run_level))
         if self._minimum_run_level:
-            minimum_run_level = list(self._minimum_run_level) + [0] * (max_ports - len(self._minimum_run_level))
+            minimum_run_level = list(self._minimum_run_level) + [0] * (
+                max_ports - len(self._minimum_run_level)
+            )
         else:
             minimum_run_level = [0] * max_ports
         for input_port_index in (InputPortIndex(index) for index in range(max_ports)):
-            self._input_ports[input_port_index].minimum_run_level = minimum_run_level[input_port_index]
+            self._input_ports[input_port_index].minimum_run_level = minimum_run_level[
+                input_port_index
+            ]
 
         from .flow_hdl_view import FlowHDLView
+
         FlowHDLView.register_node(self)
 
         # loop over each argument and set up the corresponding input port
         for input_connection, arg in (
             (
                 DraftInputPortRef[object](
-                    cast(DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], self),
+                    cast(
+                        DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], self
+                    ),
                     InputPortIndex(index),
                 ),
                 arg,
             )
             for index, arg in enumerate(args)
         ):
-            logger.debug(f"Initializing {input_connection} with arg {arg} (type={type(arg).__name__})")
+            logger.debug(
+                f"Initializing {input_connection} with arg {arg} (type={type(arg).__name__})"
+            )
 
             # arg can be None, a DraftNode, a NodeOutputPlaceholder, a
             # NodePlaceholder, an OutputConnection, or a constant
@@ -231,7 +248,9 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             elif isinstance(arg, NodePlaceholder):
                 # if a node placeholder is passed as an argument, then we can't connect it yet
                 # we'll wait until the FlowHDL context is closed to finalize the connections
-                self._input_ports[input_connection.port_index].connected_output = arg.output(0)
+                self._input_ports[input_connection.port_index].connected_output = (
+                    arg.output(0)
+                )
 
             elif isinstance(arg, DraftOutputPortRef):
                 # f.mynode = MyNode(f.other_node.output(0))
@@ -261,14 +280,20 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
         # parameters) to the input port for uniform access
 
         if self.__class__._default_values:
-            logger.debug(f"{self.__class__.__name__} has _default_values: {self._default_values}")
-            for input_port_index, default_value in ((InputPortIndex(i), v) for i, v in self._default_values.items()):
+            logger.debug(
+                f"{self.__class__.__name__} has _default_values: {self._default_values}"
+            )
+            for input_port_index, default_value in (
+                (InputPortIndex(i), v) for i, v in self._default_values.items()
+            ):
                 logger.debug(
                     f"Setting default, {default_value}, for {DraftInputPortRef(cast(DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], self), input_port_index)}"
                 )
                 self._input_ports[input_port_index].default_value = default_value
         else:
-            logger.debug(f"{self.__class__.__name__} has no _default_values, extracting from call method signature")
+            logger.debug(
+                f"{self.__class__.__name__} has no _default_values, extracting from call method signature"
+            )
 
             # If the _default_values class attribute is not set, use the default values from the call method signature
             call_sig = inspect.signature(self.call)
@@ -277,8 +302,12 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
                 logger.debug(f"Checking {self} parameter {param} for default value")
                 default_value: object = param.default  # pyright: ignore[reportAny]
                 if default_value is not inspect.Parameter.empty:
-                    logger.debug(f"Setting default value for {self} input {index} to {default_value}")
-                    self._input_ports[InputPortIndex(index)].default_value = default_value
+                    logger.debug(
+                        f"Setting default value for {self} input {index} to {default_value}"
+                    )
+                    self._input_ports[InputPortIndex(index)].default_value = (
+                        default_value
+                    )
 
         for port_index, port in self._input_ports.items():
             input_port_ref = DraftInputPortRef[object](
@@ -324,7 +353,9 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
     ):
         raise NotImplementedError
 
-    def accumulate_streamed_data(self, accumulator: ReturnTupleT_co, partial: ReturnTupleT_co) -> ReturnTupleT_co:
+    def accumulate_streamed_data(
+        self, accumulator: ReturnTupleT_co, partial: ReturnTupleT_co
+    ) -> ReturnTupleT_co:
         # TODO: add ability to 'override' this in stateful node defiitions
         # TODO: think about allowing different types for differnt run levels
         new_acc = []
@@ -332,16 +363,24 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             acc_slice = accumulator[output_port]
 
             if isinstance(acc_slice, int) and isinstance(output_data, int):
-                new_acc.append(acc_slice + output_data)  # pyright: ignore[reportUnknownMemberType]
+                new_acc.append(
+                    acc_slice + output_data
+                )  # pyright: ignore[reportUnknownMemberType]
             elif isinstance(acc_slice, float) and isinstance(output_data, float):
-                new_acc.append(acc_slice + output_data)  # pyright: ignore[reportUnknownMemberType]
+                new_acc.append(
+                    acc_slice + output_data
+                )  # pyright: ignore[reportUnknownMemberType]
             elif isinstance(acc_slice, str) and isinstance(output_data, str):
-                new_acc.append(acc_slice + output_data)  # pyright: ignore[reportUnknownMemberType]
+                new_acc.append(
+                    acc_slice + output_data
+                )  # pyright: ignore[reportUnknownMemberType]
             else:
                 raise NotImplementedError(
                     "You must implement accumulate_streamed_data for non-simple data types, or manually raise StopAsyncIteration(final_value) when the stream is complete."
                 )
-        new_acc = cast(ReturnTupleT_co, tuple(new_acc))  # pyright: ignore[reportUnknownArgumentType]
+        new_acc = cast(
+            ReturnTupleT_co, tuple(new_acc)
+        )  # pyright: ignore[reportUnknownArgumentType]
 
         return new_acc
 
@@ -353,7 +392,9 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
         self,
     ) -> list["DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]"]:
         """Get all nodes connected to this node's outputs."""
-        return [node for nodes in self._connected_output_nodes.values() for node in nodes]
+        return [
+            node for nodes in self._connected_output_nodes.values() for node in nodes
+        ]
 
     def get_input_nodes(
         self,
@@ -361,9 +402,38 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
         """Get all nodes connected to this node's inputs."""
         nodes: list[DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = []
         for input_port in self._input_ports.values():
-            if input_port.connected_output is not None and isinstance(input_port.connected_output.node, DraftNode):
+            if input_port.connected_output is not None and isinstance(
+                input_port.connected_output.node, DraftNode
+            ):
                 nodes.append(input_port.connected_output.node)
         return nodes
+
+    def if_(self, predicate: object) -> "DraftNode[Unpack[_Ts], ReturnTupleT_co]":
+        """Insert a :class:`PropagateIf` node gating this node's inputs."""
+        input_args: list[object] = []
+        for idx in sorted(self._input_ports.keys()):
+            port = self._input_ports[idx]
+            if isinstance(port.connected_output, DraftOutputPortRef):
+                try:
+                    port.connected_output.node._connected_output_nodes[
+                        port.connected_output.port_index
+                    ].remove(self)
+                except ValueError:
+                    pass
+                input_args.append(port.connected_output)
+            elif port.connected_output is not None:
+                input_args.append(port.connected_output)
+            else:
+                if port.default_value is not inspect.Parameter.empty:
+                    input_args.append(port.default_value)
+                else:
+                    input_args.append(None)
+            port.connected_output = None
+
+        propagate = PropagateIf(predicate, *input_args)
+        for out_idx in range(len(input_args)):
+            propagate.output(out_idx).connect(self.input(out_idx))
+        return self
 
     def _blank_finalized(self) -> "FinalizedNode[Unpack[_Ts], ReturnTupleT_co]":
         """Convert this draft node into a finalized node without connections."""
@@ -458,9 +528,13 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         self,
     ) -> list["FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"]:
         """Get all nodes connected to this node's outputs."""
-        return [node for nodes in self._connected_output_nodes.values() for node in nodes]
+        return [
+            node for nodes in self._connected_output_nodes.values() for node in nodes
+        ]
 
-    def get_output_nodes_by_run_level(self, run_level: RunLevel) -> list["FinalizedInputPort[object]"]:
+    def get_output_nodes_by_run_level(
+        self, run_level: RunLevel
+    ) -> list["FinalizedInputPort[object]"]:
         """
         Returns a list of input ports (FinalizedInputPort objects) from consumer nodes that are connected
         to this node, filtered by the specified run level.
@@ -501,10 +575,17 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
     def has_default_for_input(self, input_port_index: InputPortIndex) -> bool:
         input_port = self._input_ports[input_port_index]
 
-        if hasattr(input_port, "default_value") and input_port.default_value is not inspect.Parameter.empty:
-            logger.debug(f"{self} input port {input_port_index} has a default value: {input_port.default_value}")
+        if (
+            hasattr(input_port, "default_value")
+            and input_port.default_value is not inspect.Parameter.empty
+        ):
+            logger.debug(
+                f"{self} input port {input_port_index} has a default value: {input_port.default_value}"
+            )
             return True
-        logger.debug(f"{self} input port {input_port_index} does NOT have a default value")
+        logger.debug(
+            f"{self} input port {input_port_index} does NOT have a default value"
+        )
         return False
 
     @property
@@ -533,16 +614,23 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
 
         return self._data[self.generation]
 
-    async def count_down_upstream_latches(self, defaulted_inputs: list[InputPortIndex]) -> None:
+    async def count_down_upstream_latches(
+        self, defaulted_inputs: list[InputPortIndex]
+    ) -> None:
         """Count down upstream node barriers for non-defaulted connected inputs."""
         for input_port_index, input_port in self._input_ports.items():
-            if input_port.connected_output is None or input_port_index in defaulted_inputs:
+            if (
+                input_port.connected_output is None
+                or input_port_index in defaulted_inputs
+            ):
                 continue
             upstream_node = input_port.connected_output.node
-            try: 
+            try:
                 await upstream_node._barrier0.count_down(exception_if_zero=True)
             except Exception as e:
-                logger.warning(f"count_down_upstream_latches({self}, {defaulted_inputs})")
+                logger.warning(
+                    f"count_down_upstream_latches({self}, {defaulted_inputs})"
+                )
                 logger.warning(f"Error counting down upstream latches: {e}")
                 logger.warning(f"Upstream node: {upstream_node}")
                 logger.warning(f"Input port index: {input_port_index}")
@@ -578,15 +666,15 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         """
         Get the input nodes that should be resolved before this node should run,
         considering the minimum run level required for each input.
-        
+
         For each input connection, the following steps are performed:
-        
+
         - Clip the input node's generation based on the input port's minimum run level.
         - Add the stitch value to the clipped generation.
         - Compare the clipped and stitched generation with this node's current generation.
-        
+
             - The input is considered stale and needs to be resolved if the clipped generation is less than or equal to this node's generation.
-        
+
 
         Returns:
             List[InputConnection]: A list of input connections that are stale and  and need to be resolved before this node can run.
@@ -609,7 +697,9 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 continue
 
             # Clip the input node's generation based on the minimum run level required.
-            clipped_gen: Generation = clip_generation(input_node.generation, input_port.minimum_run_level)
+            clipped_gen: Generation = clip_generation(
+                input_node.generation, input_port.minimum_run_level
+            )
 
             # Add the stitch value to the clipped generation.
             clipped_gen = stitched_generation(clipped_gen, input_port.stitch_level_0)
@@ -696,11 +786,15 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 individual_last_data = last_data[input_port.connected_output.port_index]
 
             if input_port.minimum_run_level > 0 and not this_port_defaulted:
-                inputs[input_port_index] = Stream(self.input(input_port_index), input_port.connected_output)
+                inputs[input_port_index] = Stream(
+                    self.input(input_port_index), input_port.connected_output
+                )
             else:
                 inputs[input_port_index] = individual_last_data
 
-            logger.debug(f"Input data for {DraftInputPortRef(self, input_port_index)}: {inputs[input_port_index]}")
+            logger.debug(
+                f"Input data for {DraftInputPortRef(self, input_port_index)}: {inputs[input_port_index]}"
+            )
 
         # check for missing non-defaulted inputs
         positional_args: list[object | Stream[object]] = list()
@@ -711,6 +805,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 else:
                     raise MissingDefaultError(self, input_port_index)
         return self.GatheredInputs(tuple(positional_args), defaulted_ports)
+
     def debug_print(self) -> None:
         """
         Print detailed debug information about this node, including its inputs, outputs, and data.
@@ -732,6 +827,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         for gen, data in self._data.items():
             print(f"    Generation {gen}: {data}")
         print(f"  Current Generation: {self.generation}")
+
 
 class Stream(Generic[_InputType], AsyncIterator[_InputType]):
     """A stream of values from one node to another.
@@ -773,9 +869,12 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
         logger.debug(f"calling __anext__({self})")
 
         def get_clipped_stitched_gen():
-            stitch_0 = self.input.node._input_ports[self.input.port_index].stitch_level_0
+            stitch_0 = self.input.node._input_ports[
+                self.input.port_index
+            ].stitch_level_0
             return clip_generation(
-                stitched_generation(self.output.node.generation, stitch_0), run_level=self.run_level
+                stitched_generation(self.output.node.generation, stitch_0),
+                run_level=self.run_level,
             )
 
         while (
@@ -801,7 +900,8 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
         logger.debug(f"__anext__({self}): continuing")
         if (
             self._last_consumed_generation is not None
-            and parent_generation(self.output.node.generation) != self._last_consumed_parent_generation
+            and parent_generation(self.output.node.generation)
+            != self._last_consumed_parent_generation
         ):
             logger.debug(
                 (
@@ -810,12 +910,16 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
                     f"indicating the stream is complete or restarted."
                 )
             )
-            logger.info(f"Stream {self} is complete or restarted.", extra={"tag": "flow"})
+            logger.info(
+                f"Stream {self} is complete or restarted.", extra={"tag": "flow"}
+            )
             get_current_flow_instrument().on_stream_end(self)
             raise StopAsyncIteration
 
         self._last_consumed_generation = get_clipped_stitched_gen()
-        self._last_consumed_parent_generation = parent_generation(self.output.node.generation)
+        self._last_consumed_parent_generation = parent_generation(
+            self.output.node.generation
+        )
 
         data_tuple = self.output.node.get_data(run_level=self.run_level)
         assert data_tuple is not None
@@ -876,15 +980,16 @@ class NodePlaceholder:
 
     name: str
 
-    def output(self, output_port: OutputPortIndex | int) -> "OutputPortRefPlaceholder[object]":
+    def output(
+        self, output_port: OutputPortIndex | int
+    ) -> "OutputPortRefPlaceholder[object]":
         return OutputPortRefPlaceholder[object](self, OutputPortIndex(output_port))
 
 
 @dataclass
 class OutputPortRefPlaceholder(Generic[_ReturnT]):
-    """Placeholder for a specific output port of a NodePlaceholder.
-    """
-    
+    """Placeholder for a specific output port of a NodePlaceholder."""
+
     node: NodePlaceholder
     port_index: OutputPortIndex
 
@@ -920,7 +1025,9 @@ class DraftOutputPortRef(Generic[_Tout]):
         logger.info(f"Connecting {self} -> {target}")
 
         self.node._connected_output_nodes[self.port_index].append(target.node)
-        target.node._input_ports[target.port_index].connected_output = cast(DraftOutputPortRef[object], self)
+        target.node._input_ports[target.port_index].connected_output = cast(
+            DraftOutputPortRef[object], self
+        )
 
     def _finalize(
         self,
@@ -929,7 +1036,9 @@ class DraftOutputPortRef(Generic[_Tout]):
             FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
         ],
     ):
-        return FinalizedOutputPortRef[_Tout](node=final_by_draft[self.node], port_index=self.port_index)
+        return FinalizedOutputPortRef[_Tout](
+            node=final_by_draft[self.node], port_index=self.port_index
+        )
 
 
 @dataclass
@@ -970,7 +1079,9 @@ class FinalizedInputPortRef(Generic[_T]):
 
 @dataclass(kw_only=True)
 class DraftInputPort(Generic[_T]):
-    connected_output: DraftOutputPortRef[_T] | OutputPortRefPlaceholder[_T] | None = None
+    connected_output: DraftOutputPortRef[_T] | OutputPortRefPlaceholder[_T] | None = (
+        None
+    )
     minimum_run_level: RunLevel = 0
     default_value: object | type[inspect.Parameter.empty] = inspect.Parameter.empty
 
@@ -1053,10 +1164,30 @@ class Constant(DraftNode[(), tuple[_T]]):
 
     @override
     async def call(self) -> tuple[_T]:
-        """
-        Produce the single-value tuple containing our constant.
-        """
+        """Produce the single-value tuple containing our constant."""
         return (self.value,)
+
+
+class PropagateIf(
+    DraftNode[tuple[bool, Unpack[tuple[object, ...]]], tuple[object, ...]]
+):
+    """Conditionally propagate inputs based on a predicate."""
+
+    _minimum_run_level: ClassVar[list[RunLevel]] = []
+    _default_values: ClassVar[dict[int, object]] = {}
+
+    def __init__(self, predicate: object, *values: object) -> None:
+        super().__init__(predicate, *values)
+        self.__class__._original_call = OriginalCall(
+            inspect.signature(self.call),
+            self.call.__code__,
+            func_name="call",
+            class_name=self.__class__.__name__,
+        )
+
+    @override
+    async def call(self, predicate: bool, *values: object) -> tuple[object, ...]:
+        return tuple(values)
 
 
 # >>>>>>>> ChatGPT generated crap
@@ -1084,7 +1215,9 @@ def build_signature_display(
         # e.g.  MyNode.call
         #       (x: int, y: str=...)
         line_1 = f"  class {oc.class_name}:"
-        line_2, underline_2 = build_abbreviated_signature(parameters, required_input_ports, skip_self)
+        line_2, underline_2 = build_abbreviated_signature(
+            parameters, required_input_ports, skip_self
+        )
         # Indent 'async def call' by four spaces
         line_2 = f"      async def {oc.func_name}(self, {line_2}): ..."
         return f"{line_1}\n{line_2}\n{' '*(len(oc.func_name)+23)}{underline_2}"
@@ -1198,7 +1331,9 @@ def build_param_text(param_name: str, param: inspect.Parameter) -> str:
         return f"{param_name}: {annotation} = {param.default}"
 
 
-def build_underline_line(signature_line: str, param_positions: list[tuple[int, int, bool]]) -> str:
+def build_underline_line(
+    signature_line: str, param_positions: list[tuple[int, int, bool]]
+) -> str:
     """
     Create a line of spaces, with dashes marking the parameters that need defaults.
     """
@@ -1277,7 +1412,8 @@ class MissingDefaultError(Exception):
             full_message = (
                 "Detected a cycle without default values. You must add defaults to the indicated arguments for at least ONE of the following nodes:\n"
                 + "\nOR\n".join(
-                    format_missing_defaults(node, input_ports) for node, input_ports in missing_info.items()
+                    format_missing_defaults(node, input_ports)
+                    for node, input_ports in missing_info.items()
                 )
             )
             super().__init__(full_message)
