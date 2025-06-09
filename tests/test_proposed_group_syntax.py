@@ -24,7 +24,7 @@ def test_triple_product_group_node():
         f.result = TripleProduct(2, 3, 4)
 
     f.run_until_complete()
-    assert f.result.output() == 26
+    assert f.result.get_data() == (26,)
 
 
 def test_increment_group_node():
