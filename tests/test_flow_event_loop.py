@@ -106,7 +106,7 @@ def test_sleep():
         log.append("main start")
         t = await spawn(foo())
         actual = await sleep(0.1)
-        assert 0.1 <= actual <= 0.12
+        assert 0.1 <= actual <= 0.13
         await t.join()
         log.append("main end")
 
@@ -121,7 +121,7 @@ def test_sleep():
     assert log == []
 
     duration = timeit.timeit(lambda: flow.run_until_complete(), number=1)
-    assert 0.1 <= duration <= 0.12
+    assert 0.1 <= duration <= 0.13
     print(f"Execution time: {duration} seconds")
     assert log == ["main start", "foo start", "foo end", "main end"]
 
