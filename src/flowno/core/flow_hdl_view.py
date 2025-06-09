@@ -245,7 +245,7 @@ class FlowHDLView:
                 if input_port.connected_output is None:
                     if input_port.default_value != inspect.Parameter.empty:
                         logger.info(
-                            f"{draft_node.input(input_port_index)} is not connected and but has a default value"
+                            f"{draft_node.input(input_port_index)} is not connected but has a default value"
                         )
                         continue
                     else:
