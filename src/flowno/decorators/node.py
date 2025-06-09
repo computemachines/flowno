@@ -315,7 +315,7 @@ from flowno.core.group_node import DraftGroupNode
 
 
 def create_func_group_node_subclass(func: Callable[..., DraftNode]) -> type[DraftGroupNode]:
-    print(f"[DEBUG] define template group {func.__name__}")
+    logger.debug(f"define template group {func.__name__}")
     func_sig = signature(func)
     params = list(func_sig.parameters.values())[1:]  # drop FlowHDLView parameter
     default_values: dict[int, object] = {}
