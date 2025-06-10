@@ -315,6 +315,46 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             InputPortIndex(port_index),
         )
 
+    def if_(self, predicate: object) -> "DraftGroupNode":
+        """Insert a :class:`PropagateIf` node before this node.
+
+        This simplified helper only supports nodes that take a single mono
+        input and produce a single output.
+        """
+
+        from .flow_hdl_view import FlowHDLView
+        from .group_node import DraftGroupNode
+        from flowno.decorators import node
+
+        port = self._input_ports[InputPortIndex(0)]
+        input_value: object
+        if port.connected_output is not None:
+            input_value = port.connected_output
+            if isinstance(port.connected_output, DraftOutputPortRef):
+                try:
+                    producer = port.connected_output.node
+                    producer._connected_output_nodes[port.connected_output.port_index].remove(self)
+                except (KeyError, ValueError):
+                    pass
+            port.connected_output = None
+        else:
+            input_value = port.default_value
+
+        @node.template(capture=[self])
+        def _IfGroup(f: FlowHDLView, pred: object, value: object) -> DraftNode:
+            cond = PropagateIf(pred, value)
+            cond.output(0).connect(self.input(0))
+            return self
+
+        if FlowHDLView.contextStack:
+            ctx = next(reversed(FlowHDLView.contextStack))
+            try:
+                FlowHDLView.contextStack[ctx].remove(self)
+            except ValueError:
+                pass
+
+        return _IfGroup(predicate, input_value)
+
     @abstractmethod
     def call(
         self, *args: Unpack[_Ts]
@@ -1057,6 +1097,32 @@ class Constant(DraftNode[(), tuple[_T]]):
         Produce the single-value tuple containing our constant.
         """
         return (self.value,)
+
+
+class PropagateIf(DraftNode[bool, _T, tuple[_T]]):
+    """Pass through the value only if the predicate is truthy."""
+
+    _minimum_run_level: ClassVar[list[RunLevel]] = [0, 0]
+    _default_values: ClassVar[dict[int, object]] = {}
+    _original_call: ClassVar[OriginalCall] = OriginalCall(
+        inspect.signature(lambda p, x: None),
+        (lambda p, x: None).__code__,
+        func_name="call",
+        class_name="PropagateIf",
+    )
+
+    def __init__(self, predicate: bool, value: _T) -> None:
+        super().__init__(predicate, value)
+        self.__class__._original_call = OriginalCall(
+            inspect.signature(self.call),
+            self.call.__code__,
+            func_name="call",
+            class_name=self.__class__.__name__,
+        )
+
+    @override
+    async def call(self, predicate: bool, value: _T) -> tuple[_T]:
+        return (value,)
 
 
 # >>>>>>>> ChatGPT generated crap

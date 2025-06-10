@@ -317,7 +317,9 @@ from inspect import signature, Parameter
 from flowno.core.group_node import DraftGroupNode
 
 
-def create_func_group_node_subclass(func: Callable[..., DraftNode]) -> type[DraftGroupNode]:
+def create_func_group_node_subclass(
+    func: Callable[..., DraftNode], *, capture: list[DraftNode] | None = None
+) -> type[DraftGroupNode]:
     logger.debug(f"define template group {func.__name__}")
     func_sig = signature(func)
     params = list(func_sig.parameters.values())[1:]  # drop FlowHDLView parameter
@@ -329,6 +331,7 @@ def create_func_group_node_subclass(func: Callable[..., DraftNode]) -> type[Draf
     class DynamicGroupNode(DraftGroupNode):
         _minimum_run_level: ClassVar[list[int]] = []
         _default_values: ClassVar[dict[int, object]] = default_values
+        _capture_nodes: ClassVar[list[DraftNode]] = capture or []
         _original_call = OriginalCall(
             call_signature=func_sig,
             call_code=func.__code__,
@@ -341,8 +344,25 @@ def create_func_group_node_subclass(func: Callable[..., DraftNode]) -> type[Draf
     return DynamicGroupNode
 
 
-def template(func: Callable[..., DraftNode]) -> type[DraftGroupNode]:
-    return create_func_group_node_subclass(func)
+def template(
+    func: Callable[..., DraftNode] | None = None,
+    *,
+    capture: list[DraftNode] | None = None,
+) -> type[DraftGroupNode] | Callable[[Callable[..., DraftNode]], type[DraftGroupNode]]:
+    """Decorator for defining template group nodes.
+
+    When called without arguments, behaves like ``@node.template``.
+    When called with ``capture=[...]``, captured nodes are moved into the
+    group's context during instantiation.
+    """
+
+    if func is not None:
+        return create_func_group_node_subclass(func, capture=capture)
+
+    def wrapper(f: Callable[..., DraftNode]) -> type[DraftGroupNode]:
+        return create_func_group_node_subclass(f, capture=capture)
+
+    return wrapper
 
 
 # expose attribute so users can write @node.template

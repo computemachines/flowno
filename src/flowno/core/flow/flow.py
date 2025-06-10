@@ -28,6 +28,7 @@ from flowno.core.node_base import (
     FinalizedInputPort,
     FinalizedInputPortRef,
     FinalizedNode,
+    PropagateIf,
     MissingDefaultError,
     StalledNodeRequestCommand,
     SuperNode,
@@ -442,28 +443,37 @@ class Flow:
 
                 await node.count_down_upstream_latches(defaulted_inputs)
 
+                skip = False
                 try:
                     self.set_defaulted_inputs(node, defaulted_inputs)
-                    returned = node.call(*positional_arg_values)
 
-                    # make sure the user used async def.
-                    if not isinstance(returned, (Coroutine, AsyncGenerator)):
-                        raise NotImplementedError(
-                            "Node must be a coroutine (async def) or an AsyncGenerator (async def with yield)"
-                        )
+                    if isinstance(node._draft_node, PropagateIf):
+                        predicate = positional_arg_values[0]
+                        if not predicate:
+                            skip = True
 
-                    if isinstance(returned, Coroutine):
-                        await self._handle_coroutine_node(node, returned)
-                    else:
-                        await self._handle_async_generator_node(node, returned)
+                    if not skip:
+                        returned = node.call(*positional_arg_values)
+
+                        # make sure the user used async def.
+                        if not isinstance(returned, (Coroutine, AsyncGenerator)):
+                            raise NotImplementedError(
+                                "Node must be a coroutine (async def) or an AsyncGenerator (async def with yield)"
+                            )
+
+                        if isinstance(returned, Coroutine):
+                            await self._handle_coroutine_node(node, returned)
+                        else:
+                            await self._handle_async_generator_node(node, returned)
                 except Exception as e:
                     get_current_flow_instrument().on_node_error(self, node, e)
                     # if self.node_unhandled_exception_terminates:
                     await _terminate_with_exception(node, e)
                 finally:
                     self.clear_defaulted_inputs(node)
-                    await self._terminate_if_reached_limit(node)
-                    await self._enqueue_output_nodes(node)
+                    if not skip:
+                        await self._terminate_if_reached_limit(node)
+                        await self._enqueue_output_nodes(node)
 
     def add_node(self, node: FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]):
         """
