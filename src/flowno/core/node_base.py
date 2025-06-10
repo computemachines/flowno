@@ -339,13 +339,11 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
         else:
             input_value = port.default_value
 
-        NodeCls = self.__class__
-
-        @node.template
+        @node.template(capture=[self])
         def _IfGroup(f: FlowHDLView) -> DraftNode:
             cond = PropagateIf(predicate, input_value)
-            result = NodeCls(cond.output(0))
-            return result
+            cond.output(0).connect(self.input(0))
+            return self
 
         if FlowHDLView.contextStack:
             ctx = next(reversed(FlowHDLView.contextStack))
