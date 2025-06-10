@@ -64,3 +64,56 @@ def test_forward_reference_predicate():
         f.pred = IsAllCaps("HELLO")
     f.run_until_complete()
     assert f.node.get_data() == (11,)
+
+
+def test_predicate_bool_true():
+    """Conditional node with bool True should execute."""
+    with FlowHDL() as f:
+        f.node = NodeA(5).if_(True)
+    f.run_until_complete()
+    assert f.node.get_data() == (6,)
+
+
+def test_predicate_bool_false():
+    """Conditional node with bool False should skip execution."""
+    with FlowHDL() as f:
+        f.node = NodeA(5).if_(False)
+    f.run_until_complete()
+    assert f.node.get_data() is None
+
+
+def test_named_constant_predicate():
+    """Predicate provided by named Constant node."""
+    with FlowHDL() as f:
+        f.cond = Constant(True)
+        f.node = NodeA(5).if_(f.cond)
+    f.run_until_complete()
+    assert f.node.get_data() == (6,)
+
+
+def test_forward_reference_predicate_constant():
+    """Predicate defined after using it."""
+    with FlowHDL() as f:
+        f.node = NodeA(5).if_(f.cond)
+        f.cond = Constant(True)
+    f.run_until_complete()
+    assert f.node.get_data() == (6,)
+
+
+def test_chained_conditions_true_false():
+    """Chained .if_ where second condition false should skip."""
+    with FlowHDL() as f:
+        first = NodeA(5).if_(True)
+        f.node = first.if_(False)
+    f.run_until_complete()
+    assert f.node.get_data() is None
+
+
+def test_chained_conditions_true_true():
+    """Chained .if_ with both predicates true should execute."""
+    with FlowHDL() as f:
+        first = NodeA(5).if_(True)
+        f.node = first.if_(True)
+    f.run_until_complete()
+    assert f.node.get_data() == (6,)
+
