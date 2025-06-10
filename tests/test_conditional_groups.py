@@ -88,3 +88,12 @@ def test_nested_group_if_false():
         f.b = OuterGroup(1).if_(False)
     f.run_until_complete()
     assert f.b.get_data() is None
+
+
+def test_group_if_rewires_consumers():
+    with FlowHDL() as f:
+        g = MyGroup(1)
+        f.c = Inc(g)
+        f.result = g.if_(True)
+    f.run_until_complete()
+    assert f.c._input_ports[0].connected_output.node is f.result
