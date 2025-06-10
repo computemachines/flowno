@@ -315,6 +315,57 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             InputPortIndex(port_index),
         )
 
+    def if_(self, predicate: object) -> "DraftGroupNode":
+        """Insert a :class:`PropagateIf` node before this node.
+
+        Parameters
+        ----------
+        predicate: object
+            Node or constant controlling whether this node should execute.
+
+        Returns
+        -------
+        DraftGroupNode
+            A small group containing the conditional logic and this node.
+        """
+
+        from .flow_hdl_view import FlowHDLView
+        from .group_node import DraftGroupNode
+        from flowno.decorators import node
+
+        # Capture input connections so we can recreate the node inside the group
+        inputs: list[object] = []
+        for idx in range(len(self._input_ports)):
+            port = self._input_ports[InputPortIndex(idx)]
+            if port.connected_output is not None:
+                inputs.append(port.connected_output)
+                try:
+                    producer = port.connected_output.node
+                    producer._connected_output_nodes[port.connected_output.port_index].remove(self)
+                except (KeyError, ValueError):
+                    pass
+                port.connected_output = None
+            else:
+                inputs.append(port.default_value)
+
+        NodeCls = self.__class__
+
+        @node.template
+        def _IfGroup(f: FlowHDLView) -> DraftNode:
+            propagate = PropagateIf(predicate, inputs[0])
+            result = NodeCls(propagate.output(0))
+            return result
+
+        # Remove this draft node from the current context so only the group remains
+        if FlowHDLView.contextStack:
+            ctx = next(reversed(FlowHDLView.contextStack))
+            try:
+                FlowHDLView.contextStack[ctx].remove(self)
+            except ValueError:
+                pass
+
+        return _IfGroup()
+
     @abstractmethod
     def call(
         self, *args: Unpack[_Ts]
@@ -1057,6 +1108,32 @@ class Constant(DraftNode[(), tuple[_T]]):
         Produce the single-value tuple containing our constant.
         """
         return (self.value,)
+
+
+class PropagateIf(DraftNode[bool, _T, tuple[_T]]):
+    """Pass through the value only if the predicate is truthy."""
+
+    _minimum_run_level: ClassVar[list[RunLevel]] = [0, 0]
+    _default_values: ClassVar[dict[int, object]] = {}
+    _original_call: ClassVar[OriginalCall] = OriginalCall(
+        inspect.signature(lambda p, x: None),
+        (lambda p, x: None).__code__,
+        func_name="call",
+        class_name="PropagateIf",
+    )
+
+    def __init__(self, predicate: bool, value: _T) -> None:
+        super().__init__(predicate, value)
+        self.__class__._original_call = OriginalCall(
+            inspect.signature(self.call),
+            self.call.__code__,
+            func_name="call",
+            class_name=self.__class__.__name__,
+        )
+
+    @override
+    async def call(self, predicate: bool, value: _T) -> tuple[_T]:
+        return (value,)
 
 
 # >>>>>>>> ChatGPT generated crap
