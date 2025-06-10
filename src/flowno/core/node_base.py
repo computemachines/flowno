@@ -318,45 +318,35 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
     def if_(self, predicate: object) -> "DraftGroupNode":
         """Insert a :class:`PropagateIf` node before this node.
 
-        Parameters
-        ----------
-        predicate: object
-            Node or constant controlling whether this node should execute.
-
-        Returns
-        -------
-        DraftGroupNode
-            A small group containing the conditional logic and this node.
+        This simplified helper only supports nodes that take a single mono
+        input and produce a single output.
         """
 
         from .flow_hdl_view import FlowHDLView
         from .group_node import DraftGroupNode
         from flowno.decorators import node
 
-        # Capture input connections so we can recreate the node inside the group
-        inputs: list[object] = []
-        for idx in range(len(self._input_ports)):
-            port = self._input_ports[InputPortIndex(idx)]
-            if port.connected_output is not None:
-                inputs.append(port.connected_output)
-                try:
-                    producer = port.connected_output.node
-                    producer._connected_output_nodes[port.connected_output.port_index].remove(self)
-                except (KeyError, ValueError):
-                    pass
-                port.connected_output = None
-            else:
-                inputs.append(port.default_value)
+        port = self._input_ports[InputPortIndex(0)]
+        input_value: object
+        if port.connected_output is not None:
+            input_value = port.connected_output
+            try:
+                producer = port.connected_output.node
+                producer._connected_output_nodes[port.connected_output.port_index].remove(self)
+            except (KeyError, ValueError):
+                pass
+            port.connected_output = None
+        else:
+            input_value = port.default_value
 
         NodeCls = self.__class__
 
         @node.template
         def _IfGroup(f: FlowHDLView) -> DraftNode:
-            propagate = PropagateIf(predicate, inputs[0])
-            result = NodeCls(propagate.output(0))
+            cond = PropagateIf(predicate, input_value)
+            result = NodeCls(cond.output(0))
             return result
 
-        # Remove this draft node from the current context so only the group remains
         if FlowHDLView.contextStack:
             ctx = next(reversed(FlowHDLView.contextStack))
             try:
