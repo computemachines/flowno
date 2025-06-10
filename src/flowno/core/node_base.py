@@ -330,18 +330,19 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
         input_value: object
         if port.connected_output is not None:
             input_value = port.connected_output
-            try:
-                producer = port.connected_output.node
-                producer._connected_output_nodes[port.connected_output.port_index].remove(self)
-            except (KeyError, ValueError):
-                pass
+            if isinstance(port.connected_output, DraftOutputPortRef):
+                try:
+                    producer = port.connected_output.node
+                    producer._connected_output_nodes[port.connected_output.port_index].remove(self)
+                except (KeyError, ValueError):
+                    pass
             port.connected_output = None
         else:
             input_value = port.default_value
 
         @node.template(capture=[self])
-        def _IfGroup(f: FlowHDLView) -> DraftNode:
-            cond = PropagateIf(predicate, input_value)
+        def _IfGroup(f: FlowHDLView, pred: object, value: object) -> DraftNode:
+            cond = PropagateIf(pred, value)
             cond.output(0).connect(self.input(0))
             return self
 
@@ -352,7 +353,7 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             except ValueError:
                 pass
 
-        return _IfGroup()
+        return _IfGroup(predicate, input_value)
 
     @abstractmethod
     def call(

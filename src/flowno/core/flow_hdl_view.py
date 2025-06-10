@@ -234,53 +234,54 @@ class FlowHDLView:
         # OutputPortRefPlaceholders are generated when using a forward reference
         # on the FlowHDLView context.
 
-        for unknown_node in all_draft_nodes:
-            draft_node = cast(
-                DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node
-            )
+        if finalize_connections:
+            for unknown_node in all_draft_nodes:
+                draft_node = cast(
+                    DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node
+                )
 
-            # DraftInputPorts can have OutputPortRefPlaceholders or DraftOutputPortRefs
-            # Step 1) Replace placholders with drafts
-            for input_port_index, input_port in draft_node._input_ports.items():
-                if input_port.connected_output is None:
-                    if input_port.default_value != inspect.Parameter.empty:
-                        logger.info(
-                            f"{draft_node.input(input_port_index)} is not connected but has a default value"
-                        )
-                        continue
-                    else:
-                        # TODO: Use the same underlined format as supernode.py
-                        raise AttributeError(
-                            f"{draft_node.input(input_port_index)} is not connected and has no default value"
-                        )
-
-                connected_output = input_port.connected_output
-
-                if isinstance(connected_output, OutputPortRefPlaceholder):
-                    # validate that the placeholder has been defined on the FlowHDL instance
-                    if connected_output.node.name not in self._nodes:
-                        raise AttributeError(
-                            (
-                                f"Node {connected_output.node.name} is referenced, but has not been defined. "
-                                f"Cannot connect {input_port} to non-existent node {connected_output.node.name}"
+                # DraftInputPorts can have OutputPortRefPlaceholders or DraftOutputPortRefs
+                # Step 1) Replace placeholders with drafts
+                for input_port_index, input_port in draft_node._input_ports.items():
+                    if input_port.connected_output is None:
+                        if input_port.default_value != inspect.Parameter.empty:
+                            logger.info(
+                                f"{draft_node.input(input_port_index)} is not connected but has a default value"
                             )
-                        )
-                    output_source_node = self._nodes[connected_output.node.name]
-
-                    # if the placeholder has been defined on the FlowHDL instance but is not a DraftNode, raise an error
-                    if not isinstance(output_source_node, DraftNode):
-                        raise AttributeError(
-                            (
-                                f"Attribute {connected_output.node.name} is not a DraftNode. "
-                                f"Cannot connect {draft_node} to non-DraftNode {connected_output.node.name}"
+                            continue
+                        else:
+                            # TODO: Use the same underlined format as supernode.py
+                            raise AttributeError(
+                                f"{draft_node.input(input_port_index)} is not connected and has no default value"
                             )
-                        )
 
-                    # the placeholder was defined on the FlowHDL instance and is a DraftNode, so connect the nodes
-                    logger.debug(f"Connecting {output_source_node} to {input_port}")
-                    output_source_node.output(
-                        input_port.connected_output.port_index
-                    ).connect(draft_node.input(input_port_index))
+                    connected_output = input_port.connected_output
+
+                    if isinstance(connected_output, OutputPortRefPlaceholder):
+                        # validate that the placeholder has been defined on the FlowHDL instance
+                        if connected_output.node.name not in self._nodes:
+                            raise AttributeError(
+                                (
+                                    f"Node {connected_output.node.name} is referenced, but has not been defined. "
+                                    f"Cannot connect {input_port} to non-existent node {connected_output.node.name}"
+                                )
+                            )
+                        output_source_node = self._nodes[connected_output.node.name]
+
+                        # if the placeholder has been defined on the FlowHDL instance but is not a DraftNode, raise an error
+                        if not isinstance(output_source_node, DraftNode):
+                            raise AttributeError(
+                                (
+                                    f"Attribute {connected_output.node.name} is not a DraftNode. "
+                                    f"Cannot connect {draft_node} to non-DraftNode {connected_output.node.name}"
+                                )
+                            )
+
+                        # the placeholder was defined on the FlowHDL instance and is a DraftNode, so connect the nodes
+                        logger.debug(f"Connecting {output_source_node} to {input_port}")
+                        output_source_node.output(
+                            input_port.connected_output.port_index
+                        ).connect(draft_node.input(input_port_index))
 
         # ======== Phase 2 ========
         # Now that all OutputPortRefPlaceholders have been replaced with
