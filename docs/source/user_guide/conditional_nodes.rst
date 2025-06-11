@@ -26,18 +26,23 @@ Example usage for a single node:
    from flowno import node, FlowHDL
 
    @node
-   async def Double(x: int) -> int:
-       return x * 2
+   async def AddOne(x: int) -> int:
+       return x + 1
+
+   @node
+   async def IsEven(x: int) -> bool:
+       return x % 2 == 0
 
    with FlowHDL() as f:
-       f.result = Double(3).if_(True)
+       f.val = AddOne(1).if_(IsEven(2))
 
    f.run_until_complete()
-   print(f.result.get_data())
+   print(f.val.get_data())
 
 .. testoutput::
 
-   (6,)
+   (2,)
 
-The same approach works for template groups using
-:py:meth:`~flowno.core.group_node.DraftGroupNode.if_`.
+``DraftGroupNode`` provides a similar :py:meth:`~flowno.core.group_node.DraftGroupNode.if_`
+method. It wraps the entire group with ``PropagateIf`` so all internal nodes
+run but their output is gated.

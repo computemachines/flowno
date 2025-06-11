@@ -119,6 +119,9 @@ or, for cyclic flows, until an uncaught exception occurs.
 
 ## Features TODO
 
+=======
+Improved typing
+
 ## Non-Goals
 
 - **Visual Editor**  
