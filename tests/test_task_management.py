@@ -4,6 +4,7 @@ import time
 from flowno import FlowHDL, node, AsyncQueue, sleep, Stream
 from flowno.core.event_loop.event_loop import EventLoop
 
+
 @node(stream_in=["response_chunks"])
 async def SendToGUI(response_chunks: Stream[str]):
     if response_chunks:
@@ -50,25 +51,24 @@ class TestApp:
         print(f"[TestApp] Received message: {message}")
         if self.f is None:
             raise RuntimeError("FlowHDL not initialized - call run() first")
-        _ = self.f.create_task(
-            self.enqueue_prompt(message)
-        )
+        _ = self.f.create_task(self.enqueue_prompt(message))
+
 
 def test_task_removal_error():
     """Test that reproduces KeyError when removing tasks from event loop."""
     loop = EventLoop()
     app = TestApp()
-    
+
     # Run the flow in main thread
     main_thread = threading.Thread(target=app.run)
     main_thread.start()
-    
+
     # Give it a moment to start
     time.sleep(0.1)
     app.handle_message("test message")
-    
+
     # Simulate message handling from another thread
     # threading.Thread(target=app.handle_message, args=("test message",)).start()
-    
+
     # This should trigger the KeyError when the event loop tries to remove the task
     main_thread.join()

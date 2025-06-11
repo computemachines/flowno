@@ -1,42 +1,42 @@
 """
 HTTP Client for Flowno applications.
 
-This module provides an HTTP client that works with Flowno's event loop. The client 
-supports both blocking and streaming requests, with automatic handling of chunked 
+This module provides an HTTP client that works with Flowno's event loop. The client
+supports both blocking and streaming requests, with automatic handling of chunked
 transfer encoding, gzip/deflate compression, and JSON serialization/deserialization.
 
 Example:
     Basic GET request:
-    
+
     >>> from flowno import EventLoop
     >>> from flowno.io import HttpClient
-    >>> 
+    >>>
     >>> async def main():
     ...     client = HttpClient()
     ...     response = await client.get("https://httpbin.org/get")
     ...     print(f"Status: {response.status_code}")
     ...     print(f"Body: {response.body[:50]}...")
-    ... 
+    ...
     >>> loop = EventLoop()
     >>> loop.run_until_complete(main(), join=True)
     Status: 200
     Body: b'{"args":{},"headers":{"Accept-Encoding":"gzip, deflate"...'
 
     Streaming response with JSON:
-    
+
     >>> from flowno import EventLoop
     >>> from flowno.io import HttpClient
     >>> from flowno.io.http_client import streaming_response_is_ok
-    >>> 
+    >>>
     >>> async def main():
     ...     client = HttpClient()
     ...     response = await client.stream_get("https://httpbin.org/stream/3")
-    ...     
+    ...
     ...     if streaming_response_is_ok(response):
     ...         print("Streaming response items:")
     ...         async for chunk in response.body:
     ...             print(f"  {chunk}")
-    ... 
+    ...
     >>> loop = EventLoop()
     >>> loop.run_until_complete(main(), join=True)
     Streaming response items:
@@ -68,10 +68,11 @@ logger = logging.getLogger(__name__)
 class ResponseBase:
     """
     Base class for HTTP responses.
-    
+
     This class contains common properties and methods shared by both regular
     and streaming responses.
     """
+
     client: "HttpClient"
     status: str  # e.g. "HTTP/1.1 200 OK"
     headers: Headers
@@ -91,10 +92,11 @@ class ResponseBase:
 class Response(ResponseBase):
     """
     Regular HTTP response with full body.
-    
+
     This class is used for non-streaming responses where the entire body is
     available at once.
     """
+
     body: bytes
 
     def is_json(self) -> bool:
@@ -111,10 +113,11 @@ class Response(ResponseBase):
 class OkStreamingResponse(ResponseBase, Generic[T]):
     """
     Successful streaming HTTP response.
-    
+
     This class is used for streaming responses where the body is available
     as an asynchronous iterator.
     """
+
     body: AsyncIterator[T]
 
 
@@ -122,10 +125,11 @@ class OkStreamingResponse(ResponseBase, Generic[T]):
 class ErrStreamingResponse(ResponseBase):
     """
     Error streaming HTTP response.
-    
+
     This class is used for streaming responses that resulted in an error,
     where the full error body is available.
     """
+
     body: bytes
 
     def is_json(self) -> bool:
@@ -141,10 +145,10 @@ class ErrStreamingResponse(ResponseBase):
 def _status_ok(status: str) -> bool:
     """
     Check if an HTTP status indicates success (2xx).
-    
+
     Args:
         status: HTTP status line (e.g., "HTTP/1.1 200 OK")
-        
+
     Returns:
         True if status code is in the 2xx range
     """
@@ -156,10 +160,10 @@ def streaming_response_is_ok(
 ) -> TypeIs[OkStreamingResponse[T]]:
     """
     Type guard for checking if a streaming response is successful.
-    
+
     This function serves as a type guard in Python's type system, narrowing
     the type of `response` to `OkStreamingResponse[T]` when it returns True.
-    
+
     Example:
         >>> async def main():
         ...     client = HttpClient()
@@ -171,10 +175,10 @@ def streaming_response_is_ok(
         ...     else:
         ...         # Here response is known to be ErrStreamingResponse
         ...         print(f"Error: {response.status}")
-    
+
     Args:
         response: The streaming response to check
-        
+
     Returns:
         True if the response is successful (i.e., an OkStreamingResponse)
     """
@@ -184,9 +188,10 @@ def streaming_response_is_ok(
 class HTTPException(Exception):
     """
     Exception raised for HTTP errors.
-    
+
     This exception includes the HTTP status and body for detailed error reporting.
     """
+
     def __init__(self, status: str, message: str | bytes):
         super().__init__(self, f"Status: {status}\nBody: {message}")
 
@@ -194,18 +199,18 @@ class HTTPException(Exception):
 class HttpClient:
     """
     HTTP client compatible with Flowno's event loop.
-    
+
     This client allows making both regular and streaming HTTP requests.
     It supports custom headers, JSON serialization, and automatic handling
     of compressed responses.
-    
+
     Example:
         >>> async def main():
         ...     # Create client with custom headers
         ...     headers = Headers()
         ...     headers.set("Authorization", "Bearer my_token")
         ...     client = HttpClient(headers=headers)
-        ...     
+        ...
         ...     # Make a POST request with JSON data
         ...     response = await client.post(
         ...         "https://httpbin.org/post",
@@ -213,10 +218,11 @@ class HttpClient:
         ...     )
         ...     print(f"Status: {response.status_code}")
     """
+
     def __init__(self, headers: Headers | None = None):
         """
         Initialize a new HTTP client.
-        
+
         Args:
             headers: Default headers to include in all requests
         """
@@ -229,17 +235,17 @@ class HttpClient:
     async def get(self, url: str) -> Response:
         """
         Make a GET request to the given URL, blocking the current task.
-        
+
         Example:
             >>> async def main():
             ...     client = HttpClient()
             ...     response = await client.get("https://httpbin.org/get")
             ...     print(f"Status: {response.status_code}")
             ...     print(f"Body: {response.body}")
-        
+
         Args:
             url: The URL to make the request to
-        
+
         Returns:
             Response object containing status, headers, and body
         """
@@ -253,10 +259,10 @@ class HttpClient:
     ) -> Response:
         """
         Make a POST request to the given URL.
-        
+
         If `json` is provided, it will be serialized with the client's JSON encoder
         and sent as the request body with the appropriate Content-Type header.
-        
+
         Example:
             >>> async def main():
             ...     client = HttpClient()
@@ -265,12 +271,12 @@ class HttpClient:
             ...         json={"name": "test", "value": 123}
             ...     )
             ...     print(f"Status: {response.status_code}")
-        
+
         Args:
             url: The URL to make the request to
             json: JSON data to send (will be encoded using the client's JSON encoder)
             data: Raw data to send (used only if json is None)
-        
+
         Returns:
             Response object containing status, headers, and body
         """
@@ -285,22 +291,22 @@ class HttpClient:
     ) -> OkStreamingResponse[Any] | ErrStreamingResponse:  # pyright: ignore[reportExplicitAny]
         """
         Make a streaming GET request to the given URL.
-        
+
         This method returns a response with a body that is an asynchronous iterator,
         allowing for processing of response data as it arrives.
-        
+
         Example:
             >>> async def main():
             ...     client = HttpClient()
             ...     response = await client.stream_get("https://httpbin.org/stream/3")
-            ...     
+            ...
             ...     if streaming_response_is_ok(response):
             ...         async for chunk in response.body:
             ...             print(chunk)
-        
+
         Args:
             url: The URL to make the request to
-        
+
         Returns:
             A streaming response object that may be either successful or an error
         """
@@ -314,10 +320,10 @@ class HttpClient:
     ) -> OkStreamingResponse[Any] | ErrStreamingResponse:  # pyright: ignore[reportExplicitAny]
         """
         Make a streaming POST request to the given URL.
-        
+
         If `json` is provided, it will be serialized with the client's JSON encoder
         and sent as the request body with the appropriate Content-Type header.
-        
+
         Example:
             >>> async def main():
             ...     client = HttpClient()
@@ -325,16 +331,16 @@ class HttpClient:
             ...         "https://httpbin.org/stream/3",
             ...         json={"key": "value"}
             ...     )
-            ...     
+            ...
             ...     if streaming_response_is_ok(response):
             ...         async for chunk in response.body:
             ...             print(chunk)
-        
+
         Args:
             url: The URL to make the request to
             json: JSON data to send (will be encoded using the client's JSON encoder)
             data: Raw data to send (used only if json is None)
-        
+
         Returns:
             A streaming response object that may be either successful or an error
         """
@@ -347,10 +353,10 @@ class HttpClient:
     def _parse_url(self, url: str) -> tuple[str, int, str, bool]:
         """
         Parse a URL into components needed for making a request.
-        
+
         Args:
             url: The URL to parse
-            
+
         Returns:
             Tuple of (host, port, path, use_tls)
         """
@@ -370,14 +376,14 @@ class HttpClient:
     async def _receive_headers(self, sock: SocketHandle) -> tuple[str, Headers, bytes]:
         """
         Receive HTTP headers from a socket.
-        
+
         This method reads from the socket until it encounters the end of headers marker
         (double CRLF), then parses the headers and returns them along with any body data
         that may have been included in the same read.
-        
+
         Args:
             sock: The socket to read from
-            
+
         Returns:
             Tuple of (status_line, headers, initial_body_data)
         """
@@ -414,29 +420,29 @@ class HttpClient:
     ) -> Response:
         """
         Make a request to the given URL.
-        
+
         This is the core method that handles both GET and POST requests.
         It handles the entire request-response cycle, including connecting,
         sending the request, receiving the response, and decompressing the body.
-        
+
         Example:
             >>> async def main():
             ...     client = HttpClient()
             ...     headers = Headers()
             ...     headers.set("Accept", "application/json")
             ...     response = await client.request(
-            ...         "GET", 
+            ...         "GET",
             ...         "https://httpbin.org/get",
             ...         extra_headers=headers
             ...     )
             ...     print(f"Status: {response.status}")
-        
+
         Args:
             method: The HTTP method to use ("GET" or "POST")
             url: The URL to make the request to
             data: The data to send in the request body
             extra_headers: Additional headers to include in the request
-            
+
         Returns:
             Response object containing status, headers, and body
         """
@@ -482,29 +488,29 @@ class HttpClient:
     ) -> OkStreamingResponse[Any] | ErrStreamingResponse:  # pyright: ignore[reportExplicitAny]
         """
         Make a streaming request to the given URL.
-        
+
         This method is similar to `request()` but returns a streaming response.
         For successful responses, the body is an asynchronous iterator that yields
         either parsed JSON objects (for SSE streams) or raw bytes.
-        
+
         Example:
             >>> async def main():
             ...     client = HttpClient()
             ...     response = await client.stream_request(
-            ...         "GET", 
+            ...         "GET",
             ...         "https://httpbin.org/stream/3"
             ...     )
-            ...     
+            ...
             ...     if streaming_response_is_ok(response):
             ...         async for chunk in response.body:
             ...             print(f"Received chunk: {chunk}")
-        
+
         Args:
             method: The HTTP method to use ("GET" or "POST")
             url: The URL to make the request to
             data: The data to send in the request body
             extra_headers: Additional headers to include in the request
-            
+
         Returns:
             A streaming response object that may be either successful or an error
         """
@@ -574,13 +580,13 @@ class HttpClient:
     def _split_chunks_to_message_json(self, chunk: bytes) -> Generator[Any, None, None]:
         """
         Split SSE chunks into JSON objects.
-        
+
         This method processes Server-Sent Events (SSE) data, extracting and parsing
         JSON objects from the data fields.
-        
+
         Args:
             chunk: Raw bytes from the SSE stream
-            
+
         Yields:
             Parsed JSON objects from the SSE stream
         """
@@ -600,7 +606,7 @@ class HttpClient:
             if not event.startswith("data: "):
                 continue
 
-            json_str = event[len("data: "):].strip()
+            json_str = event[len("data: ") :].strip()
             if json_str == "[DONE]":
                 break
 
@@ -622,11 +628,11 @@ class HttpClient:
     def _decompress_chunk(self, chunk: bytes, headers: Headers) -> bytes:
         """
         Decompress a chunk of data based on Content-Encoding header.
-        
+
         Args:
             chunk: The data to decompress
             headers: Response headers containing Content-Encoding
-            
+
         Returns:
             Decompressed data or the original chunk if no compression was used
         """
@@ -640,11 +646,11 @@ class HttpClient:
     def _decompress_body(self, body: bytes, headers: Headers) -> bytes:
         """
         Decompress an entire response body based on Content-Encoding header.
-        
+
         Args:
             body: The data to decompress
             headers: Response headers containing Content-Encoding
-            
+
         Returns:
             Decompressed body or the original body if no compression was used
         """
@@ -660,14 +666,14 @@ class HttpClient:
     ) -> bytes | AsyncGenerator[bytes, None]:
         """
         Receive the remaining response body after headers.
-        
+
         This method handles both fixed-length and chunked responses.
-        
+
         Args:
             sock: The socket to read from
             initial_body: Any body data that was read with the headers
             headers: Response headers
-            
+
         Returns:
             Complete response body for fixed-length responses,
             or a generator for chunked responses
@@ -716,7 +722,7 @@ class HttpClient:
                 if trailing == b"":
                     raise Exception("Server closed connection before sending chunk size")
                 head += trailing
-                
+
             chunk_size_hex, body = head.split(b"\r\n", 1)
             if chunk_size_hex == b"":
                 break
@@ -743,10 +749,10 @@ class HttpClient:
     async def _receive_all(self, sock: SocketHandle) -> bytes:
         """
         Receive all data from a socket until connection closes.
-        
+
         Args:
             sock: The socket to read from
-            
+
         Returns:
             All data received from the socket
         """

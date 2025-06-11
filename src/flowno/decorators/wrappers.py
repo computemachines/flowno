@@ -1,14 +1,14 @@
 from collections.abc import AsyncGenerator, Awaitable, Coroutine
 from typing import Any, TypeVar
 
-T1 = TypeVar('T1')
+T1 = TypeVar("T1")
+
 
 async def wrap_coroutine_tuple(co: Coroutine[Any, Any, T1]) -> tuple[T1]:
     return (await co,)
 
 
-async def wrap_async_generator_tuple(
-    gen: AsyncGenerator[T1, None]) -> AsyncGenerator[tuple[T1], None]:
+async def wrap_async_generator_tuple(gen: AsyncGenerator[T1, None]) -> AsyncGenerator[tuple[T1], None]:
     try:
         async for value in gen:
             yield (value,)

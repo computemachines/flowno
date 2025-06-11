@@ -77,13 +77,11 @@ class EventLoop:
     def __init__(self) -> None:
         self.tasks: deque[RawTaskPacket[Command, Any, object, Exception]] = deque()
         self.sleeping: list[tuple[Time, RawTask[SleepCommand, None, DeltaTime]]] = []
-        self.watching_task: defaultdict[
-            RawTask[Command, object, object], list[RawTask[Command, object, object]]
-        ] = defaultdict(list)
+        self.watching_task: defaultdict[RawTask[Command, object, object], list[RawTask[Command, object, object]]] = (
+            defaultdict(list)
+        )
         self.waiting_on_network: list[RawTask[SocketCommand, Any, Any]] = []
-        self.tasks_waiting_on_a_queue: set[
-            RawTask[QueueGetCommand[object] | QueuePutCommand[object], Any, Any]
-        ] = set()
+        self.tasks_waiting_on_a_queue: set[RawTask[QueueGetCommand[object] | QueuePutCommand[object], Any, Any]] = set()
         self.finished: dict[RawTask[Command, Any, Any], object] = {}
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
@@ -135,9 +133,7 @@ class EventLoop:
                 time_remaining = wake_time - current_time
                 logger.warning(f"  Task: {task}, wakes in {time_remaining:.3f}s")
             if len(self.sleeping) > 5:
-                logger.warning(
-                    f"  ... and {len(self.sleeping) - 5} more sleeping tasks"
-                )
+                logger.warning(f"  ... and {len(self.sleeping) - 5} more sleeping tasks")
 
         # Network I/O tasks
         if self.waiting_on_network:
@@ -145,21 +141,15 @@ class EventLoop:
             for task in self.waiting_on_network[:5]:  # Show first 5 network tasks
                 logger.warning(f"  Task: {task}")
             if len(self.waiting_on_network) > 5:
-                logger.warning(
-                    f"  ... and {len(self.waiting_on_network) - 5} more network tasks"
-                )
+                logger.warning(f"  ... and {len(self.waiting_on_network) - 5} more network tasks")
 
         # Queue waiting tasks
         if self.tasks_waiting_on_a_queue:
             logger.warning("=== QUEUE WAITING TASKS ===")
-            for task in list(self.tasks_waiting_on_a_queue)[
-                :5
-            ]:  # Show first 5 queue tasks
+            for task in list(self.tasks_waiting_on_a_queue)[:5]:  # Show first 5 queue tasks
                 logger.warning(f"  Task: {task}")
             if len(self.tasks_waiting_on_a_queue) > 5:
-                logger.warning(
-                    f"  ... and {len(self.tasks_waiting_on_a_queue) - 5} more queue tasks"
-                )
+                logger.warning(f"  ... and {len(self.tasks_waiting_on_a_queue) - 5} more queue tasks")
 
         # Task watching relationships
         watching_count = sum(len(watchers) for watchers in self.watching_task.values())
@@ -168,9 +158,7 @@ class EventLoop:
             count = 0
             for watched_task, watchers in self.watching_task.items():
                 if count >= 5:  # Limit output
-                    logger.warning(
-                        f"  ... and {watching_count - count} more relationships"
-                    )
+                    logger.warning(f"  ... and {watching_count - count} more relationships")
                     break
                 if watchers:
                     logger.warning(f"  {watched_task} watched by {len(watchers)} tasks")
@@ -251,10 +239,7 @@ class EventLoop:
         self.tasks.append((raw_task, None, None))
 
         # If called from another thread, wake up the event loop
-        if (
-            self._loop_thread is not None
-            and threading.current_thread() != self._loop_thread
-        ):
+        if self._loop_thread is not None and threading.current_thread() != self._loop_thread:
             try:
                 self._wakeup_writer.send(b"\x00")
             except (BlockingIOError, socket.error):
@@ -308,9 +293,7 @@ class EventLoop:
                 )
             else:
                 # wait for the joined task to finish
-                self.watching_task[command.task_handle.raw_task].append(
-                    current_task_packet[0]
-                )
+                self.watching_task[command.task_handle.raw_task].append(current_task_packet[0])
 
         elif isinstance(command, SleepCommand):
             current_task_packet = cast(
@@ -320,9 +303,7 @@ class EventLoop:
             if command.end_time <= timer():
                 self.tasks.append((current_task_packet[0], None, None))
             else:
-                heapq.heappush(
-                    self.sleeping, (command.end_time, current_task_packet[0])
-                )
+                heapq.heappush(self.sleeping, (command.end_time, current_task_packet[0]))
 
         elif isinstance(command, SocketAcceptCommand):
             current_task_packet = cast(
@@ -379,18 +360,12 @@ class EventLoop:
                 else:
                     item = queue.items.popleft()
                     self.tasks.append((current_task_packet[0], item, None))
-                    get_current_instrument().on_queue_get(
-                        queue=queue, item=item, immediate=False
-                    )
+                    get_current_instrument().on_queue_get(queue=queue, item=item, immediate=False)
                     if queue._put_waiting:  # pyright: ignore[reportPrivateUsage]
-                        task_waiting = (
-                            queue._put_waiting.popleft()
-                        )  # pyright: ignore[reportPrivateUsage]
+                        task_waiting = queue._put_waiting.popleft()  # pyright: ignore[reportPrivateUsage]
                         self.tasks_waiting_on_a_queue.remove(task_waiting.task)
                         if queue._get_waiting:  # pyright: ignore[reportPrivateUsage]
-                            raise RuntimeError(
-                                "Internal error: Tasks waiting to both get and put on the same queue"
-                            )
+                            raise RuntimeError("Internal error: Tasks waiting to both get and put on the same queue")
                         else:
                             queue.items.append(task_waiting.item)
                             self.tasks.append((task_waiting.task, None, None))
@@ -437,40 +412,28 @@ class EventLoop:
                 self.tasks_waiting_on_a_queue.add(current_task_packet[0])
             else:
                 if queue._get_waiting:  # pyright: ignore[reportPrivateUsage]
-                    task_blocked_on_get = (
-                        queue._get_waiting.popleft()
-                    )  # pyright: ignore[reportPrivateUsage]
+                    task_blocked_on_get = queue._get_waiting.popleft()  # pyright: ignore[reportPrivateUsage]
                     self.tasks_waiting_on_a_queue.remove(task_blocked_on_get.task)
                     self.tasks.append((task_blocked_on_get.task, item, None))
                     self.tasks.append((current_task_packet[0], None, None))
                 else:
                     queue.items.append(item)
-                    get_current_instrument().on_queue_put(
-                        queue=queue, item=item, immediate=False
-                    )
+                    get_current_instrument().on_queue_put(queue=queue, item=item, immediate=False)
                     self.tasks.append((current_task_packet[0], None, None))
 
         elif isinstance(command, QueueNotifyGettersCommand):
             command = cast(QueueNotifyGettersCommand[object], command)
             current_task_packet = cast(
-                TaskHandlePacket[
-                    QueueNotifyGettersCommand[object], Any, None, Exception
-                ],
+                TaskHandlePacket[QueueNotifyGettersCommand[object], Any, None, Exception],
                 current_task_packet,
             )
             queue = command.queue
-            if (
-                queue._get_waiting and queue.items
-            ):  # pyright: ignore[reportPrivateUsage]
-                task_blocked_on_get = (
-                    queue._get_waiting.popleft()
-                )  # pyright: ignore[reportPrivateUsage]
+            if queue._get_waiting and queue.items:  # pyright: ignore[reportPrivateUsage]
+                task_blocked_on_get = queue._get_waiting.popleft()  # pyright: ignore[reportPrivateUsage]
                 self.tasks_waiting_on_a_queue.remove(task_blocked_on_get.task)
                 item = queue.items.popleft()
                 self.tasks.append((task_blocked_on_get.task, item, None))
-                get_current_instrument().on_queue_get(
-                    queue=queue, item=item, immediate=False
-                )
+                get_current_instrument().on_queue_get(queue=queue, item=item, immediate=False)
             self.tasks.append((current_task_packet[0], None, None))
 
         elif isinstance(command, QueueCloseCommand):
@@ -621,9 +584,7 @@ class EventLoop:
 
         # Register wakeup socket with selector
         # Blank metadata for wakeup socket. Never used.
-        metadata = InstrumentationMetadata(
-            _task=None, _command=None, socket_handle=None
-        )
+        metadata = InstrumentationMetadata(_task=None, _command=None, socket_handle=None)
         sel.register(self._wakeup_reader, selectors.EVENT_READ, metadata)
 
         while self.has_living_tasks():
@@ -643,13 +604,8 @@ class EventLoop:
                 timeout = 0
             elif self.sleeping:
                 timeout = self.sleeping[0][0] - timer()
-                if (
-                    self._debug_max_wait_time is not None
-                    and timeout > self._debug_max_wait_time
-                ):
-                    logger.error(
-                        f"Sleeping task timeout {timeout} exceeds max wait time {_debug_max_wait_time}."
-                    )
+                if self._debug_max_wait_time is not None and timeout > self._debug_max_wait_time:
+                    logger.error(f"Sleeping task timeout {timeout} exceeds max wait time {_debug_max_wait_time}.")
                     timeout = self._debug_max_wait_time
             else:
                 timeout = self._debug_max_wait_time
@@ -672,26 +628,18 @@ class EventLoop:
                 match data._command:
                     case SocketAcceptCommand():
                         get_current_instrument().on_socket_accept_ready(
-                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
-                                data
-                            )
+                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(data)
                         )
                     case SocketRecvCommand():
                         get_current_instrument().on_socket_recv_ready(
-                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
-                                data
-                            )
+                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(data)
                         )
                     case SocketSendCommand():
                         get_current_instrument().on_socket_send_ready(
-                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
-                                data
-                            )
+                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(data)
                         )
                     case _:
-                        raise ValueError(
-                            f"Unknown selector command data type: {type(data._command)}"
-                        )
+                        raise ValueError(f"Unknown selector command data type: {type(data._command)}")
 
                 self.tasks.append((data._task, None, None))
                 _ = sel.unregister(key.fileobj)

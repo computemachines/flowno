@@ -20,8 +20,9 @@ from flowno.decorators.wrappers import wrap_async_generator_direct
 
 logger = logging.getLogger(__name__)
 
-Ts = TypeVarTuple('Ts')
-ReturnTupleT_co = TypeVar('ReturnTupleT_co', bound=Tuple[object, ...], covariant=True)
+Ts = TypeVarTuple("Ts")
+ReturnTupleT_co = TypeVar("ReturnTupleT_co", bound=Tuple[object, ...], covariant=True)
+
 
 def create_func_node_factory_multiple(
     func: (
@@ -61,8 +62,8 @@ def create_func_node_factory_multiple(
         if default_value is not inspect.Parameter.empty:
             default_values[index] = default_value
 
-    Ts_inner = TypeVarTuple('Ts_inner')
-    ReturnTupleT_inner_co = TypeVar('ReturnTupleT_inner_co', bound=Tuple[object, ...], covariant=True)
+    Ts_inner = TypeVarTuple("Ts_inner")
+    ReturnTupleT_inner_co = TypeVar("ReturnTupleT_inner_co", bound=Tuple[object, ...], covariant=True)
 
     class DynamicDirectNode(DraftNode[Unpack[Ts_inner], ReturnTupleT_inner_co]):
         """Dynamically created node class for the decorated function.
@@ -74,12 +75,7 @@ def create_func_node_factory_multiple(
 
         _minimum_run_level = minimum_run_level
         _default_values = default_values
-        _original_call = OriginalCall(
-            func_sig,
-            func.__code__,
-            func_name,
-            None
-        )
+        _original_call = OriginalCall(func_sig, func.__code__, func_name, None)
 
         @override
         def call(
@@ -88,7 +84,9 @@ def create_func_node_factory_multiple(
             result = func(*cast(Tuple[Unpack[Ts]], args))
             casted_result: (
                 Coroutine[object, object, ReturnTupleT_inner_co] | AsyncGenerator[ReturnTupleT_inner_co, None]
-            ) = cast(Coroutine[object, object, ReturnTupleT_inner_co] | AsyncGenerator[ReturnTupleT_inner_co, None], result)
+            ) = cast(
+                Coroutine[object, object, ReturnTupleT_inner_co] | AsyncGenerator[ReturnTupleT_inner_co, None], result
+            )
             if isinstance(casted_result, Awaitable):
                 return casted_result
             elif isinstance(result, AsyncGenerator):

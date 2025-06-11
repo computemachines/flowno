@@ -1,9 +1,11 @@
 from flowno import FlowHDL, node
 from flowno.core.node_base import Constant
 
+
 @node
 async def NodeA(x: int) -> int:
     return x + 1
+
 
 @node
 async def IsUltimateAnswer(x: int) -> bool:
@@ -116,4 +118,3 @@ def test_chained_conditions_true_true():
         f.node = first.if_(True)
     f.run_until_complete()
     assert f.node.get_data() == (6,)
-
