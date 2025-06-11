@@ -7,38 +7,38 @@ define dataflow graphs.
 
 Examples:
     Basic usage:
-    
+
     >>> from flowno import node
-    >>> 
+    >>>
     >>> @node
     ... async def Add(x: int, y: int) -> int:
     ...     return x + y
-    >>> 
+    >>>
     >>> add_node = Add(1, 2)
     >>> print(add_node)  # DraftNode instance
 
     With stream inputs:
-    
+
     >>> from flowno import node, Stream
-    >>> 
+    >>>
     >>> @node(stream_in=["a"])
     ... async def SumStream(x: int, a: Stream[int]) -> int:
     ...     total = x
     ...     async for value in a:
     ...         total += value
     ...     return total
-    >>> 
+    >>>
     >>> sum_stream_node = SumStream(1)
     >>> print(sum_stream_node)  # DraftNode instance with stream input
 
     With multiple outputs:
-    
+
     >>> from flowno import node
-    >>> 
+    >>>
     >>> @node(multiple_outputs=True)
     ... async def SumAndDiff(x: int, y: int) -> tuple[int, int]:
     ...     return x + y, x - y
-    >>> 
+    >>>
     >>> sum_and_diff_node = SumAndDiff(3, 1)
     >>> print(sum_and_diff_node)  # DraftNode instance with multiple outputs
 """
@@ -268,38 +268,38 @@ def node(
 
     Examples:
         Basic usage:
-        
+
         >>> from flowno import node
-        >>> 
+        >>>
         >>> @node
         ... async def Add(x: int, y: int) -> int:
         ...     return x + y
-        >>> 
+        >>>
         >>> add_node = Add(1, 2)
         >>> print(add_node)  # DraftNode instance
 
         With stream inputs:
-        
+
         >>> from flowno import node, Stream
-        >>> 
+        >>>
         >>> @node(stream_in=["a"])
         ... async def SumStream(x: int, a: Stream[int]) -> int:
         ...     total = x
         ...     async for value in a:
         ...         total += value
         ...     return total
-        >>> 
+        >>>
         >>> sum_stream_node = SumStream(1)
         >>> print(sum_stream_node)  # DraftNode instance with stream input
 
         With multiple outputs:
-        
+
         >>> from flowno import node
-        >>> 
+        >>>
         >>> @node(multiple_outputs=True)
         ... async def SumAndDiff(x: int, y: int) -> tuple[int, int]:
         ...     return x + y, x - y
-        >>> 
+        >>>
         >>> sum_and_diff_node = SumAndDiff(3, 1)
         >>> print(sum_and_diff_node)  # DraftNode instance with multiple outputs
     """
@@ -313,6 +313,8 @@ def node(
         return node_meta_single_dec(stream_in=stream_in)
     else:
         return node_meta_multiple_dec(stream_in=stream_in)
+
+
 from inspect import signature, Parameter
 from flowno.core.group_node import DraftGroupNode
 

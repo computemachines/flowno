@@ -41,9 +41,7 @@ class StreamingClassCall(Protocol[Unpack[Ts], _ReturnT_co]):
 
 
 class ClassCall(Protocol[Unpack[Ts], _ReturnT_co]):
-    def call(
-        self, *args: Unpack[Ts]
-    ) -> Union[Coroutine[Any, Any, _ReturnT_co], AsyncGenerator[_ReturnT_co, None]]: ...
+    def call(self, *args: Unpack[Ts]) -> Union[Coroutine[Any, Any, _ReturnT_co], AsyncGenerator[_ReturnT_co, None]]: ...
 
 
 def create_class_node_subclass_single(

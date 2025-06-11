@@ -16,9 +16,11 @@ from pytest import raises
 
 logger = logging.getLogger(__name__)
 
+
 @node
 async def Identity(x: int) -> int:
     return x
+
 
 @node
 async def Increment(x: int = 42) -> int:
@@ -138,6 +140,7 @@ def test_simple_toggle_false_cycle_3():
 async def Swap(x: int = -10, y: int = 13) -> tuple[int, int]:
     return y, x
 
+
 @node
 async def Add(x: int, y: int) -> int:
     return x + y
@@ -191,7 +194,6 @@ def test_simple_swapper_cycle_with_ident():
         f.run_until_complete(stop_at_node_generation={f.swap: (0,)})
 
     assert f.swap.get_data() == (13, -10)
-
 
 
 def test_reused_classvars1():

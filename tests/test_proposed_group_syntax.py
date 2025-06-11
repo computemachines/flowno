@@ -1,5 +1,6 @@
 import pytest
 
+
 def test_triple_product_group_node():
     from flowno import node, FlowHDL, FlowHDLView, DraftNode
 

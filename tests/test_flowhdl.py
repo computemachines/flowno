@@ -13,15 +13,14 @@ from flowno.core.types import InputPortIndex, OutputPortIndex
 from pytest import raises
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 T_NUM = TypeVar("T_NUM", int, float)
-T2 = TypeVar('T2')
+T2 = TypeVar("T2")
+
 
 @node
 async def ident(x: Union[T, None] = None, /) -> Union[T, None]:
     return x
-
-
 
 
 @node

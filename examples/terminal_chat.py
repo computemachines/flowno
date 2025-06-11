@@ -18,7 +18,7 @@ import logging
 import os
 from dataclasses import dataclass
 from json import JSONEncoder
-from typing import Any, Literal 
+from typing import Any, Literal
 
 import docopt
 from flowno import FlowHDL, Stream, node

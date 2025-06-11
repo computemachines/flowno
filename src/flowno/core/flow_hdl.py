@@ -87,9 +87,10 @@ class FlowHDL(FlowHDLView):
         def _on_register_finalized_node(node: FinalizedNode) -> None:
             """Callback to handle finalized nodes."""
             self._flow.add_node(node)
+
         super().__init__(on_register_finalized_node=_on_register_finalized_node)
         self._flow: Flow = Flow(is_finalized=False)
-    
+
     @override
     def __getattribute__(self, key):
         return super().__getattribute__(key)
@@ -97,7 +98,6 @@ class FlowHDL(FlowHDLView):
     @override
     def __getattr__(self, key):
         return super().__getattr__(key)
-    
 
     def run_until_complete(
         self,
@@ -126,7 +126,6 @@ class FlowHDL(FlowHDLView):
             _debug_max_wait_time=_debug_max_wait_time,
         )
 
-
     def create_task(
         self,
         raw_task: RawTask[Command, Any, Any],
@@ -134,10 +133,10 @@ class FlowHDL(FlowHDLView):
         """
         Create a new task handle for the given raw task and enqueue
         the task in the event loop's task queue.
-        
+
         Args:
             raw_task: The raw task to create a handle for.
-        
+
         Returns:
             A TaskHandle object representing the created task.
         """

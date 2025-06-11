@@ -13,7 +13,8 @@ from flowno.core.node_base import MissingDefaultError
 from flowno.core.types import Generation, InputPortIndex
 from flowno.utilities.helpers import cmp_generation
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 @node
 async def randomize(max: int) -> int:
@@ -151,9 +152,11 @@ async def TakeForeverNoDefault(x: T, self: object) -> T:
     print("take_forever")
     return x
 
+
 @node
 async def Identity(x: T) -> T:
     return x
+
 
 def test_identity_loop_no_default():
 

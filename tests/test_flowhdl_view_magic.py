@@ -11,12 +11,14 @@ from typing import Any
 async def Add(x: int, y: int) -> int:
     return x + y
 
+
 @node
 async def Source(value: Any) -> Any:
     return value
 
 
-#––– TESTS –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+# ––– TESTS –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
 
 def test_set_and_get_simple_attribute():
     """
@@ -41,6 +43,7 @@ def test_getattr_returns_placeholder_before_finalize():
     hdl = FlowHDLView(lambda _: None)  # Dummy callback for on_register_finalized_node
     placeholder = hdl.some_node  # not defined yet
     from flowno.core.node_base import NodePlaceholder
+
     assert isinstance(placeholder, NodePlaceholder)
     assert placeholder.name == "some_node"
 
@@ -59,6 +62,7 @@ def test_connect_two_nodes_out_of_order_and_finalize():
         f.b = Source(2)
     # at this point, __exit__ has run _finalize(), so f.result is a FinalizedNode
     from flowno.core.node_base import FinalizedNode
+
     assert isinstance(f.result, FinalizedNode)
     # Check that the Add node’s two inputs are connected to the two Source nodes
     input_ports = f.result._input_ports
@@ -103,6 +107,7 @@ def test_unconnected_input_without_default_value_raises():
     finalize() should raise. We simulate this by making a node with required args
     and never wiring it.
     """
+
     @node
     async def NeedsTwo(x, y):
         return x + y
@@ -113,6 +118,7 @@ def test_unconnected_input_without_default_value_raises():
             # f.one = NeedsTwo()  # never supplying both inputs
             f.one = NeedsTwo(1)  # missing second argument y and no default
     assert "is not connected and has no default value" in str(excinfo.value)
+
 
 def test_accessing_nonexistent_node_after_finalize_raises():
     """

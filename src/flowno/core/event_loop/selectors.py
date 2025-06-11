@@ -22,15 +22,15 @@ Example usage:
     ...     server_sock.bind(('localhost', 8888))
     ...     server_sock.listen(1)
     ...     print("Server: Listening on port 8888")
-    ...     
+    ...
     ...     # Accept client connection (non-blocking)
     ...     client_sock, addr = await server_sock.accept()
     ...     print(f"Server: Client connected from {addr}")
-    ...     
+    ...
     ...     # Receive data from client (non-blocking)
     ...     data = await client_sock.recv(1024)
     ...     print(f"Server: Received: {data.decode()}")
-    ...     
+    ...
     ...     # Send response (non-blocking)
     ...     await client_sock.sendAll(b"Echo: " + data)
     ...     print("Server: Response sent")
@@ -39,19 +39,19 @@ Example usage:
     >>> async def echo_client():
     ...     # Give the server time to start
     ...     await sleep(0.1)
-    ...     
+    ...
     ...     # Create a client socket
     ...     client_sock = socket()
-    ...     
+    ...
     ...     # Connect to server (non-blocking)
     ...     client_sock.connect(('localhost', 8888))
     ...     print("Client: Connected to server")
-    ...     
+    ...
     ...     # Send data (non-blocking)
     ...     message = b"Hello, world!"
     ...     await client_sock.sendAll(message)
     ...     print(f"Client: Sent: {message.decode()}")
-    ...     
+    ...
     ...     # Receive response (non-blocking)
     ...     response = await client_sock.recv(1024)
     ...     print(f"Client: Received: {response.decode()}")
@@ -60,14 +60,14 @@ Example usage:
     >>> async def main():
     ...     # Start the server
     ...     server_task = await spawn(echo_server())
-    ...     
+    ...
     ...     # Start the client
     ...     client_task = await spawn(echo_client())
-    ...     
+    ...
     ...     # Wait for both tasks to complete
     ...     await server_task.join()
     ...     await client_task.join()
-    ...     
+    ...
     ...     print("Main: All tasks completed")
     >>>
     >>> # Run the example
@@ -112,7 +112,7 @@ sel = selectors.DefaultSelector()
 class SocketHandle:
     """
     Wrapper around the built-in socket object.
-    
+
     This class provides methods that integrate with Flowno's event loop,
     allowing socket operations to be performed asynchronously.
     """
@@ -120,7 +120,7 @@ class SocketHandle:
     def __init__(self, socket: _socket.socket):
         """
         Initialize a socket handle.
-        
+
         Args:
             socket: The underlying Python socket object to wrap.
         """
@@ -129,10 +129,10 @@ class SocketHandle:
     def connect(self, address: _Address, /) -> None:
         """
         Connect to a remote socket at the specified address.
-        
+
         This is a blocking operation. For non-blocking connections, use the socket
         primitives from the flowno module.
-        
+
         Args:
             address: The address to connect to (host, port).
         """
@@ -146,7 +146,7 @@ class SocketHandle:
     def bind(self, address: _Address, /) -> None:
         """
         Bind the socket to the specified address.
-        
+
         Args:
             address: The address (host, port) to bind to.
         """
@@ -155,9 +155,9 @@ class SocketHandle:
     def listen(self, backlog: int | None = None, /) -> None:
         """
         Enable a server socket to accept connections.
-        
+
         Args:
-            backlog: The number of unaccepted connections the system will allow 
+            backlog: The number of unaccepted connections the system will allow
                     before refusing new connections.
         """
         if backlog is None:
@@ -171,12 +171,12 @@ class SocketHandle:
     ) -> Generator[SocketAcceptCommand, None, tuple["SocketHandle", _Address]]:
         """
         Accept a connection on a listening socket.
-        
+
         This coroutine yields a SocketAcceptCommand for the event loop to process.
         When the event loop detects an incoming connection, it resumes this coroutine.
-        
+
         Returns:
-            A tuple containing a new SocketHandle for the client connection and 
+            A tuple containing a new SocketHandle for the client connection and
             the client's address.
         """
         yield SocketAcceptCommand(self)
@@ -190,9 +190,9 @@ class SocketHandle:
     def sendAll(self, data: bytes) -> Generator[SocketSendCommand, None, None]:
         """
         Send all data to the socket.
-        
+
         This coroutine continues yielding SocketSendCommand until all data is sent.
-        
+
         Args:
             data: The bytes to send.
         """
@@ -205,12 +205,12 @@ class SocketHandle:
     def send(self, data: bytes) -> Generator[SocketSendCommand, None, int]:
         """
         Send data to the socket.
-        
+
         Unlike sendAll, this sends data once and returns the number of bytes sent.
-        
+
         Args:
             data: The bytes to send.
-            
+
         Returns:
             The number of bytes sent.
         """
@@ -221,13 +221,13 @@ class SocketHandle:
     def recv(self, bufsize: int) -> Generator[SocketRecvCommand, None, bytes]:
         """
         Receive data from the socket.
-        
+
         This coroutine yields a SocketRecvCommand for the event loop to process.
         When data is available to read, the event loop resumes this coroutine.
-        
+
         Args:
             bufsize: The maximum number of bytes to receive.
-            
+
         Returns:
             The bytes received from the socket.
         """
@@ -248,14 +248,14 @@ class SocketHandle:
 class TLSSocketHandle(SocketHandle):
     """
     Wrapper around the built-in ssl socket object.
-    
+
     This class extends SocketHandle to provide TLS/SSL support.
     """
 
     def __init__(self, socket: _socket.socket, ssl_context: ssl.SSLContext, server_hostname: str | None):
         """
         Initialize a TLS socket handle.
-        
+
         Args:
             socket: The underlying Python socket object to wrap.
             ssl_context: The SSL context to use for the connection.
@@ -269,16 +269,12 @@ class TLSSocketHandle(SocketHandle):
     def connect(self, address: _Address, /) -> None:
         """
         Connect to a remote socket and establish TLS/SSL connection.
-        
+
         Args:
             address: The address to connect to (host, port).
         """
         self.socket.connect(address)
         self.socket = self.ssl_context.wrap_socket(self.socket, server_hostname=self.server_hostname)
-        
-        
-__all__ = [
-    "SocketHandle",
-    "TLSSocketHandle",
-    "sel"
-]
+
+
+__all__ = ["SocketHandle", "TLSSocketHandle", "sel"]

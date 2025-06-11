@@ -199,6 +199,7 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             self._input_ports[input_port_index].minimum_run_level = minimum_run_level[input_port_index]
 
         from .flow_hdl_view import FlowHDLView
+
         FlowHDLView.register_node(self)
 
         # loop over each argument and set up the corresponding input port
@@ -579,7 +580,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
             if input_port.connected_output is None or input_port_index in defaulted_inputs:
                 continue
             upstream_node = input_port.connected_output.node
-            try: 
+            try:
                 await upstream_node._barrier0.count_down(exception_if_zero=True)
             except Exception as e:
                 logger.warning(f"count_down_upstream_latches({self}, {defaulted_inputs})")
@@ -618,15 +619,15 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         """
         Get the input nodes that should be resolved before this node should run,
         considering the minimum run level required for each input.
-        
+
         For each input connection, the following steps are performed:
-        
+
         - Clip the input node's generation based on the input port's minimum run level.
         - Add the stitch value to the clipped generation.
         - Compare the clipped and stitched generation with this node's current generation.
-        
+
             - The input is considered stale and needs to be resolved if the clipped generation is less than or equal to this node's generation.
-        
+
 
         Returns:
             List[InputConnection]: A list of input connections that are stale and  and need to be resolved before this node can run.
@@ -751,6 +752,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 else:
                     raise MissingDefaultError(self, input_port_index)
         return self.GatheredInputs(tuple(positional_args), defaulted_ports)
+
     def debug_print(self) -> None:
         """
         Print detailed debug information about this node, including its inputs, outputs, and data.
@@ -772,6 +774,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         for gen, data in self._data.items():
             print(f"    Generation {gen}: {data}")
         print(f"  Current Generation: {self.generation}")
+
 
 class Stream(Generic[_InputType], AsyncIterator[_InputType]):
     """A stream of values from one node to another.
@@ -814,9 +817,7 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
 
         def get_clipped_stitched_gen():
             stitch_0 = self.input.node._input_ports[self.input.port_index].stitch_level_0
-            return clip_generation(
-                stitched_generation(self.output.node.generation, stitch_0), run_level=self.run_level
-            )
+            return clip_generation(stitched_generation(self.output.node.generation, stitch_0), run_level=self.run_level)
 
         while (
             cmp_generation(
@@ -922,9 +923,8 @@ class NodePlaceholder:
 
 @dataclass
 class OutputPortRefPlaceholder(Generic[_ReturnT]):
-    """Placeholder for a specific output port of a NodePlaceholder.
-    """
-    
+    """Placeholder for a specific output port of a NodePlaceholder."""
+
     node: NodePlaceholder
     port_index: OutputPortIndex
 
@@ -1125,189 +1125,6 @@ class PropagateIf(DraftNode[bool, _T, tuple[_T]]):
         return (value,)
 
 
-# >>>>>>>> ChatGPT generated crap
-
-
-def build_signature_display(
-    oc: "OriginalCall",
-    required_input_ports: list["InputPortIndex"],
-) -> str:
-    """
-    Return a multi-line string that shows either:
-      1) ClassName.call(...) in an abbreviated form, or
-      2) func_name(...) in a traditional inline form
-
-    With underlines marking which parameters are missing defaults.
-
-    """
-    # Pull out the parameters
-    parameters = list(oc.signature.parameters.items())
-    # Decide if 'self' is the first parameter
-    skip_self = len(parameters) > 0 and parameters[0][0] == "self"
-
-    # Distinguish the "class's call method" case from a normal function
-    if oc.class_name and oc.func_name == "call":
-        # e.g.  MyNode.call
-        #       (x: int, y: str=...)
-        line_1 = f"  class {oc.class_name}:"
-        line_2, underline_2 = build_abbreviated_signature(parameters, required_input_ports, skip_self)
-        # Indent 'async def call' by four spaces
-        line_2 = f"      async def {oc.func_name}(self, {line_2}): ..."
-        return f"{line_1}\n{line_2}\n{' '*(len(oc.func_name)+23)}{underline_2}"
-    else:
-        # Normal function style:  func_name(x: int, y: str=...)
-        signature_line, param_positions = build_inline_signature(
-            oc.func_name, parameters, required_input_ports, skip_self
-        )
-        underline_line = build_underline_line(signature_line, param_positions)
-        return f"  async def {signature_line}\n{' ' * 12}{underline_line}"
-
-
-def build_abbreviated_signature(
-    parameters: list[tuple[str, inspect.Parameter]],
-    required_input_ports: list["InputPortIndex"],
-    skip_self: bool,
-) -> tuple[str, str]:
-    """
-    Construct just the parenthesized parameter list, skipping self if needed.
-    Returns the line plus a line of dashes/underlines for missing-default params.
-    """
-    # If skipping self, we offset all required_input_ports by one
-    # to align them with actual param indices.
-    # Or you can treat real_index carefully in a loop.
-    param_strings = []
-    param_positions = []
-    signature_text = ""
-    current_length = len(signature_text)
-
-    for i, (pname, pval) in enumerate(parameters):
-        # If skip_self and this is the 0th parameter, omit it.
-        if skip_self and i == 0:
-            continue
-
-        # Figure out the real input-port index
-        real_index = i if not skip_self else (i - 1)
-        underline_needed = real_index in required_input_ports
-
-        # Build text for this parameter
-        param_text = build_param_text(pname, pval)
-        start_pos = current_length
-        signature_text += param_text
-        end_pos = start_pos + len(param_text)
-        param_positions.append((start_pos, end_pos, underline_needed))
-
-        current_length += len(param_text)
-        # Add comma if not last visible param
-        if i < len(parameters) - 1:
-            signature_text += ", "
-            current_length += 2
-
-    signature_text += ""
-    underline_line = build_underline_line(signature_text, param_positions)
-
-    return signature_text, underline_line
-
-
-def build_inline_signature(
-    func_name: str,
-    parameters: list[tuple[str, inspect.Parameter]],
-    required_input_ports: list["InputPortIndex"],
-    skip_self: bool,
-) -> tuple[str, list[tuple[int, int, bool]]]:
-    """
-    Build something like:  func_name(x: int=1, y: str)
-    Returns the signature string and param_positions for underlining.
-    """
-    signature_line = f"{func_name}("
-    param_positions = []
-    current_length = len(signature_line)
-
-    for i, (pname, pval) in enumerate(parameters):
-        if skip_self and i == 0:
-            # Just show 'self' plainly or skip it entirely. Usually you'd skip it in the signature.
-            # If you prefer to omit it, comment out or adapt logic here.
-            continue
-
-        real_index = i if not skip_self else (i - 1)
-        underline_needed = real_index in required_input_ports
-
-        param_text = build_param_text(pname, pval)
-        start_pos = current_length
-        signature_line += param_text
-        end_pos = start_pos + len(param_text)
-        param_positions.append((start_pos, end_pos, underline_needed))
-
-        current_length = len(signature_line)
-        if i < len(parameters) - 1:
-            signature_line += ", "
-            current_length += 2
-
-    signature_line += ")"
-    return signature_line, param_positions
-
-
-def build_param_text(param_name: str, param: inspect.Parameter) -> str:
-    """
-    Return a string representation of one parameter, e.g. `x: int=5`.
-    """
-    annotation = param.annotation if param.annotation != inspect._empty else "Any"
-    if annotation == str:
-        annotation = "str"
-    elif annotation == int:
-        annotation = "int"
-    elif annotation == float:
-        annotation = "float"
-
-    if param.default == inspect.Parameter.empty:
-        return f"{param_name}: {annotation}"
-    else:
-        return f"{param_name}: {annotation} = {param.default}"
-
-
-def build_underline_line(signature_line: str, param_positions: list[tuple[int, int, bool]]) -> str:
-    """
-    Create a line of spaces, with dashes marking the parameters that need defaults.
-    """
-    underline_chars = [" "] * len(signature_line)
-    for start, end, needed in param_positions:
-        if needed:
-            for idx in range(start, end):
-                underline_chars[idx] = "-"
-    return "".join(underline_chars)
-
-
-def format_missing_defaults(
-    node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]",
-    required_input_ports: list["InputPortIndex"],
-) -> str:
-    """
-    Produce a message describing which parameters of a node must have default
-    values. If the node's original call is from a class's `call` method, display
-    an abbreviated signature with the class name in a separate line. Otherwise,
-    display a more traditional function signature inline.
-
-    The final message includes underlines for each parameter index found in
-    required_input_ports.
-    """
-    oc = node._original_call
-    # Gather basic info
-    filename, lineno = oc.filename, oc.lineno
-
-    # Build the special or normal signature lines (and underline helpers)
-    signature_block = build_signature_display(oc, required_input_ports)
-
-    # Assemble and return the final error message
-    return (
-        f"  {node} must have defaults for EACH/ALL the underlined parameters:\n"
-        f"  Defined at {filename}:{lineno}\n"
-        f"  Full Signature:\n"
-        f"{signature_block}"
-    )
-
-
-# <<<<<<<<
-
-
 class MissingDefaultError(Exception):
     @overload
     def __init__(
@@ -1340,17 +1157,21 @@ class MissingDefaultError(Exception):
                             missing_info[node] = []
                         missing_info[node].append(internal_input_port)
 
+            def _format(
+                node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]", ports: list[InputPortIndex]
+            ) -> str:
+                ports_str = ", ".join(str(int(p)) for p in ports)
+                return f"  {node} missing defaults on input ports: {ports_str}"
+
             full_message = (
                 "Detected a cycle without default values. You must add defaults to the indicated arguments for at least ONE of the following nodes:\n"
-                + "\nOR\n".join(
-                    format_missing_defaults(node, input_ports) for node, input_ports in missing_info.items()
-                )
+                + "\nOR\n".join(_format(node, input_ports) for node, input_ports in missing_info.items())
             )
             super().__init__(full_message)
 
         else:
             assert input_index is not None
-            super().__init__(format_missing_defaults(node, [input_index]))
+            super().__init__(f"{node} missing default for input port {int(input_index)}")
 
 
 # Type aliases for common node types

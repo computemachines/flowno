@@ -3,22 +3,27 @@ from flowno.core.flow_hdl_view import FlowHDLView
 from flowno.core.group_node import DraftGroupNode
 from flowno.core.node_base import FinalizedNode
 
+
 @node
 async def MyConstant() -> int:
     return 42
 
+
 @node
 async def Increment(a: int) -> int:
     return a + 1
+
 
 @node.template
 def MyGroup(f: FlowHDLView, g_input: int):
     f.incremented_twice = Increment(Increment(g_input))
     return f.incremented_twice
 
+
 @node
 async def Sink(x: int) -> None:
     pass
+
 
 def test_group_expansion():
     with FlowHDL() as f:

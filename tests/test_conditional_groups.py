@@ -1,19 +1,23 @@
 from flowno import FlowHDL, node
 from flowno.core.node_base import Constant
 
+
 @node
 async def Inc(x: int) -> int:
     return x + 1
 
+
 @node
 async def Identity(x: int) -> int:
     return x
+
 
 @node.template
 def MyGroup(f, x: int):
     f.inc = Inc(x)
     f.inc_2 = Inc(f.inc)
     return f.inc_2
+
 
 @node.template
 def OuterGroup(f, x: int):

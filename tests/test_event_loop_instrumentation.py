@@ -40,6 +40,7 @@ def test_on_queue_get_instrumentation():
 
     assert instrument.items_popped == ["hello", "world"]
 
+
 def test_on_queue_put_instrumentation():
     loop = EventLoop()
     queue = AsyncQueue[str]()

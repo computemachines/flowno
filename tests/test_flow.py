@@ -73,14 +73,14 @@ async def Looper(x: int = 0) -> int:
 
 
 def test_simple_loop():
-    
+
     @node
     async def InnerLooper(x: int = 0) -> int:
         return x + 1
 
     with FlowHDL() as f:
         f.node1 = InnerLooper(f.node1.output(0))
-    
+
     finalized_node1 = f.node1
 
     with raises(TerminateLimitReached):

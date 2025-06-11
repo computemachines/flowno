@@ -12,7 +12,7 @@ Example:
     >>> from flowno.core.event_loop.event_loop import EventLoop
     >>> from flowno.core.event_loop.instrumentation import PrintInstrument
     >>> from flowno.core.event_loop.queues import AsyncQueue
-    >>> 
+    >>>
     >>> # Define a simple coroutine that uses a queue
     >>> async def queue_example():
     ...     queue = AsyncQueue()
@@ -21,7 +21,7 @@ Example:
     ...     # Get the item back from the queue
     ...     value = await queue.get()
     ...     return value
-    >>> 
+    >>>
     >>> # Create an event loop and run with instrumentation
     >>> event_loop = EventLoop()
     >>> with PrintInstrument():
@@ -61,6 +61,7 @@ _current_instrument: ContextVar["EventLoopInstrument | None"] = ContextVar("_cur
 @dataclass
 class InstrumentationMetadata:
     """Base metadata class for instrumentation events."""
+
     _task: "RawTask[Any, None, None]"
     _command: "Command"
     socket_handle: "SocketHandle"
@@ -71,6 +72,7 @@ class InstrumentationMetadata:
 @dataclass
 class ReadySocketInstrumentationMetadata(InstrumentationMetadata):
     """Metadata for socket operations that have completed."""
+
     finish_time: float = field(default_factory=time)
 
     @classmethod
@@ -90,6 +92,7 @@ class ReadySocketInstrumentationMetadata(InstrumentationMetadata):
 @dataclass
 class SocketRecvDataMetadata:
     """Metadata for received socket data."""
+
     socket_handle: "SocketHandle"
     data: bytes
 
@@ -97,6 +100,7 @@ class SocketRecvDataMetadata:
 @dataclass
 class SocketConnectStartMetadata:
     """Metadata for socket connection initiation."""
+
     socket_handle: "SocketHandle"
     target_address: "_Address"
     immediate: bool = False
@@ -106,6 +110,7 @@ class SocketConnectStartMetadata:
 @dataclass
 class SocketConnectReadyMetadata(SocketConnectStartMetadata):
     """Metadata for completed socket connections."""
+
     finish_time: float = field(default_factory=time)
 
     @classmethod
@@ -124,10 +129,11 @@ class SocketConnectReadyMetadata(SocketConnectStartMetadata):
 class EventLoopInstrument:
     """
     Base class for event loop instrumentation.
-    
+
     This class provides hooks for various event loop operations. Subclasses can
     override these methods to implement custom monitoring or logging.
     """
+
     _token: Token[Self | None] | None = None
 
     def on_queue_get(self, queue: "AsyncQueue[T]", item: T, immediate: bool) -> None:
@@ -159,7 +165,7 @@ class EventLoopInstrument:
     def on_socket_connect_start(self, metadata: SocketConnectStartMetadata) -> None:
         """
         Called when a socket connection is initiated.
-        
+
         Args:
             metadata: Connection metadata including target address
         """
@@ -168,7 +174,7 @@ class EventLoopInstrument:
     def on_socket_connect_ready(self, metadata: SocketConnectReadyMetadata) -> None:
         """
         Called when a socket connection has been established.
-        
+
         Args:
             metadata: Connection metadata including duration and target address
         """
@@ -177,7 +183,7 @@ class EventLoopInstrument:
     def on_socket_recv_start(self, metadata: InstrumentationMetadata) -> None:
         """
         Called when a task starts waiting on a socket recv.
-        
+
         Args:
             metadata: Socket operation metadata
         """
@@ -186,7 +192,7 @@ class EventLoopInstrument:
     def on_socket_recv_ready(self, metadata: ReadySocketInstrumentationMetadata) -> None:
         """
         Called when the socket is ready for reading.
-        
+
         Args:
             metadata: Socket operation metadata including duration
         """
@@ -195,7 +201,7 @@ class EventLoopInstrument:
     def on_socket_recv_data(self, metadata: SocketRecvDataMetadata) -> None:
         """
         Called immediately after the actual bytes have been read.
-        
+
         Args:
             metadata: Metadata including the received bytes
         """
@@ -204,7 +210,7 @@ class EventLoopInstrument:
     def on_socket_send_start(self, metadata: InstrumentationMetadata) -> None:
         """
         Called when a task starts waiting on a socket send.
-        
+
         Args:
             metadata: Socket operation metadata
         """
@@ -213,7 +219,7 @@ class EventLoopInstrument:
     def on_socket_send_ready(self, metadata: ReadySocketInstrumentationMetadata) -> None:
         """
         Called when the socket send operation completes.
-        
+
         Args:
             metadata: Socket operation metadata including duration
         """
@@ -222,7 +228,7 @@ class EventLoopInstrument:
     def on_socket_accept_start(self, metadata: InstrumentationMetadata) -> None:
         """
         Called when a task starts waiting on a socket accept.
-        
+
         Args:
             metadata: Socket operation metadata
         """
@@ -231,16 +237,16 @@ class EventLoopInstrument:
     def on_socket_accept_ready(self, metadata: ReadySocketInstrumentationMetadata) -> None:
         """
         Called when a socket accept operation completes.
-        
+
         Args:
             metadata: Socket operation metadata including duration
         """
         pass
-        
+
     def on_socket_close(self, metadata: InstrumentationMetadata) -> None:
         """
         Called when a socket connection is closed.
-        
+
         Args:
             metadata: Socket operation metadata
         """
@@ -265,9 +271,10 @@ class EventLoopInstrument:
 class PrintInstrument(EventLoopInstrument):
     """
     Event loop instrument that prints information to stdout.
-    
+
     This instrument outputs detailed information about socket operations.
     """
+
     print = print
 
     def _get_peer_info(self, sock_handle: SocketHandle) -> tuple[str, int]:
@@ -328,9 +335,10 @@ class PrintInstrument(EventLoopInstrument):
 class LogInstrument(PrintInstrument):
     """
     Event loop instrument that logs information using the logging module.
-    
+
     This instrument uses the debug log level for all messages.
     """
+
     print = logger.debug
 
 
@@ -340,7 +348,7 @@ EMPTY_INSTRUMENT: Final[EventLoopInstrument] = EventLoopInstrument()
 def get_current_instrument() -> EventLoopInstrument:
     """
     Get the current instrumentation context.
-    
+
     Returns:
         The currently active instrument or an empty instrument if none is active.
     """
@@ -352,13 +360,13 @@ def get_current_instrument() -> EventLoopInstrument:
 
 
 __all__ = [
-    "EventLoopInstrument", 
-    "PrintInstrument", 
+    "EventLoopInstrument",
+    "PrintInstrument",
     "LogInstrument",
     "InstrumentationMetadata",
     "ReadySocketInstrumentationMetadata",
     "SocketRecvDataMetadata",
     "SocketConnectStartMetadata",
     "SocketConnectReadyMetadata",
-    "get_current_instrument"
+    "get_current_instrument",
 ]
