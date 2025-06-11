@@ -4,7 +4,7 @@ Node meta decoration for single-output Flowno nodes.
 This module provides the `node_meta_single_dec` class, which handles the decorator
 logic for single-output node cases in the Flowno framework:
 - @node()
-- @node(multiple_outputs=False) 
+- @node(multiple_outputs=False)
 - @node(stream_in=[...])
 
 This is an internal implementation detail used by the :py:mod:`flowno.decorators.node`
@@ -40,24 +40,24 @@ from flowno.decorators.single_output import (
 EMPTY_LIST: Final[list[str]] = []  # used to make the typing happy
 
 # Define type variables
-T1 = TypeVar('T1')
-T2 = TypeVar('T2')
-_ReturnT_co = TypeVar('_ReturnT_co', covariant=True)
-Ts = TypeVarTuple('Ts')
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+_ReturnT_co = TypeVar("_ReturnT_co", covariant=True)
+Ts = TypeVarTuple("Ts")
 
 
 class node_meta_single_dec:
     """
     Handles the decorator logic for single-output node cases.
-    
+
     This class is returned by the @node() function when called with parameters,
     and implements __call__ to handle the actual function decoration. It creates
     appropriate DraftNode subclasses based on the decorated function or class
     and specified parameters.
-    
+
     Args:
         stream_in: List of parameter names that should be treated as streaming inputs
-    
+
     Returns:
         When called with a function or class, returns a DraftNode subclass
         factory for that function or class
@@ -148,15 +148,15 @@ class node_meta_single_dec:
     ) -> type[DraftNode[Unpack[Ts], tuple[_ReturnT_co]]]:
         """
         Apply the decorator to the given function or class.
-        
+
         This method is called when the decorator is applied to a function or class.
-        It delegates to either create_class_node_subclass_single or 
+        It delegates to either create_class_node_subclass_single or
         create_func_node_factory_single depending on whether the decorated object
         is a class or function.
-        
+
         Args:
             func_or_cls: The function or class to transform into a node
-            
+
         Returns:
             A DraftNode subclass factory for the decorated function or class
         """

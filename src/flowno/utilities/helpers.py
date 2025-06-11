@@ -23,22 +23,22 @@ from flowno.core.types import Generation
 def cmp_generation(gen_a: Generation, gen_b: Generation) -> Literal[-1, 0, 1]:
     """
     Compare two generation tuples according to Flowno's ordering rules.
-    
+
     The ordering follows these principles:
-    
+
     1. None values are considered "newest" (not yet run)
     2. For non-None tuples, lexicographical comparison is used first
     3. If lexicographical comparison gives equality but lengths differ, shorter tuples are considered "greater" (more final) than longer ones
-    
+
     Args:
         gen_a: First generation tuple to compare
         gen_b: Second generation tuple to compare
-        
+
     Returns:
         -1 if gen_a < gen_b (gen_a comes before gen_b)
         0 if gen_a == gen_b
         1 if gen_a > gen_b (gen_a comes after gen_b)
-        
+
     Examples:
         >>> cmp_generation(None, None)
         0
@@ -83,20 +83,20 @@ def cmp_generation(gen_a: Generation, gen_b: Generation) -> Literal[-1, 0, 1]:
 def inc_generation(gen: tuple[int, ...] | None, run_level: int = 0) -> tuple[int, ...]:
     """
     Increment the generation at the specified run level.
-    
+
     Computes the minimal generation greater than `gen` according to `cmp_generation`.
     This is used to calculate the next generation when a node runs.
-    
+
     Args:
         gen: The current generation to increment, or None
         run_level: The index within the generation tuple to increment
-        
+
     Returns:
         A new generation tuple that is minimally greater than the input
-        
+
     Raises:
         ValueError: If no generation greater than the input can be found
-        
+
     Examples:
         >>> inc_generation(None, 0)
         (0,)        # First generation at run level 0
@@ -134,19 +134,19 @@ def inc_generation(gen: tuple[int, ...] | None, run_level: int = 0) -> tuple[int
 def clip_generation(gen: Generation, run_level: int) -> Generation:
     """
     Clip a generation tuple to be compatible with a specific run level.
-    
+
     This function returns the "highest" generation (according to `cmp_generation`) that is
     less than or equal to `gen` and has a length of at most `run_level + 1`. It's used
     to determine if a node with streaming capabilities should wait for more data or
     can proceed with what's available.
-    
+
     Args:
         gen: The generation tuple to clip
         run_level: The run level to clip to
-        
+
     Returns:
         A clipped generation tuple, or None if no suitable generation exists
-        
+
     Examples:
         >>> clip_generation((0, 0), 3)
         (0, 0)      # Already compatible with run_level 3
@@ -215,16 +215,16 @@ def clip_generation(gen: Generation, run_level: int) -> Generation:
 def parent_generation(gen: Generation) -> Generation:
     """
     Return the parent generation of the given generation tuple.
-    
+
     The parent generation is created by removing the last element of the
     generation tuple, representing moving up one run level in the hierarchy.
-    
+
     Args:
         gen: The generation tuple to find the parent of
-        
+
     Returns:
         The parent generation, or None if gen is None or empty
-        
+
     Examples:
         >>> parent_generation(None)
         None
@@ -248,18 +248,18 @@ def parent_generation(gen: Generation) -> Generation:
 def stitched_generation(gen: Generation, stitch_0: int) -> Generation:
     """
     Apply a "stitch" adjustment to a generation tuple.
-    
+
     This function is used for cycle breaking in dataflow graphs. It adds the
     stitch value to the first element of the generation tuple, which affects
     how nodes in a cycle will be scheduled.
-    
+
     Args:
         gen: The generation tuple to stitch
         stitch_0: Value to add to the first element
-        
+
     Returns:
         The modified generation tuple, or a special value for None input
-        
+
     Examples:
         >>> stitched_generation(None, 0)
         None

@@ -1,7 +1,7 @@
 """
 Instrumentation system for Flowno's dataflow execution.
 
-This module provides tools for monitoring and debugging dataflow graph execution, 
+This module provides tools for monitoring and debugging dataflow graph execution,
 including node evaluation, data propagation, and cycle resolution. It uses a context
 manager pattern similar to the event loop instrumentation, allowing different monitoring
 tools to be applied to specific flows.
@@ -9,24 +9,24 @@ tools to be applied to specific flows.
 Example:
     >>> from flowno import node, FlowHDL
     >>> from flowno.core.flow.instrumentation import MinimalInstrument
-    >>> 
+    >>>
     >>> # Define a simple flow with two nodes
     >>> @node
     ... async def NumberNode(value: int = 5):
     ...     return value
-    >>> 
+    >>>
     >>> @node
     ... async def DoubleNode(value: int):
     ...     return value * 2
-    >>> 
+    >>>
     >>> # Create a simple instrumentation class
     >>> class MinimalInstrument(FlowInstrument):
     ...     def on_flow_start(self, flow):
     ...         print(f"Flow started: {flow}")
-    ...     
+    ...
     ...     def on_flow_end(self, flow):
     ...         print(f"Flow completed: {flow}")
-    ...     
+    ...
     ...     @contextmanager
     ...     def node_lifecycle(self, flow, node, run_level):
     ...         print(f"Starting node: {node} (run_level: {run_level})")
@@ -34,12 +34,12 @@ Example:
     ...             yield
     ...         finally:
     ...             print(f"Completed node: {node} (run_level: {run_level})")
-    >>> 
+    >>>
     >>> # Run the flow with instrumentation
     >>> with FlowHDL() as f:
     ...     f.number = NumberNode()
     ...     f.double = DoubleNode(f.number)
-    >>> 
+    >>>
     >>> with MinimalInstrument():
     ...     f.run_until_complete()
     Flow started: <flowno.core.flow.flow.Flow object at 0x...>
@@ -48,7 +48,7 @@ Example:
     Starting node: DoubleNode#... (run_level: 0)
     Completed node: DoubleNode#... (run_level: 0)
     Flow completed: <flowno.core.flow.flow.Flow object at 0x...>
-    >>> 
+    >>>
     >>> print(f.double.get_data())
     (10,)
 """
@@ -81,11 +81,11 @@ ObjectNode: TypeAlias = "FinalizedNode[Unpack[tuple[object, ...]], tuple[object,
 class FlowInstrument:
     """
     Base class for Flowno dataflow instrumentation.
-    
+
     This class provides hooks for various flow events, allowing monitoring of node
     execution, data propagation, and dependency resolution. Subclasses can override
     specific methods to track different aspects of flow execution.
-    
+
     Key events:
     - Flow start/end
     - Node registration and state changes
@@ -101,7 +101,7 @@ class FlowInstrument:
     def __enter__(self) -> FlowInstrument:
         """
         Start using this instrument for flow execution.
-        
+
         Returns:
             self: The instrument instance for context manager usage
         """
@@ -116,12 +116,12 @@ class FlowInstrument:
     ) -> bool:
         """
         Stop using this instrument and restore the previous one.
-        
+
         Args:
             exc_type: Exception type if an exception occurred
             exc_val: Exception value if an exception occurred
             exc_tb: Exception traceback if an exception occurred
-            
+
         Returns:
             bool: False to propagate exceptions, True to suppress
         """
@@ -132,7 +132,7 @@ class FlowInstrument:
     def on_flow_start(self, flow: Flow) -> None:
         """
         Called just before the Flow starts running (e.g. in run_until_complete).
-        
+
         Args:
             flow: The flow that is starting execution
         """
@@ -141,7 +141,7 @@ class FlowInstrument:
     def on_flow_end(self, flow: Flow) -> None:
         """
         Called immediately after the Flow finishes run_until_complete.
-        
+
         Args:
             flow: The flow that has completed execution
         """
@@ -150,7 +150,7 @@ class FlowInstrument:
     def on_node_registered(self, flow: Flow, node: ObjectNode) -> None:
         """
         Called when a node is first added/registered to the flow.
-        
+
         Args:
             flow: The flow the node is being registered with
             node: The node being registered
@@ -160,7 +160,7 @@ class FlowInstrument:
     def on_node_visited(self, flow: Flow, node: ObjectNode) -> None:
         """
         Called whenever the flow "marks" a node as visited in the resolution queue.
-        
+
         Args:
             flow: The flow executing the node
             node: The node being marked as visited
@@ -170,7 +170,7 @@ class FlowInstrument:
     def on_resolution_queue_put(self, flow: Flow, node: ObjectNode) -> None:
         """
         Called when a node is pushed onto the resolution queue.
-        
+
         Args:
             flow: The flow managing the resolution queue
             node: The node being queued for resolution
@@ -180,7 +180,7 @@ class FlowInstrument:
     def on_resolution_queue_get(self, flow: Flow, node: ObjectNode) -> None:
         """
         Called when a node is popped from the resolution queue.
-        
+
         Args:
             flow: The flow managing the resolution queue
             node: The node being processed from the queue
@@ -190,9 +190,9 @@ class FlowInstrument:
     def on_solving_nodes(self, flow: Flow, head_node: ObjectNode, solution_nodes: list[ObjectNode]) -> None:
         """
         Called when the flow forcibly evaluates a set of leaf dependencies.
-        
+
         This happens after `_find_solution_nodes(head_node)` returns.
-        
+
         Args:
             flow: The flow solving the dependencies
             head_node: The node whose dependencies are being solved
@@ -203,7 +203,7 @@ class FlowInstrument:
     def on_node_resumed(self, flow: Flow, node: ObjectNode, run_level: int) -> None:
         """
         Called when a node is resumed at a given run level.
-        
+
         Args:
             flow: The flow resuming the node
             node: The node being resumed
@@ -214,7 +214,7 @@ class FlowInstrument:
     def on_node_stalled(self, flow: Flow, node: ObjectNode, stalled_input: FinalizedInputPortRef[Any]) -> None:
         """
         Called when a node transitions to 'Stalled' status because of a blocked input port.
-        
+
         Args:
             flow: The flow containing the stalled node
             node: The node that has stalled
@@ -225,7 +225,7 @@ class FlowInstrument:
     def on_node_emitted_data(self, flow: Flow, node: ObjectNode, data: tuple[Any, ...] | None, run_level: int) -> None:
         """
         Called when a node yields or returns data at a particular run level.
-        
+
         Args:
             flow: The flow the node is part of
             node: The node emitting data
@@ -237,7 +237,7 @@ class FlowInstrument:
     def on_node_generation_limit(self, flow: Flow, node: ObjectNode, limit: Generation) -> None:
         """
         Called if the node hits a user-specified generation limit.
-        
+
         Args:
             flow: The flow the node is part of
             node: The node hitting its limit
@@ -248,7 +248,7 @@ class FlowInstrument:
     def on_node_error(self, flow: Flow, node: ObjectNode, error: Exception) -> None:
         """
         Called when a node raises an exception.
-        
+
         Args:
             flow: The flow the node is part of
             node: The node raising the exception
@@ -259,7 +259,7 @@ class FlowInstrument:
     def on_node_pause(self, flow: Flow, node: ObjectNode, run_level: int) -> None:
         """
         Called when a node is paused.
-        
+
         Args:
             flow: The flow the node is part of
             node: The node being paused
@@ -272,7 +272,7 @@ class FlowInstrument:
     ) -> None:
         """
         Called when the node changes status.
-        
+
         Args:
             flow: The flow the node is part of
             node: The node changing status
@@ -284,7 +284,7 @@ class FlowInstrument:
     def on_stream_start(self, stream: Stream[Any]) -> None:
         """
         Called when a Stream starts processing.
-        
+
         Args:
             stream: The stream that is starting
         """
@@ -293,7 +293,7 @@ class FlowInstrument:
     def on_stream_next(self, stream: Stream[Any], data: Any) -> None:
         """
         Called each time a Stream processes the next item.
-        
+
         Args:
             stream: The stream processing data
             data: The data item being processed
@@ -303,7 +303,7 @@ class FlowInstrument:
     def on_stream_end(self, stream: Stream[Any]) -> None:
         """
         Called when a Stream has no more items to process.
-        
+
         Args:
             stream: The stream that has completed
         """
@@ -312,7 +312,7 @@ class FlowInstrument:
     def on_stream_error(self, stream: Stream[Any], error: Exception) -> None:
         """
         Called when a Stream encounters an error.
-        
+
         Args:
             stream: The stream encountering an error
             error: The exception that was raised
@@ -323,10 +323,10 @@ class FlowInstrument:
     def on_barrier_node_write(self, flow: Flow, node: ObjectNode, data: tuple[Any, ...], run_level: int):
         """
         Context manager for tracking node write barrier events.
-        
+
         A write barrier ensures all downstream nodes have consumed previous data
         before new data is written, preventing data loss.
-        
+
         Args:
             flow: The flow containing the node
             node: The node writing data
@@ -344,10 +344,10 @@ class FlowInstrument:
     def on_barrier_node_read(self, node: ObjectNode, run_level: int):
         """
         Context manager for tracking node read barrier events.
-        
+
         A read barrier notifies upstream nodes that their data has been consumed,
         allowing them to proceed with generating new data.
-        
+
         Args:
             node: The node reading data
             run_level: The run level of the operation
@@ -363,10 +363,10 @@ class FlowInstrument:
     def node_lifecycle(self, flow: Flow, node: ObjectNode, run_level: int):
         """
         Context manager for tracking the complete lifecycle of a node evaluation.
-        
+
         This wraps the entire process of a node gathering its inputs, computing
         results, and producing outputs.
-        
+
         Args:
             flow: The flow containing the node
             node: The node being evaluated
@@ -382,9 +382,9 @@ class FlowInstrument:
     def on_defaulted_inputs_set(self, flow: Flow, node: ObjectNode, defaulted_inputs: list[InputPortIndex]) -> None:
         """
         Called when defaulted inputs for a node are set and the stitch levels are incremented.
-        
+
         This is important for cycle resolution, as defaulted inputs break cycles in the flow.
-        
+
         Args:
             flow: The flow containing the node
             node: The node with defaulted inputs
@@ -396,7 +396,7 @@ class FlowInstrument:
 class PrintInstrument(FlowInstrument):
     """
     A concrete implementation of FlowInstrument that prints flow and node execution events.
-    
+
     This instrument is useful for debugging and understanding the execution order
     of nodes in a flow.
     """
@@ -515,25 +515,26 @@ class PrintInstrument(FlowInstrument):
 class LogInstrument(PrintInstrument):
     """
     A version of PrintInstrument that sends output to the logger instead of stdout.
-    
+
     This instrument uses debug level logging for all messages.
     """
+
     print = logger.debug
 
 
 class MinimalInstrument(FlowInstrument):
     """
     A simplified instrument that only tracks flow start/end and node lifecycle.
-    
+
     This is useful for basic monitoring without excessive output.
     """
-    
+
     def on_flow_start(self, flow):
         print(f"Flow started: {flow}")
-    
+
     def on_flow_end(self, flow):
         print(f"Flow completed: {flow}")
-    
+
     @contextmanager
     def node_lifecycle(self, flow, node, run_level):
         print(f"Starting node: {node} (run_level: {run_level})")
@@ -549,7 +550,7 @@ NO_OP_INSTRUMENT: Final[FlowInstrument] = FlowInstrument()
 def get_current_flow_instrument() -> FlowInstrument:
     """
     Get the current flow instrumentation context.
-    
+
     Returns:
         The currently active flow instrument or a no-op instrument if none is active
     """

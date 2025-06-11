@@ -6,14 +6,14 @@ It's intended for testing, development, and simple use cases, not for production
 
 Example:
     Basic HTTP server:
-    
+
     >>> from flowno import EventLoop
     >>> from flowno.io import HttpServer
-    >>> 
+    >>>
     >>> async def main():
     ...     server = HttpServer('localhost', 8080)
     ...     await server.serve()  # This will run forever, handling requests
-    ... 
+    ...
     >>> # Run in a separate thread or process since it blocks indefinitely
     >>> loop = EventLoop()
     >>> loop.run_until_complete(main())
@@ -30,23 +30,23 @@ logger = logging.getLogger(__name__)
 class HttpServer:
     """
     Simple HTTP server compatible with the Flowno event loop.
-    
+
     This is a minimal HTTP server implementation for development and testing.
     For production scenarios, it's recommended to use a dedicated web server
     like Flask or FastAPI in a separate process.
-    
+
     Attributes:
         host: The hostname or IP address to bind to
         port: The port number to listen on
-    
+
     Example:
         >>> from flowno import EventLoop
         >>> from flowno.io import HttpServer
-        >>> 
+        >>>
         >>> async def custom_server():
         ...     server = HttpServer('localhost', 8080)
         ...     await server.serve()
-        ... 
+        ...
         >>> loop = EventLoop()
         >>> loop.run_until_complete(custom_server())
     """
@@ -54,7 +54,7 @@ class HttpServer:
     def __init__(self, host: str, port: int):
         """
         Initialize a new HTTP server.
-        
+
         Args:
             host: The hostname or IP address to bind to (e.g., 'localhost' or '0.0.0.0')
             port: The port number to listen on (e.g., 8080)
@@ -65,11 +65,11 @@ class HttpServer:
     async def serve(self):
         """
         Start the HTTP server and begin accepting connections.
-        
+
         This method binds to the specified host and port, then enters an infinite loop
         to accept and handle client connections. Each client connection is handled in
         a separate task.
-        
+
         The current task will suspend and other tasks can run concurrently.
         """
         sock = socket()
@@ -87,9 +87,9 @@ class HttpServer:
     async def handle_client(self, client_sock: SocketHandle):
         """
         Handle an individual client connection.
-        
+
         This method reads the client request, processes it, and sends a response.
-        
+
         Args:
             client_sock: The socket connected to the client
         """
@@ -119,13 +119,13 @@ class HttpServer:
     async def _receive_headers(self, sock: SocketHandle) -> tuple[str, Headers]:
         """
         Receive and parse HTTP headers from a client connection.
-        
+
         This method reads from the socket until it encounters the end of headers marker
         (double CRLF), then parses the headers.
-        
+
         Args:
             sock: The socket to read from
-            
+
         Returns:
             Tuple of (request_line, headers)
         """
@@ -156,10 +156,10 @@ class HttpServer:
     async def _receive_all(self, sock: SocketHandle) -> bytes:
         """
         Receive all data from a socket until connection closes.
-        
+
         Args:
             sock: The socket to read from
-            
+
         Returns:
             All data received from the socket
         """
@@ -175,13 +175,13 @@ class HttpServer:
     async def _generate_response(self, request_data: str) -> bytes:
         """
         Generate a response based on the request.
-        
+
         This is a simple implementation that returns a generic response.
         Override this method in a subclass to provide custom response logic.
-        
+
         Args:
             request_data: The first line of the HTTP request (e.g., "GET / HTTP/1.1")
-            
+
         Returns:
             Response body as bytes
         """

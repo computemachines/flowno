@@ -130,7 +130,9 @@ class FlowHDLView:
         """Register a finalized child context result with this view."""
         self._child_results.append(result)
 
-    def _finalize(self, draft_nodes: list[DraftNode], *, finalize_connections: bool = True) -> "FlowHDLView.FinalizationResult":
+    def _finalize(
+        self, draft_nodes: list[DraftNode], *, finalize_connections: bool = True
+    ) -> "FlowHDLView.FinalizationResult":
         """Finalize all the draft nodes instantiated in the FlowHDL context.
 
         Replace nodes defined in the FlowHDL context with their finalized
@@ -207,15 +209,11 @@ class FlowHDLView:
                         replacement = group_alias[replacement]
                     # Remove consumer from the group node
                     try:
-                        group_node._connected_output_nodes[conn.port_index].remove(
-                            draft_node
-                        )
+                        group_node._connected_output_nodes[conn.port_index].remove(draft_node)
                     except (KeyError, ValueError):
                         pass
                     # Register consumer on the replacement node
-                    replacement._connected_output_nodes[conn.port_index].append(
-                        draft_node
-                    )
+                    replacement._connected_output_nodes[conn.port_index].append(draft_node)
                     conn.node = replacement
 
         # Also ensure producers no longer list the dropped group nodes. We
@@ -224,9 +222,7 @@ class FlowHDLView:
         for producer in all_draft_nodes:
             for port_index, consumers in producer._connected_output_nodes.items():
                 producer._connected_output_nodes[port_index] = [
-                    c
-                    for c in consumers
-                    if not isinstance(c, DraftGroupNode)
+                    c for c in consumers if not isinstance(c, DraftGroupNode)
                 ]
 
         # ======== Phase 1 ========
@@ -236,9 +232,7 @@ class FlowHDLView:
 
         if finalize_connections:
             for unknown_node in all_draft_nodes:
-                draft_node = cast(
-                    DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node
-                )
+                draft_node = cast(DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]], unknown_node)
 
                 # DraftInputPorts can have OutputPortRefPlaceholders or DraftOutputPortRefs
                 # Step 1) Replace placeholders with drafts
@@ -279,9 +273,9 @@ class FlowHDLView:
 
                         # the placeholder was defined on the FlowHDL instance and is a DraftNode, so connect the nodes
                         logger.debug(f"Connecting {output_source_node} to {input_port}")
-                        output_source_node.output(
-                            input_port.connected_output.port_index
-                        ).connect(draft_node.input(input_port_index))
+                        output_source_node.output(input_port.connected_output.port_index).connect(
+                            draft_node.input(input_port_index)
+                        )
 
         # ======== Phase 2 ========
         # Now that all OutputPortRefPlaceholders have been replaced with
@@ -303,10 +297,7 @@ class FlowHDLView:
                     for index, draft_input_port in draft_node._input_ports.items()
                 }
                 finalized_node._connected_output_nodes = {
-                    index: [
-                        finalized_nodes[connected_draft]
-                        for connected_draft in connected_drafts
-                    ]
+                    index: [finalized_nodes[connected_draft] for connected_draft in connected_drafts]
                     for index, connected_drafts in draft_node._connected_output_nodes.items()
                 }
 

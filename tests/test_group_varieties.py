@@ -3,21 +3,26 @@ from flowno.core.flow_hdl_view import FlowHDLView
 from flowno.core.group_node import DraftGroupNode
 from flowno.core.node_base import FinalizedNode
 
+
 @node
 async def Const() -> int:
     return 1
+
 
 @node
 async def Add(a: int, b: int) -> int:
     return a + b
 
+
 @node
 async def Inc(x: int) -> int:
     return x + 1
 
+
 @node
 async def Sink(x: int) -> None:
     pass
+
 
 @node.template
 def IncTwice(f: FlowHDLView, x: int):
@@ -25,16 +30,19 @@ def IncTwice(f: FlowHDLView, x: int):
     f.second = Inc(f.first)
     return f.second
 
+
 @node.template
 def AddGroup(f: FlowHDLView, a: int, b: int = 5):
     f.sum = Add(a, b)
     return f.sum
+
 
 @node.template
 def OuterGroup(f: FlowHDLView, x: int):
     f.inner = IncTwice(x)
     f.out = IncTwice(f.inner)
     return f.out
+
 
 def _assert_no_groups(flow: FlowHDL) -> None:
     for node in flow._flow.node_tasks:

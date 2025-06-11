@@ -33,7 +33,7 @@ Example:
     ...     # The decorator will log the function call, awaits, and return value
     ...     result = await fetch_data("https://example.com/api")
     ...     print(f"Got result: {result}")
-    ...     
+    ...
     ...     # The decorator will log each yield and the final completion
     ...     async for chunk in stream_data(3):
     ...         print(f"Received: {chunk}")
@@ -105,15 +105,15 @@ def log_async(func: Callable[_P, AsyncGenerator[_YieldT, object]]) -> Callable[_
 def log_async(func: Callable[_P, _T]) -> Callable[_P, _T]: ...
 
 
-def log_async(func: Callable[_P, Coroutine[_YieldT, object, _T] | AsyncGenerator[_YieldT, object] | _RT]) -> Callable[
-    _P, Coroutine[_YieldT, object, _T] | AsyncGenerator[_YieldT, object] | _RT
-]:
+def log_async(
+    func: Callable[_P, Coroutine[_YieldT, object, _T] | AsyncGenerator[_YieldT, object] | _RT],
+) -> Callable[_P, Coroutine[_YieldT, object, _T] | AsyncGenerator[_YieldT, object] | _RT]:
     """
     Decorator that enhances async functions or generators with detailed execution logging.
-    
-    This decorator wraps coroutines and async generators to log important events 
+
+    This decorator wraps coroutines and async generators to log important events
     during their execution:
-    
+
     For coroutines:
     - Initial function call with arguments
     - When the coroutine is awaited
@@ -121,27 +121,30 @@ def log_async(func: Callable[_P, Coroutine[_YieldT, object, _T] | AsyncGenerator
     - When the coroutine is resumed with send() or throw()
     - When the coroutine completes (with return value)
     - If an exception occurs
-    
+
     For async generators:
     - Initial generator creation
     - Each time the generator yields a value
     - Each time the generator is resumed
     - When the generator is exhausted or closed
     - If an exception occurs
-    
+
     Args:
         func: The async function or generator function to wrap
-        
+
     Returns:
         A wrapped version of the function that logs execution details
-        
+
     Note:
         This decorator preserves the original function's signature and docstring.
         It's particularly useful for debugging complex asynchronous workflows in Flowno's
         event loop system.
     """
+
     @functools.wraps(func)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> Coroutine[_YieldT, object, _T] | AsyncGenerator[_YieldT, object] | _RT:
+    def wrapper(
+        *args: _P.args, **kwargs: _P.kwargs
+    ) -> Coroutine[_YieldT, object, _T] | AsyncGenerator[_YieldT, object] | _RT:
         # Exclude 'self' from args if present, for methods
         if args and getattr(func, "__self__", None) is not None:
             args_without_self = args[1:]

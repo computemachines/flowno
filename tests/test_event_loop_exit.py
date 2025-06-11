@@ -1,6 +1,7 @@
 """
 Tests for the event loop exit primitive.
 """
+
 import pytest
 from flowno import EventLoop, exit, sleep, spawn
 

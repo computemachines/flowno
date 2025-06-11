@@ -12,6 +12,7 @@ from flowno.io.http_client import (
 
 T = TypeVar("T")
 
+
 @pytest.mark.network
 def test_get_status():
     async def main():

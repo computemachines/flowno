@@ -47,6 +47,7 @@ ObjectFinalizedNode: TypeAlias = FinalizedNode[Unpack[tuple[object, ...]], tuple
 @dataclass
 class WaitForStartNextGenerationCommand(Command):
     """Command to wait for a node to start its next generation."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
     run_level: int = 0
 
@@ -63,6 +64,7 @@ def _wait_for_start_next_generation(
 @dataclass
 class TerminateWithExceptionCommand(Command):
     """Command to terminate the flow with an exception."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
     exception: Exception
 
@@ -79,6 +81,7 @@ def _terminate_with_exception(
 @dataclass
 class TerminateReachedLimitCommand(Command):
     """Command to terminate the flow because a node reached its generation limit."""
+
     pass
 
 
@@ -90,16 +93,16 @@ def _terminate_reached_limit() -> Generator[TerminateReachedLimitCommand, None, 
 
 class TerminateLimitReached(Exception):
     """Exception raised when a node reaches its generation limit."""
+
     pass
 
 
 class NodeExecutionError(Exception):
     """Exception raised when a node execution fails."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
 
-    def __init__(
-        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
-    ):
+    def __init__(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
         super().__init__(f"Exception in node {node}")
         self.node = node
 
@@ -107,6 +110,7 @@ class NodeExecutionError(Exception):
 @dataclass
 class ResumeNodeCommand(Command):
     """Command to resume a node's execution."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
 
 
@@ -121,7 +125,7 @@ def _resume_node(
 class NodeTaskStatus:
     """
     Represents the possible states of a node's task within the flow execution.
-    
+
     States:
         - Running: The node is currently executing.
         - Ready: The node is ready to execute but not yet running.
@@ -132,21 +136,25 @@ class NodeTaskStatus:
     @dataclass(frozen=True)
     class Running:
         """Node is actively executing."""
+
         pass
 
     @dataclass(frozen=True)
     class Ready:
         """Node is ready to be executed."""
+
         pass
 
     @dataclass(frozen=True)
     class Error:
         """Node encountered an error during execution."""
+
         pass
 
     @dataclass(frozen=True)
     class Stalled:
         """Node is stalled waiting for input data."""
+
         stalling_input: FinalizedInputPortRef[object]
 
     Type: TypeAlias = Ready | Running | Error | Stalled
@@ -154,6 +162,7 @@ class NodeTaskStatus:
 
 class NodeTaskAndStatus(NamedTuple):
     """Container for a node's task and its current status."""
+
     task: RawTask[Command, object, Never]
     status: NodeTaskStatus.Type
 
@@ -161,17 +170,17 @@ class NodeTaskAndStatus(NamedTuple):
 class Flow:
     """
     Dataflow graph execution engine.
-    
+
     The Flow class manages the execution of a dataflow graph, handling dependency
     resolution, node scheduling, and cycle breaking. It uses a custom event loop
     to execute nodes concurrently while respecting data dependencies.
-    
+
     Key features:
         - Automatic dependency-based scheduling
         - Cycle detection and resolution
         - Support for streaming data (run levels)
         - Concurrency management
-    
+
     Attributes:
         unvisited: List of nodes that have not yet been visited during execution
         visited: Set of nodes that have been visited
@@ -201,7 +210,7 @@ class Flow:
     def __init__(self, is_finalized: bool = True):
         """
         Initialize a new Flow instance.
-        
+
         Args:
             is_finalized: Whether the nodes in this flow are already finalized.
         """
@@ -224,7 +233,7 @@ class Flow:
     ) -> None:
         """
         Update the status of a node and notify instrumentation.
-        
+
         Args:
             node: The node whose status is being updated
             status: The new status to set
@@ -245,11 +254,11 @@ class Flow:
     ) -> None:
         """
         Mark specific inputs of a node as using default values.
-        
+
         When a node uses default values for inputs that are part of a cycle,
         this method records that information and increments the stitch level
         to prevent infinite recursion.
-        
+
         Args:
             node: The node with defaulted inputs
             defaulted_inputs: List of input port indices using default values
@@ -262,7 +271,7 @@ class Flow:
     def clear_defaulted_inputs(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> None:
         """
         Remove defaulted input information for a node.
-        
+
         Args:
             node: The node to clear defaulted inputs for
         """
@@ -273,11 +282,11 @@ class Flow:
     ) -> bool:
         """
         Check if a specific input port is using a default value.
-        
+
         Args:
             node: The node to check
             input_port: The input port index to check
-            
+
         Returns:
             True if the input port is using a default value, False otherwise
         """
@@ -286,10 +295,10 @@ class Flow:
     async def _terminate_if_reached_limit(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
         """
         Check if a node has reached its generation limit and terminate if so.
-        
+
         Args:
             node: The node to check
-            
+
         Raises:
             TerminateLimitReached: If the node reached its generation limit
         """
@@ -309,10 +318,10 @@ class Flow:
     ):
         """
         Handle a node that returns a coroutine (single output).
-        
-        This awaits the result of the node's coroutine and stores the 
+
+        This awaits the result of the node's coroutine and stores the
         result in the node's data.
-        
+
         Args:
             node: The node to handle
             returned: The coroutine returned by the node's call
@@ -337,11 +346,11 @@ class Flow:
     ):
         """
         Handle a node that returns an async generator (streaming output).
-        
+
         This processes each yielded item from the generator, storing them
-        as run level 1 data, and accumulates them for the final run level 0 
+        as run level 1 data, and accumulates them for the final run level 0
         result when the generator completes.
-        
+
         Args:
             node: The node to handle
             returned: The async generator returned by the node's call
@@ -418,7 +427,7 @@ class Flow:
     async def evaluate_node(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> Never:
         """
         The persistent task that evaluates a node.
-        
+
         This is the main execution function for a node. It:
             1. Waits for the node to be ready to run
             2. Gathers inputs and handles defaulted values
@@ -426,13 +435,13 @@ class Flow:
             4. Processes the result (either coroutine or async generator)
             5. Propagates outputs to dependent nodes
             6. Repeats
-        
+
         Args:
             node: The node to evaluate
-            
+
         Returns:
             Never returns; runs as a persistent coroutine
-            
+
         Raises:
             NotImplementedError: If the node does not return a coroutine or async generator
         """
@@ -478,7 +487,7 @@ class Flow:
     def add_node(self, node: FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]):
         """
         Add a node to the flow.
-        
+
         Args:
             node: The node to add
         """
@@ -492,9 +501,9 @@ class Flow:
     def _register_node(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
         """
         Register a node's task with the flow.
-        
+
         This creates the persistent task for the node and adds it to the node_tasks dictionary.
-        
+
         Args:
             node: The node to register
         """
@@ -507,7 +516,7 @@ class Flow:
     def _mark_node_as_visited(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
         """
         Mark a node as visited during the resolution process.
-        
+
         Args:
             node: The node to mark as visited
         """
@@ -525,7 +534,7 @@ class Flow:
     def add_nodes(self, nodes: list[FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]]):
         """
         Add multiple nodes to the flow.
-        
+
         Args:
             nodes: The nodes to add
         """
@@ -535,7 +544,7 @@ class Flow:
     async def _enqueue_output_nodes(self, out_node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
         """
         Enqueue all nodes that depend on the given node.
-        
+
         Args:
             out_node: The node whose dependents should be enqueued
         """
@@ -550,7 +559,7 @@ class Flow:
     async def _enqueue_node(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
         """
         Enqueue a single node for resolution.
-        
+
         Args:
             node: The node to enqueue
         """
@@ -572,18 +581,18 @@ class Flow:
     ):
         """
         Execute the flow until completion or until a termination condition is met.
-        
+
         This is the main entry point for running a flow. It starts the resolution
         process and runs until all nodes have completed or a termination condition
         (like reaching a generation limit or an error) is met.
-        
+
         Args:
             stop_at_node_generation: Generation limit for nodes, either as a global
                 limit or as a dict mapping nodes to their individual limits
             terminate_on_node_error: Whether to terminate the flow if a node raises an exception
             _debug_max_wait_time: Maximum time in seconds to wait for I/O operations
                 (useful for debugging)
-                
+
         Raises:
             Exception: Any exception raised by nodes and not caught
             TerminateLimitReached: When a node reaches its generation limit
@@ -610,17 +619,17 @@ class Flow:
     ):
         """
         Main resolution loop for the flow.
-        
-        This function implements the core algorithm for resolving node dependencies 
+
+        This function implements the core algorithm for resolving node dependencies
         and executing nodes in the correct order. It:
-        
+
         1. Picks an initial node
         2. For each node in the resolution queue:
             a. Finds the set of nodes that must be executed first
             b. Marks those nodes as visited
             c. Resumes their execution
         3. Continues until the resolution queue is empty
-        
+
         Args:
             stop_at_node_generation: Generation limit for nodes
             terminate_on_node_error: Whether to terminate on node errors
@@ -657,18 +666,18 @@ class Flow:
     ) -> list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]:
         """
         Find the nodes that are ultimately preventing the given node from running.
-        
+
         This method is key to Flowno's cycle resolution algorithm. It:
             1. Builds a condensed graph of strongly connected components (SCCs)
             2. Finds the leaf SCCs in this condensed graph
             3. For each leaf SCC, picks a node to force evaluate based on default values
-        
+
         Args:
             node: The node whose dependencies need to be resolved
-            
+
         Returns:
             A list of nodes that should be forced to evaluate to unblock the given node
-            
+
         Raises:
             MissingDefaultError: If a cycle is detected with no default values to break it
         """
@@ -683,14 +692,14 @@ class Flow:
     def _condensed_tree(self, head: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> SuperNode:
         """
         Build a condensed graph of strongly connected components (SCCs) from stale connections.
-        
+
         This method implements Tarjan's algorithm to find strongly connected components
         (cycles) in the dependency graph, but only following connections that are "stale"
         (where the input's generation is <= the node's generation).
-        
+
         Args:
             head: The starting point for building the condensed graph
-            
+
         Returns:
             A SuperNode representing the root of the condensed graph
         """
@@ -746,10 +755,10 @@ class Flow:
         def tarjan_dfs(v: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
             """
             Tarjan's algorithm for finding strongly connected components.
-            
-            This is a depth-first search that identifies strongly connected 
+
+            This is a depth-first search that identifies strongly connected
             components (cycles) in the graph.
-            
+
             Args:
                 v: The current node being processed
             """

@@ -38,19 +38,20 @@ _ReturnTupleT_co = TypeVar("_ReturnTupleT_co", covariant=True, bound=tuple[objec
 _T2 = TypeVar("_T2")
 Ts = TypeVarTuple("Ts")
 
+
 class node_meta_multiple_dec(Generic[Unpack[Ts], _ReturnTupleT_co]):
     """
     Handles the decorator logic for multiple-output cases:
         - @node(multiple_outputs=True)
         - @node(multiple_outputs=True, stream_in=...)
-    
+
     This class is returned by the @node() function when called with multiple_outputs=True,
     and implements __call__ to handle the actual function decoration. It creates
     appropriate DraftNode subclasses based on the decorated function and specified parameters.
-    
+
     Args:
         stream_in: List of parameter names that should be treated as streaming inputs
-    
+
     Returns:
         When called with a function, returns a DraftNode subclass factory for that function
         that preserves the tuple structure of multiple return values
@@ -108,14 +109,14 @@ class node_meta_multiple_dec(Generic[Unpack[Ts], _ReturnTupleT_co]):
     ) -> type[DraftNode[Unpack[Ts], _ReturnTupleT_co]]:  # type: ignore[type-var]
         """
         Apply the decorator to the given function.
-        
+
         This method is called when the decorator is applied to a function.
         It delegates to create_func_node_factory_multiple to create a DraftNode
         subclass that preserves the tuple structure of multiple return values.
-        
+
         Args:
             func: The function to transform into a node
-            
+
         Returns:
             A DraftNode subclass factory for the decorated function
         """
