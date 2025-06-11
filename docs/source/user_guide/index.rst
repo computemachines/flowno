@@ -7,5 +7,6 @@ User Guide
    key_concepts
    tutorial
    groups
+   conditional_nodes
    troubleshooting
 

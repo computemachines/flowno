@@ -590,3 +590,13 @@ in subflows later.)
 ~~~~~~~~~~~~~
 
 As a node yields streaming output for the first time (e.g., "H
+
+3.3 Conditional Execution
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :class:`~flowno.core.node_base.PropagateIf` node prevents downstream
+propagation when its predicate input is ``False``. The helper methods
+:py:meth:`~flowno.core.node_base.DraftNode.if_` and
+:py:meth:`~flowno.core.group_node.DraftGroupNode.if_` automatically wrap
+nodes or groups with ``PropagateIf`` so sections of the flow can be skipped
+based on runtime conditions.
