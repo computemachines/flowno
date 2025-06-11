@@ -119,8 +119,7 @@ or, for cyclic flows, until an uncaught exception occurs.
 
 ## Features TODO
 
-- **Conditional Nodes**  
-  Currently all nodes are executed unconditionally. The only way to skip a node is to add an immediate return statement to bypass the node's logic. I plan to add a way to conditionally execute nodes based on the output of other nodes.
+There are currently no planned features.
 
 ## Non-Goals
 
