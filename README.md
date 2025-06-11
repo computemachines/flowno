@@ -119,7 +119,7 @@ or, for cyclic flows, until an uncaught exception occurs.
 
 ## Features TODO
 
-There are currently no planned features.
+Improved typing
 
 ## Non-Goals
 
