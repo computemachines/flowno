@@ -13,6 +13,7 @@ Key features:
 Configure logging with environment variables:
     - FLOWNO_LOG_LEVEL: Set logging level (default: ERROR)
     - FLOWNO_LOG_TAG_FILTER: Filter logs by tags (default: ALL)
+    - FLOWNO_LOG_FILE: Write logs to file when set (e.g., "flowno.log")
 
 
 """
@@ -60,6 +61,8 @@ class TagFilter(logging.Filter):
 LOG_LEVEL = os.environ.get("FLOWNO_LOG_LEVEL", "ERROR").upper()
 # Example: LOG_TAG_FILTER="flow,event"
 raw_tag_filter = os.environ.get("FLOWNO_LOG_TAG_FILTER", "ALL")
+# Example: FLOWNO_LOG_FILE="flowno.log"
+log_file = os.environ.get("FLOWNO_LOG_FILE")
 
 tag_list = [t.strip().lower() for t in raw_tag_filter.split(",")]
 
@@ -71,15 +74,27 @@ logger.setLevel(LOG_LEVEL)
 if logger.hasHandlers():
     logger.handlers.clear()
 
-# Create and configure the custom handler
-handler = logging.StreamHandler()
-handler.setLevel(LOG_LEVEL)
-handler.addFilter(TagFilter(tag_list))
+# Create formatter
+formatter = logging.Formatter("%(asctime)s - %(levelname)s:%(name)s:%(message)s")
 
-formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
-handler.setFormatter(formatter)
+# Create and configure the console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(LOG_LEVEL)
+console_handler.addFilter(TagFilter(tag_list))
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
-logger.addHandler(handler)
+# Create and configure the file handler if FLOWNO_LOG_FILE is set
+if log_file:
+    try:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(LOG_LEVEL)
+        file_handler.addFilter(TagFilter(tag_list))
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        logger.info(f"File logging enabled: {log_file}")
+    except (OSError, PermissionError) as e:
+        logger.error(f"Failed to create log file '{log_file}': {e}")
 
 logger.info(f"Log level set to {LOG_LEVEL}")
 logger.info(f"Log filter set to {tag_list}")
