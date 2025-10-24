@@ -148,7 +148,16 @@ def _status_ok(status: str) -> bool:
     Returns:
         True if status code is in the 2xx range
     """
-    return 200 <= int(status.split(" ")[1]) < 300
+    try:
+        parts = status.split(" ")
+        if len(parts) < 2:
+            logger.error(f"Malformed status line: {status!r} (expected at least 2 parts)", extra={"tag": "http"})
+            return False
+        status_code = int(parts[1])
+        return 200 <= status_code < 300
+    except (ValueError, IndexError) as e:
+        logger.error(f"Failed to parse status code from {status!r}: {e}", extra={"tag": "http"})
+        return False
 
 
 def streaming_response_is_ok(
@@ -384,25 +393,46 @@ class HttpClient:
         headers = Headers()
         data = b""
         while True:
-            data = await sock.recv(1024)
-            if not data:
+            chunk = await sock.recv(1024)
+            logger.debug(f"Received chunk: {chunk!r}", extra={"tag": "http"})
+            if not chunk:
+                logger.warning("Socket closed before headers received", extra={"tag": "http"})
                 break
+            data += chunk
             if b"\r\n\r\n" in data:
                 break
+        
+        logger.debug(f"Total data received: {len(data)} bytes", extra={"tag": "http"})
+        
         split_data = data.split(b"\r\n\r\n", 1)
         if len(split_data) == 2:
             headers_data, initial_body = split_data
         else:
             headers_data = split_data[0]
             initial_body = b""
-        lines = headers_data.decode().split("\r\n")
+        
+        try:
+            lines = headers_data.decode().split("\r\n")
+        except UnicodeDecodeError as e:
+            logger.error(f"Failed to decode headers data: {e}", extra={"tag": "http"})
+            logger.error(f"Raw headers data: {headers_data!r}", extra={"tag": "http"})
+            raise
+        
+        if not lines:
+            logger.error("No lines in headers data", extra={"tag": "http"})
+            return "", headers, initial_body
+        
         status = lines[0]
+        logger.debug(f"Parsed status line: {status!r}", extra={"tag": "http"})
+        
         for line in lines[1:]:
             try:
                 name, value = line.split(": ", 1)
             except ValueError:
                 continue
             headers.set(name, value)
+        
+        logger.debug(f"Parsed {len(headers._headers)} headers", extra={"tag": "http"})
         return status, headers, initial_body
 
     async def request(
@@ -470,6 +500,7 @@ class HttpClient:
         body = await self._receive_remainder(sock, initial_body, response_headers)
         assert isinstance(body, bytes), f"Expected bytes, got {type(body)}"
 
+        logger.debug(f"Request complete with status: {status!r}", extra={"tag": "http"})
         decompressed_body = self._decompress_body(body, response_headers)
         return Response(self, status, response_headers, decompressed_body)
 
@@ -552,7 +583,9 @@ class HttpClient:
                 else:
                     yield decompressed_chunk
 
+        logger.debug(f"Checking status for streaming response: {status!r}", extra={"tag": "http"})
         if _status_ok(status):
+            logger.debug("Status OK, returning OkStreamingResponse", extra={"tag": "http"})
             return OkStreamingResponse(
                 self,
                 status=status,
@@ -560,6 +593,7 @@ class HttpClient:
                 body=body_generator(),
             )
         else:
+            logger.warning(f"Status not OK: {status!r}", extra={"tag": "http"})
             body = await self._receive_remainder(sock, initial_body, response_headers)
             assert isinstance(body, bytes), f"Expected bytes, got {type(body)}"
 
