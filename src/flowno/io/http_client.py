@@ -104,7 +104,7 @@ class Response(ResponseBase):
 
     def decode_json(self) -> Any:
         """Decode the response body as JSON."""
-        return self.client.json_decoder.decode(self.body.decode())
+        return self.client.json_decoder.decode(self.body.decode("utf-8"))
 
 
 @dataclass
@@ -135,7 +135,7 @@ class ErrStreamingResponse(ResponseBase):
 
     def decode_json(self) -> Any:
         """Decode the response body as JSON."""
-        return self.client.json_decoder.decode(self.body.decode())
+        return self.client.json_decoder.decode(self.body.decode("utf-8"))
 
 
 def _status_ok(status: str) -> bool:
@@ -412,7 +412,7 @@ class HttpClient:
             initial_body = b""
         
         try:
-            lines = headers_data.decode().split("\r\n")
+            lines = headers_data.decode("utf-8").split("\r\n")
         except UnicodeDecodeError as e:
             logger.error(f"Failed to decode headers data: {e}", extra={"tag": "http"})
             logger.error(f"Raw headers data: {headers_data!r}", extra={"tag": "http"})
@@ -629,7 +629,7 @@ class HttpClient:
                 break  # Exit if no complete message is found
 
             event_bytes, self._sse_buffer = self._sse_buffer.split(match.group(0), 1)
-            event = event_bytes.decode(errors="replace")
+            event = event_bytes.decode("utf-8", errors="replace")
 
             if not event.startswith("data: "):
                 continue
