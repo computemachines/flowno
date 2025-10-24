@@ -79,7 +79,15 @@ class ResponseBase:
     @property
     def status_code(self) -> int:
         """Get the numeric HTTP status code."""
-        return int(self.status.split(" ")[1])
+        if not self.status:
+            return 0  # Invalid/no response
+        parts = self.status.split(" ")
+        if len(parts) < 2:
+            return 0  # Malformed status line
+        try:
+            return int(parts[1])
+        except ValueError:
+            return 0  # Invalid status code
 
     @property
     def is_ok(self) -> bool:
@@ -428,9 +436,9 @@ class HttpClient:
         for line in lines[1:]:
             try:
                 name, value = line.split(": ", 1)
+                headers.set(name, value)
             except ValueError:
                 continue
-            headers.set(name, value)
         
         logger.debug(f"Parsed {len(headers._headers)} headers", extra={"tag": "http"})
         return status, headers, initial_body
@@ -694,14 +702,14 @@ class HttpClient:
     ) -> bytes | AsyncGenerator[bytes, None]:
         """
         Receive the remaining response body after headers.
-        
+
         This method handles both fixed-length and chunked responses.
-        
+
         Args:
             sock: The socket to read from
             initial_body: Any body data that was read with the headers
             headers: Response headers
-            
+
         Returns:
             Complete response body for fixed-length responses,
             or a generator for chunked responses
@@ -710,8 +718,10 @@ class HttpClient:
         content_length = headers.get("Content-Length")
         is_chunked = headers.get("Transfer-Encoding") == "chunked"
 
-        if not is_chunked:
-            assert content_length, "No content-length header found"
+        if is_chunked:
+            return self._stream_read(sock, initial_body)
+        elif content_length:
+            # Handle Content-Length specified responses
             assert isinstance(content_length, str), "Content-length header is not a string"
             content_length = int(content_length)
             body_length = len(body)
@@ -723,7 +733,14 @@ class HttpClient:
                 body_length += len(remaining_chunk)
             return body
         else:
-            return self._stream_read(sock, initial_body)
+            # Handle responses without Content-Length header
+            # According to HTTP/1.1, we should read until connection closes
+            while True:
+                remaining_chunk = await sock.recv(1024)
+                if not remaining_chunk:
+                    break
+                body += remaining_chunk
+            return body
 
     async def _stream_read(self, sock: SocketHandle, initial_body: bytes) -> AsyncGenerator[bytes, None]:
         # content-length is ignored if transfer-encoding is chunked

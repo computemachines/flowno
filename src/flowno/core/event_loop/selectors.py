@@ -231,13 +231,19 @@ class SocketHandle:
         Returns:
             The bytes received from the socket.
         """
-        try:
-            _ = os.fstat(self.socket.fileno())
-        except OSError as e:
-            if e.errno == errno.EBADF:
-                return b""
-            else:
-                raise
+        import platform
+        
+        # On Windows, os.fstat() doesn't work reliably with socket file descriptors
+        # (they are not regular file descriptors), so we skip the validity check
+        if platform.system() != "Windows":
+            try:
+                _ = os.fstat(self.socket.fileno())
+            except OSError as e:
+                if e.errno == errno.EBADF:
+                    return b""
+                else:
+                    raise
+        
         yield SocketRecvCommand(self)
         data = self.socket.recv(bufsize)
 
