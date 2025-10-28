@@ -30,7 +30,7 @@ from typing import (
     overload,
 )
 
-from flowno.core.event_loop.commands import Command
+from flowno.core.event_loop.commands import Command, StreamCancelCommand
 from flowno.core.event_loop.synchronization import CountdownLatch
 from flowno.core.flow.instrumentation import get_current_flow_instrument
 from flowno.core.types import (
@@ -758,6 +758,8 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
         self._last_consumed_generation: Generation = None
         self.run_level: RunLevel = 1
         self._last_consumed_parent_generation: Generation = None
+        self._cancelled: bool = False
+        self._cancel_acknowledged: bool = False
 
     @override
     def __aiter__(self) -> AsyncIterator[_InputType]:
@@ -768,10 +770,31 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
     def __repr__(self) -> str:
         return f"Stream({self.output}->{self.input}, last_consumed={self._last_consumed_generation}, last_consumed_parent={self._last_consumed_parent_generation}, run_level={self.run_level})"
 
+    @coroutine
+    def cancel(self) -> Generator["StreamCancelCommand", None, None]:
+        """Cancel this stream, causing the producer to receive StreamCancelled on next yield."""
+        if self._cancelled:
+            return  # Already cancelled
+        
+        self._cancelled = True
+        logger.info(f"Stream {self} cancellation requested", extra={"tag": "flow"})
+        
+        # Yield command to event loop to inject exception into producer        
+        yield StreamCancelCommand(
+            stream=self,
+            producer_node=self.output.node,
+            consumer_input=self.input
+        )
+        
     @override
     async def __anext__(self) -> _InputType:
         logger.debug(f"calling __anext__({self})")
 
+        # Check if stream is cancelled
+        if self._cancelled:
+            logger.debug(f"Stream {self} is cancelled, raising StopAsyncIteration")
+            raise StopAsyncIteration("Stream was cancelled")
+        
         def get_clipped_stitched_gen():
             stitch_0 = self.input.node._input_ports[self.input.port_index].stitch_level_0
             return clip_generation(
@@ -1240,6 +1263,13 @@ def format_missing_defaults(
 
 
 # <<<<<<<<
+
+
+class StreamCancelled(Exception):
+    """Raised when a stream consumer cancels the stream."""
+    def __init__(self, stream: "Stream[Any]", message: str = "Stream was cancelled by consumer"):
+        self.stream = stream
+        super().__init__(message)
 
 
 class MissingDefaultError(Exception):

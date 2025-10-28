@@ -205,3 +205,21 @@ class ExitCommand(Command):
 
     return_value: object = None
     exception: Exception | None = None
+
+
+@dataclass
+class StreamCancelCommand(Command):
+    """
+    Internal command to cancel a stream, causing the producer to receive StreamCancelled.
+
+    :param stream: The stream being cancelled
+    :param producer_node: The node producing data to the stream
+    :param consumer_input: The input port reference of the consuming node
+
+    .. note::
+       This command is yielded by consumers to cancel streams and notify producers.
+    """
+
+    stream: "Stream[Any]"
+    producer_node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
+    consumer_input: "FinalizedInputPortRef[Any]"
