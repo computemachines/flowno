@@ -15,6 +15,7 @@ license = {text="MIT" }
 keywords = ["dataflow", "dsl", "python"]
 dependencies = [
     "typing-extensions",
+    "docopt",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
