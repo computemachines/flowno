@@ -459,18 +459,25 @@ class Flow:
 
                 await _wait_for_start_next_generation(node, 1)
 
-        except (StreamCancelled, StopAsyncIteration):
+        except (StreamCancelled, StopAsyncIteration) as e:
             # Stream completed (either cancelled or naturally finished)
-            # acc is the accumulated run level 0 value
+            # If StopAsyncIteration has args, use that as the final value (from explicit raise)
+            # Otherwise use the accumulated run level 0 value
+            
+            if isinstance(e, StopAsyncIteration) and e.args:
+                # User explicitly passed a final value via raise StopAsyncIteration(value)
+                # The wrapper should have already wrapped it in a tuple
+                data = e.args[0] if isinstance(e.args[0], tuple) else (e.args[0],)
+            elif acc is None:
+                data = None
+            else:
+                data = acc
 
             # TODO: wait for barrier0
-            if acc is None:
-                node.push_data(None, 0)
-            else:
-                node.push_data(acc, 0)
+            node.push_data(data, 0)
             # TODO: set barrier0
 
-            get_current_flow_instrument().on_node_emitted_data(self, node, acc, 0)
+            get_current_flow_instrument().on_node_emitted_data(self, node, data, 0)
 
         except Exception as e:
             # python reraises any exception raised in the async generator as RuntimeError

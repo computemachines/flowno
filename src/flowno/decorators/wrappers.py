@@ -24,12 +24,20 @@ class AsyncGeneratorTupleWrapper(AsyncGenerator[tuple[T1], None]):
         try:
             value = await self._gen.__anext__()
             return (value,)
-        except StopAsyncIteration as e:
-            # If there are args, wrap them in a tuple
-            if e.args:
-                raise StopAsyncIteration((e.args[0],)) from e
+        except RuntimeError as e:
+            # Python wraps StopAsyncIteration raised in async generators in RuntimeError
+            # This happens even with custom event loops
+            if isinstance(e.__cause__, StopAsyncIteration):
+                # If there are args, wrap them in a tuple
+                if e.__cause__.args:
+                    raise StopAsyncIteration((e.__cause__.args[0],))
+                else:
+                    raise StopAsyncIteration()
             else:
                 raise
+        except StopAsyncIteration:
+            # Natural end of iteration (generator exhausted without explicit raise)
+            raise
     
     @override
     @overload
@@ -55,24 +63,38 @@ class AsyncGeneratorTupleWrapper(AsyncGenerator[tuple[T1], None]):
                 assert isinstance(typ, type), "Expected a type for the exception type"
                 value = await self._gen.athrow(typ, val, tb)
             return (value,)
-        except StopAsyncIteration as e:
-            # If there are args, wrap them in a tuple
-            if e.args:
-                raise StopAsyncIteration((e.args[0],)) from e
+        except RuntimeError as e:
+            # Python wraps StopAsyncIteration raised in async generators in RuntimeError
+            if isinstance(e.__cause__, StopAsyncIteration):
+                # If there are args, wrap them in a tuple
+                if e.__cause__.args:
+                    raise StopAsyncIteration((e.__cause__.args[0],))
+                else:
+                    raise StopAsyncIteration()
             else:
                 raise
+        except StopAsyncIteration:
+            # Natural end of iteration
+            raise
     
     @override
     async def asend(self, value: None) -> tuple[T1]:
         try:
             result = await self._gen.asend(value)
             return (result,)
-        except StopAsyncIteration as e:
-            # If there are args, wrap them in a tuple
-            if e.args:
-                raise StopAsyncIteration((e.args[0],)) from e
+        except RuntimeError as e:
+            # Python wraps StopAsyncIteration raised in async generators in RuntimeError
+            if isinstance(e.__cause__, StopAsyncIteration):
+                # If there are args, wrap them in a tuple
+                if e.__cause__.args:
+                    raise StopAsyncIteration((e.__cause__.args[0],))
+                else:
+                    raise StopAsyncIteration()
             else:
                 raise
+        except StopAsyncIteration:
+            # Natural end of iteration
+            raise
     
     @override
     async def aclose(self) -> None:
