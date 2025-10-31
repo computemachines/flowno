@@ -52,3 +52,19 @@ def test_on_queue_put_instrumentation():
         loop.run_until_complete(do_put())
 
     assert instrument.items_pushed == ["hello", "world"]
+
+
+def test_simple_queue_put_with_instrumentation():
+    """Simple test that creates an event loop and runs a coroutine that awaits a put on an async queue."""
+    loop = EventLoop()
+    queue = AsyncQueue[str]()
+
+    async def simple_put():
+        await queue.put("test_item")
+
+    with MyInstrument() as instrument:
+        loop.run_until_complete(simple_put())
+
+    assert instrument.items_pushed == ["test_item"]
+    assert len(queue.items) == 1
+    assert queue.items[0] == "test_item"

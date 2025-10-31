@@ -852,7 +852,7 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
 
         with get_current_flow_instrument().on_barrier_node_read(self.output.node, 1):
             try:
-                await self.output.node._barrier1.count_down(exception_if_zero=True)
+                await self.output.node._barrier1.count_down(exception_if_zero=True)  # TODO: check if this needs to be async-awaited
             except Exception as e:
                 logger.warning(f"Stream {self} anext count_down error: {e}")
                 logger.warning(f"Node: {self.output.node}")

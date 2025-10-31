@@ -11,13 +11,13 @@ Key components:
 """
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator
 from dataclasses import dataclass
 from types import coroutine
 from typing import Any, NamedTuple, TypeAlias, cast
 
-from flowno.core.event_loop.commands import Command
+from flowno.core.event_loop.commands import Command, StreamCancelCommand
 from flowno.core.event_loop.event_loop import EventLoop
 from flowno.core.event_loop.queues import AsyncSetQueue
 from flowno.core.event_loop.types import RawTask, TaskHandlePacket
@@ -30,7 +30,9 @@ from flowno.core.node_base import (
     FinalizedNode,
     MissingDefaultError,
     StalledNodeRequestCommand,
+    Stream,
     SuperNode,
+    StreamCancelled,
 )
 from flowno.core.types import Generation, InputPortIndex
 from flowno.utilities.helpers import cmp_generation
@@ -40,12 +42,15 @@ from typing_extensions import Never, Unpack, override
 logger = logging.getLogger(__name__)
 
 AnyFinalizedNode: TypeAlias = FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]
-ObjectFinalizedNode: TypeAlias = FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+ObjectFinalizedNode: TypeAlias = FinalizedNode[
+    Unpack[tuple[object, ...]], tuple[object, ...]
+]
 
 
 @dataclass
 class WaitForStartNextGenerationCommand(Command):
     """Command to wait for a node to start its next generation."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
     run_level: int = 0
 
@@ -62,6 +67,7 @@ def _wait_for_start_next_generation(
 @dataclass
 class TerminateWithExceptionCommand(Command):
     """Command to terminate the flow with an exception."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
     exception: Exception
 
@@ -78,6 +84,7 @@ def _terminate_with_exception(
 @dataclass
 class TerminateReachedLimitCommand(Command):
     """Command to terminate the flow because a node reached its generation limit."""
+
     pass
 
 
@@ -89,11 +96,13 @@ def _terminate_reached_limit() -> Generator[TerminateReachedLimitCommand, None, 
 
 class TerminateLimitReached(Exception):
     """Exception raised when a node reaches its generation limit."""
+
     pass
 
 
 class NodeExecutionError(Exception):
     """Exception raised when a node execution fails."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
 
     def __init__(
@@ -106,6 +115,7 @@ class NodeExecutionError(Exception):
 @dataclass
 class ResumeNodeCommand(Command):
     """Command to resume a node's execution."""
+
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
 
 
@@ -120,7 +130,7 @@ def _resume_node(
 class NodeTaskStatus:
     """
     Represents the possible states of a node's task within the flow execution.
-    
+
     States:
         - Running: The node is currently executing.
         - Ready: The node is ready to execute but not yet running.
@@ -131,21 +141,25 @@ class NodeTaskStatus:
     @dataclass(frozen=True)
     class Running:
         """Node is actively executing."""
+
         pass
 
     @dataclass(frozen=True)
     class Ready:
         """Node is ready to be executed."""
+
         pass
 
     @dataclass(frozen=True)
     class Error:
         """Node encountered an error during execution."""
+
         pass
 
     @dataclass(frozen=True)
     class Stalled:
         """Node is stalled waiting for input data."""
+
         stalling_input: FinalizedInputPortRef[object]
 
     Type: TypeAlias = Ready | Running | Error | Stalled
@@ -153,6 +167,7 @@ class NodeTaskStatus:
 
 class NodeTaskAndStatus(NamedTuple):
     """Container for a node's task and its current status."""
+
     task: RawTask[Command, object, Never]
     status: NodeTaskStatus.Type
 
@@ -160,17 +175,17 @@ class NodeTaskAndStatus(NamedTuple):
 class Flow:
     """
     Dataflow graph execution engine.
-    
+
     The Flow class manages the execution of a dataflow graph, handling dependency
     resolution, node scheduling, and cycle breaking. It uses a custom event loop
     to execute nodes concurrently while respecting data dependencies.
-    
+
     Key features:
         - Automatic dependency-based scheduling
         - Cycle detection and resolution
         - Support for streaming data (run levels)
         - Concurrency management
-    
+
     Attributes:
         unvisited: List of nodes that have not yet been visited during execution
         visited: Set of nodes that have been visited
@@ -186,13 +201,24 @@ class Flow:
     unvisited: list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]
     visited: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]
     _stop_at_node_generation: (
-        dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], Generation] | Generation
+        dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], Generation]
+        | Generation
     )
 
-    node_tasks: dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], NodeTaskAndStatus]
+    node_tasks: dict[
+        FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], NodeTaskAndStatus
+    ]
     running_nodes: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]
-    resolution_queue: AsyncSetQueue[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]
-    _defaulted_inputs: defaultdict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], list[InputPortIndex]]
+    resolution_queue: AsyncSetQueue[
+        FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ]
+    _defaulted_inputs: defaultdict[
+        FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        list[InputPortIndex],
+    ]
+    _cancelled_streams: defaultdict[
+        FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], set[Stream]
+    ]
 
     resumable: bool
     event_loop: "FlowEventLoop"
@@ -200,7 +226,7 @@ class Flow:
     def __init__(self, is_finalized: bool = True):
         """
         Initialize a new Flow instance.
-        
+
         Args:
             is_finalized: Whether the nodes in this flow are already finalized.
         """
@@ -217,19 +243,24 @@ class Flow:
         self.running_nodes = set()
         self.resolution_queue = AsyncSetQueue()
         self._defaulted_inputs = defaultdict(list)
+        self._cancelled_streams = defaultdict(set)
 
     def set_node_status(
-        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], status: NodeTaskStatus.Type
+        self,
+        node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        status: NodeTaskStatus.Type,
     ) -> None:
         """
         Update the status of a node and notify instrumentation.
-        
+
         Args:
             node: The node whose status is being updated
             status: The new status to set
         """
         old_status = self.node_tasks[node].status
-        get_current_flow_instrument().on_node_status_change(self, node, old_status, status)
+        get_current_flow_instrument().on_node_status_change(
+            self, node, old_status, status
+        )
         self.node_tasks[node] = self.node_tasks[node]._replace(status=status)
 
         if isinstance(status, NodeTaskStatus.Running):
@@ -244,11 +275,11 @@ class Flow:
     ) -> None:
         """
         Mark specific inputs of a node as using default values.
-        
+
         When a node uses default values for inputs that are part of a cycle,
         this method records that information and increments the stitch level
         to prevent infinite recursion.
-        
+
         Args:
             node: The node with defaulted inputs
             defaulted_inputs: List of input port indices using default values
@@ -256,39 +287,47 @@ class Flow:
         self._defaulted_inputs[node] = defaulted_inputs
         for input_port_index in defaulted_inputs:
             node._input_ports[input_port_index].stitch_level_0 += 1
-        get_current_flow_instrument().on_defaulted_inputs_set(self, node, defaulted_inputs)
+        get_current_flow_instrument().on_defaulted_inputs_set(
+            self, node, defaulted_inputs
+        )
 
-    def clear_defaulted_inputs(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> None:
+    def clear_defaulted_inputs(
+        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ) -> None:
         """
         Remove defaulted input information for a node.
-        
+
         Args:
             node: The node to clear defaulted inputs for
         """
         _ = self._defaulted_inputs.pop(node, None)
 
     def is_input_defaulted(
-        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], input_port: InputPortIndex
+        self,
+        node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        input_port: InputPortIndex,
     ) -> bool:
         """
         Check if a specific input port is using a default value.
-        
+
         Args:
             node: The node to check
             input_port: The input port index to check
-            
+
         Returns:
             True if the input port is using a default value, False otherwise
         """
         return input_port in self._defaulted_inputs[node]
 
-    async def _terminate_if_reached_limit(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
+    async def _terminate_if_reached_limit(
+        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ):
         """
         Check if a node has reached its generation limit and terminate if so.
-        
+
         Args:
             node: The node to check
-            
+
         Raises:
             TerminateLimitReached: If the node reached its generation limit
         """
@@ -298,7 +337,9 @@ class Flow:
             stop_generation = self._stop_at_node_generation
 
         if cmp_generation(node.generation, stop_generation) >= 0:
-            get_current_flow_instrument().on_node_generation_limit(self, node, stop_generation)
+            get_current_flow_instrument().on_node_generation_limit(
+                self, node, stop_generation
+            )
             await _terminate_reached_limit()
 
     async def _handle_coroutine_node(
@@ -308,10 +349,10 @@ class Flow:
     ):
         """
         Handle a node that returns a coroutine (single output).
-        
-        This awaits the result of the node's coroutine and stores the 
+
+        This awaits the result of the node's coroutine and stores the
         result in the node's data.
-        
+
         Args:
             node: The node to handle
             returned: The coroutine returned by the node's call
@@ -336,11 +377,20 @@ class Flow:
     ):
         """
         Handle a node that returns an async generator (streaming output).
-        
+
         This processes each yielded item from the generator, storing them
-        as run level 1 data, and accumulates them for the final run level 0 
+        as run level 1 data, and accumulates them for the final run level 0
         result when the generator completes.
-        
+
+        Args:
+"""
+        """
+        Handle a node that returns an async generator (streaming output).
+
+        This processes each yielded item from the generator, storing them
+        as run level 1 data, and accumulates them for the final run level 0
+        result when the generator completes.
+
         Args:
             node: The node to handle
             returned: The async generator returned by the node's call
@@ -349,35 +399,69 @@ class Flow:
 
         try:
             while True:
+                cancelled_streams = self._cancelled_streams.get(node, set())
+                logger.debug(f"_node_gen_lifecycle loop start for {node}, cancelled_streams={cancelled_streams}")
+                if cancelled_streams:
+                    logger.info(f"Cancelling streams for {node}: {cancelled_streams}", extra={"tag": "flow"})
+                    # Make a copy before clearing so the local variable remains truthy
+                    cancelled_streams = cancelled_streams.copy()
+                    self._cancelled_streams[node].clear()
+
+                    # this node has a set of output streams that have been cancelled
+                    # currently, there can only be one output stream, but I'm trying
+                    # to think ahead to multiple output streams.
+
                 # already part of run_level 0 lifecycle
-                with get_current_flow_instrument().node_lifecycle(self, node, run_level=1):
-                    result = await anext(returned)
+                    
+                with get_current_flow_instrument().node_lifecycle(
+                    self, node, run_level=1
+                ):
+                    if cancelled_streams:
+                        # inform the async generator of the cancelled stream
+                        # (assumes one output stream for now)
+                        try:
+                            result = await returned.athrow(
+                                StreamCancelled(stream=next(iter(cancelled_streams)))
+                            )
+                            # If the generator yields after a stream cancellation,
+                            # that just means the node wants to disregard the consumer's
+                            # cancellation request and continue producing data.
+                        except StopAsyncIteration as e:
+                            raise
+                    else:
+                        result = await anext(returned)
 
                 if acc is None:
                     acc = result
                 else:
                     try:
-                        acc = tuple(node._draft_node.accumulate_streamed_data(acc, result))
+                        acc = tuple(
+                            node._draft_node.accumulate_streamed_data(acc, result)
+                        )
                     except NotImplementedError:
                         acc = None
 
                 # wait for the last output data to have been read before overwriting.
-                with get_current_flow_instrument().on_barrier_node_write(self, node, result, 1):
+                with get_current_flow_instrument().on_barrier_node_write(
+                    self, node, result, 1
+                ):
                     await node._barrier1.wait()
                 node.push_data(result, 1)
                 # remember how many times output data must be read
                 node._barrier1.set_count(len(node.get_output_nodes_by_run_level(1)))
 
-                get_current_flow_instrument().on_node_emitted_data(self, node, result, 1)
+                get_current_flow_instrument().on_node_emitted_data(
+                    self, node, result, 1
+                )
 
                 await self._terminate_if_reached_limit(node)
                 await self._enqueue_output_nodes(node)
 
                 await _wait_for_start_next_generation(node, 1)
 
-        except StopAsyncIteration:
-            # normal implicit streaming node return
-            # acc is a run level 0 value
+        except (StreamCancelled, StopAsyncIteration):
+            # Stream completed (either cancelled or naturally finished)
+            # acc is the accumulated run level 0 value
 
             # TODO: wait for barrier0
             if acc is None:
@@ -414,10 +498,12 @@ class Flow:
                 raise
 
     @log_async
-    async def evaluate_node(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> Never:
+    async def evaluate_node(
+        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ) -> Never:
         """
         The persistent task that evaluates a node.
-        
+
         This is the main execution function for a node. It:
             1. Waits for the node to be ready to run
             2. Gathers inputs and handles defaulted values
@@ -425,13 +511,13 @@ class Flow:
             4. Processes the result (either coroutine or async generator)
             5. Propagates outputs to dependent nodes
             6. Repeats
-        
+
         Args:
             node: The node to evaluate
-            
+
         Returns:
             Never returns; runs as a persistent coroutine
-            
+
         Raises:
             NotImplementedError: If the node does not return a coroutine or async generator
         """
@@ -468,7 +554,7 @@ class Flow:
     def add_node(self, node: FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]):
         """
         Add a node to the flow.
-        
+
         Args:
             node: The node to add
         """
@@ -479,12 +565,14 @@ class Flow:
         self.unvisited.append(node)
         self._register_node(node)
 
-    def _register_node(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
+    def _register_node(
+        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ):
         """
         Register a node's task with the flow.
-        
+
         This creates the persistent task for the node and adds it to the node_tasks dictionary.
-        
+
         Args:
             node: The node to register
         """
@@ -494,10 +582,12 @@ class Flow:
         _ = task.send(None)
         self.node_tasks[node] = NodeTaskAndStatus(task, NodeTaskStatus.Ready())
 
-    def _mark_node_as_visited(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
+    def _mark_node_as_visited(
+        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ):
         """
         Mark a node as visited during the resolution process.
-        
+
         Args:
             node: The node to mark as visited
         """
@@ -512,20 +602,24 @@ class Flow:
             self.visited.add(node)
             self._register_node(node)
 
-    def add_nodes(self, nodes: list[FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]]):
+    def add_nodes(
+        self, nodes: list[FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]]
+    ):
         """
         Add multiple nodes to the flow.
-        
+
         Args:
             nodes: The nodes to add
         """
         for node in nodes:
             self.add_node(node)
 
-    async def _enqueue_output_nodes(self, out_node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
+    async def _enqueue_output_nodes(
+        self, out_node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ):
         """
         Enqueue all nodes that depend on the given node.
-        
+
         Args:
             out_node: The node whose dependents should be enqueued
         """
@@ -537,10 +631,12 @@ class Flow:
 
             await self.resolution_queue.putAll(output_nodes)
 
-    async def _enqueue_node(self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
+    async def _enqueue_node(
+        self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ):
         """
         Enqueue a single node for resolution.
-        
+
         Args:
             node: The node to enqueue
         """
@@ -562,18 +658,18 @@ class Flow:
     ):
         """
         Execute the flow until completion or until a termination condition is met.
-        
+
         This is the main entry point for running a flow. It starts the resolution
         process and runs until all nodes have completed or a termination condition
         (like reaching a generation limit or an error) is met.
-        
+
         Args:
             stop_at_node_generation: Generation limit for nodes, either as a global
                 limit or as a dict mapping nodes to their individual limits
             terminate_on_node_error: Whether to terminate the flow if a node raises an exception
             _debug_max_wait_time: Maximum time in seconds to wait for I/O operations
                 (useful for debugging)
-                
+
         Raises:
             Exception: Any exception raised by nodes and not caught
             TerminateLimitReached: When a node reaches its generation limit
@@ -581,7 +677,11 @@ class Flow:
         self.event_loop.run_until_complete(
             self._node_resolve_loop(
                 cast(
-                    dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], Generation] | Generation,
+                    dict[
+                        FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+                        Generation,
+                    ]
+                    | Generation,
                     stop_at_node_generation,
                 ),
                 terminate_on_node_error,
@@ -594,23 +694,27 @@ class Flow:
     async def _node_resolve_loop(
         self,
         stop_at_node_generation: (
-            dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], Generation] | Generation
+            dict[
+                FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+                Generation,
+            ]
+            | Generation
         ),
         terminate_on_node_error: bool,
     ):
         """
         Main resolution loop for the flow.
-        
-        This function implements the core algorithm for resolving node dependencies 
+
+        This function implements the core algorithm for resolving node dependencies
         and executing nodes in the correct order. It:
-        
+
         1. Picks an initial node
         2. For each node in the resolution queue:
             a. Finds the set of nodes that must be executed first
             b. Marks those nodes as visited
             c. Resumes their execution
         3. Continues until the resolution queue is empty
-        
+
         Args:
             stop_at_node_generation: Generation limit for nodes
             terminate_on_node_error: Whether to terminate on node errors
@@ -630,10 +734,14 @@ class Flow:
 
             # blocks until a node is available or the queue is closed
             async for current_node in self.resolution_queue:
-                get_current_flow_instrument().on_resolution_queue_get(self, current_node)
+                get_current_flow_instrument().on_resolution_queue_get(
+                    self, current_node
+                )
 
                 solution_nodes = self._find_node_solution(current_node)
-                get_current_flow_instrument().on_solving_nodes(self, current_node, solution_nodes)
+                get_current_flow_instrument().on_solving_nodes(
+                    self, current_node, solution_nodes
+                )
 
                 for leaf_node in solution_nodes:
                     self._mark_node_as_visited(leaf_node)
@@ -647,51 +755,67 @@ class Flow:
     ) -> list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]:
         """
         Find the nodes that are ultimately preventing the given node from running.
-        
+
         This method is key to Flowno's cycle resolution algorithm. It:
             1. Builds a condensed graph of strongly connected components (SCCs)
             2. Finds the leaf SCCs in this condensed graph
             3. For each leaf SCC, picks a node to force evaluate based on default values
-        
+
         Args:
             node: The node whose dependencies need to be resolved
-            
+
         Returns:
             A list of nodes that should be forced to evaluate to unblock the given node
-            
+
         Raises:
             MissingDefaultError: If a cycle is detected with no default values to break it
         """
         supernode_root = self._condensed_tree(node)
 
-        nodes_to_force_evaluate: list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = []
+        nodes_to_force_evaluate: list[
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+        ] = []
         for supernode in self._find_leaf_supernodes(supernode_root):
             nodes_to_force_evaluate.append(self._pick_node_to_force_evaluate(supernode))
 
         return nodes_to_force_evaluate
 
-    def _condensed_tree(self, head: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]) -> SuperNode:
+    def _condensed_tree(
+        self, head: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    ) -> SuperNode:
         """
         Build a condensed graph of strongly connected components (SCCs) from stale connections.
-        
+
         This method implements Tarjan's algorithm to find strongly connected components
         (cycles) in the dependency graph, but only following connections that are "stale"
         (where the input's generation is <= the node's generation).
-        
+
         Args:
             head: The starting point for building the condensed graph
-            
+
         Returns:
             A SuperNode representing the root of the condensed graph
         """
-        visited: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = set()
-        current_scc_stack: list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = []
-        on_stack: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = set()
+        visited: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = (
+            set()
+        )
+        current_scc_stack: list[
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+        ] = []
+        on_stack: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = (
+            set()
+        )
         id_counter = 0
-        ids: dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], int] = {}
-        low_links: dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], int] = {}
+        ids: dict[
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], int
+        ] = {}
+        low_links: dict[
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], int
+        ] = {}
         all_sccs: list[SuperNode] = []
-        scc_for_node: dict[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], SuperNode] = {}
+        scc_for_node: dict[
+            FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], SuperNode
+        ] = {}
 
         def get_subgraph_edges(
             node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
@@ -709,7 +833,9 @@ class Flow:
             3) Otherwise, we yield all stale, non-defaulted inputs.
             """
             # 1) Collect all stale inputs
-            stale_inputs = node.get_inputs_with_le_generation_clipped_to_minimum_run_level()
+            stale_inputs = (
+                node.get_inputs_with_le_generation_clipped_to_minimum_run_level()
+            )
 
             # 2) Check node's status
             match self.node_tasks[node].status:
@@ -723,7 +849,9 @@ class Flow:
                     # Only yield it if:
                     #   - it's in the stale set
                     #   - it's not defaulted
-                    if single_port in stale_inputs and not self.is_input_defaulted(node, single_port.port_index):
+                    if single_port in stale_inputs and not self.is_input_defaulted(
+                        node, single_port.port_index
+                    ):
                         yield single_port
 
                 case _:
@@ -733,13 +861,15 @@ class Flow:
                             continue
                         yield port
 
-        def tarjan_dfs(v: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]):
+        def tarjan_dfs(
+            v: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        ):
             """
             Tarjan's algorithm for finding strongly connected components.
-            
-            This is a depth-first search that identifies strongly connected 
+
+            This is a depth-first search that identifies strongly connected
             components (cycles) in the graph.
-            
+
             Args:
                 v: The current node being processed
             """
@@ -754,9 +884,9 @@ class Flow:
             for v_input_ports in get_subgraph_edges(v):
                 if v_input_ports.connected_output is None:
                     continue
-                dependency: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]] = (
-                    v_input_ports.connected_output.node
-                )
+                dependency: FinalizedNode[
+                    Unpack[tuple[object, ...]], tuple[object, ...]
+                ] = v_input_ports.connected_output.node
                 if dependency not in visited:
                     tarjan_dfs(dependency)
                     low_links[v] = min(low_links[v], low_links[dependency])
@@ -764,7 +894,9 @@ class Flow:
                     low_links[v] = min(low_links[v], ids[dependency])
 
             if low_links[v] == ids[v]:
-                scc_nodes: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = set()
+                scc_nodes: set[
+                    FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+                ] = set()
                 while True:
                     w = current_scc_stack.pop()
                     on_stack.remove(w)
@@ -776,7 +908,8 @@ class Flow:
                     node: [
                         port.port_index
                         for port in get_subgraph_edges(node)
-                        if port.connected_output and port.connected_output.node in scc_nodes
+                        if port.connected_output
+                        and port.connected_output.node in scc_nodes
                     ]
                     for node in scc_nodes
                 }
@@ -793,9 +926,9 @@ class Flow:
                 for port in get_subgraph_edges(member):
                     if not port.connected_output:
                         continue
-                    dependency: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]] = (
-                        port.connected_output.node
-                    )
+                    dependency: FinalizedNode[
+                        Unpack[tuple[object, ...]], tuple[object, ...]
+                    ] = port.connected_output.node
                     if scc_for_node[dependency] != super_node:
                         super_node.dependencies.append(scc_for_node[dependency])
                         scc_for_node[dependency].dependent = super_node
@@ -837,7 +970,9 @@ class Flow:
             If the argument is not a leaf in the condensed graph, the behavior is undefined.
         """
         for node, input_ports in leaf_supernode.members.items():
-            if all(node.has_default_for_input(input_port) for input_port in input_ports):
+            if all(
+                node.has_default_for_input(input_port) for input_port in input_ports
+            ):
                 return node
         raise MissingDefaultError(leaf_supernode)
 
@@ -887,17 +1022,49 @@ class FlowEventLoop(EventLoop):
             if node not in self.flow.running_nodes:
                 self.flow.set_node_status(node, NodeTaskStatus.Running())
 
+                # queue up the node's task to run before the current task
                 self.tasks.append((self.flow.node_tasks[node][0], None, None))
+                # continue the current task afterwards (always flow._node_resolve_loop() task)
                 self.tasks.append((current_task, None, None))
             else:
+                # node is already running, it has a task in the queue
+                # just schedule the current task again
                 self.tasks.append((current_task, None, None))
 
         elif isinstance(command, StalledNodeRequestCommand):
             stalled_input = command.stalled_input
             stalling_node = command.stalling_node
-            self.flow.set_node_status(stalled_input.node, NodeTaskStatus.Stalled(stalled_input))
-            get_current_flow_instrument().on_node_stalled(self.flow, stalling_node, stalled_input)
+            self.flow.set_node_status(
+                stalled_input.node, NodeTaskStatus.Stalled(stalled_input)
+            )
+            get_current_flow_instrument().on_node_stalled(
+                self.flow, stalling_node, stalled_input
+            )
             self.tasks.insert(0, (self.flow._enqueue_node(stalling_node), None, None))
+
+        elif isinstance(command, StreamCancelCommand):
+            # _node = command.node
+            producer_node = command.producer_node
+            stream = command.stream
+            current_task = current_task_packet[0]
+
+            self.flow._cancelled_streams[producer_node].add(stream)
+
+            # # Resume the producer node so it can check for cancelled streams
+            # # The producer might be suspended waiting for the next generation
+            # if producer_node in self.flow.node_tasks:
+            #     producer_task = self.flow.node_tasks[producer_node][0]
+            #     # Remove the producer task if it's already in the queue to avoid duplicates
+            #     filtered_tasks = deque(
+            #         (t, ex, tb) for (t, ex, tb) in self.tasks if t != producer_task
+            #     )
+            #     self.tasks = filtered_tasks
+            #     # Insert producer task to run next
+            #     self.tasks.insert(0, (producer_task, None, None))
+
+            # Immediately resume the current task. The order probably doesn't matter here, but
+            # I'm worried about nodes in the resolution queue being executed in a surprising order.
+            self.tasks.insert(0, (current_task, None, None))
 
         else:
             return False
