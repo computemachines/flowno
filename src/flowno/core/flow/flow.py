@@ -473,9 +473,12 @@ class Flow:
             else:
                 data = acc
 
-            # TODO: wait for barrier0
+            # Wait for the last output data to have been read before overwriting
+            with get_current_flow_instrument().on_barrier_node_write(self, node, data, 0):
+                await node._barrier0.wait()
             node.push_data(data, 0)
-            # TODO: set barrier0
+            # Remember how many times output data must be read
+            node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
 
             get_current_flow_instrument().on_node_emitted_data(self, node, data, 0)
 
@@ -496,9 +499,12 @@ class Flow:
                     )
                 data: tuple[object, ...] = e.__cause__.args[0]
 
-                # TODO: wait for barrier0
+                # Wait for the last output data to have been read before overwriting
+                with get_current_flow_instrument().on_barrier_node_write(self, node, data, 0):
+                    await node._barrier0.wait()
                 node.push_data(data, 0)
-                # TODO: set barrier0
+                # Remember how many times output data must be read
+                node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
 
                 get_current_flow_instrument().on_node_emitted_data(self, node, data, 0)
             else:
