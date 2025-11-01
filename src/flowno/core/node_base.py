@@ -538,6 +538,9 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         for input_port_index, input_port in self._input_ports.items():
             if input_port.connected_output is None or input_port_index in defaulted_inputs:
                 continue
+            # Skip streaming inputs - they read run_level=1 data and count down barrier1 in Stream.__anext__()
+            if input_port.minimum_run_level > 0:
+                continue
             upstream_node = input_port.connected_output.node
             try: 
                 await upstream_node._barrier0.count_down(exception_if_zero=True)
