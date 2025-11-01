@@ -1332,5 +1332,6 @@ __all__ = [
     "DraftInputPortRef",
     "DraftOutputPortRef",
     "Stream",
+    "StreamCancelled",
     "OutputPortRefPlaceholder",
 ]
