@@ -12,7 +12,7 @@ async def SendToGUI(response_chunks: Stream[str]):
             # nodejs_callback_bridge.send_message({"type": "chunk", "content": chunk})
 
 
-class TestApp:
+class DummyApp:
     def __init__(self):
         self.prompt_queue = AsyncQueue[str]()
         self.f: FlowHDL | None = None
@@ -20,14 +20,14 @@ class TestApp:
     def run(self):
         @node
         async def ReceiveUserInput():
-            print("[TestApp] Waiting for user input...")
+            print("[DummyApp] Waiting for user input...")
             prompt = await self.prompt_queue.get()
-            print(f"[TestApp] Received user input: {prompt}")
+            print(f"[DummyApp] Received user input: {prompt}")
             return prompt
 
         @node
         async def DummyInference(prompt: str):
-            print(f"[TestApp] Processing prompt: {prompt}")
+            print(f"[DummyApp] Processing prompt: {prompt}")
             yield "thinking... "
             for word in prompt.split():
                 # Simulate some processing time
@@ -43,11 +43,11 @@ class TestApp:
         self.f.run_until_complete()
 
     async def enqueue_prompt(self, prompt: str):
-        print(f"[TestApp] Enqueuing prompt: {prompt}")
+        print(f"[DummyApp] Enqueuing prompt: {prompt}")
         await self.prompt_queue.put(prompt)
 
     def handle_message(self, message: str):
-        print(f"[TestApp] Received message: {message}")
+        print(f"[DummyApp] Received message: {message}")
         if self.f is None:
             raise RuntimeError("FlowHDL not initialized - call run() first")
         _ = self.f.create_task(
@@ -57,7 +57,7 @@ class TestApp:
 def test_task_removal_error():
     """Test that reproduces KeyError when removing tasks from event loop."""
     loop = EventLoop()
-    app = TestApp()
+    app = DummyApp()
     
     # Run the flow in main thread
     main_thread = threading.Thread(target=app.run)

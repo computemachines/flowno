@@ -30,7 +30,7 @@ Example:
 import inspect
 import logging
 from types import TracebackType
-from typing import Any, ClassVar, cast
+from typing import Any, Callable, ClassVar, cast
 
 from flowno.core.event_loop.commands import Command
 from flowno.core.event_loop.types import RawTask
@@ -41,6 +41,7 @@ from flowno.core.node_base import (
     DraftInputPortRef,
     DraftNode,
     FinalizedNode,
+    NodeContextFactoryProtocol,
     NodePlaceholder,
     OutputPortRefPlaceholder,
 )
@@ -111,6 +112,7 @@ class FlowHDL(FlowHDLView):
         ) = (),
         terminate_on_node_error: bool = True,
         _debug_max_wait_time: float | None = None,
+        context_factory: Callable[["FinalizedNode"], Any] | None = None,  
     ) -> None:
         """Run the flow until all nodes have completed processing.
 
@@ -124,6 +126,7 @@ class FlowHDL(FlowHDLView):
             stop_at_node_generation=stop_at_node_generation,
             terminate_on_node_error=terminate_on_node_error,
             _debug_max_wait_time=_debug_max_wait_time,
+            context_factory=context_factory,
         )
 
 

@@ -47,7 +47,7 @@ from flowno.utilities.helpers import (
     parent_generation,
     stitched_generation,
 )
-from typing_extensions import TypeVarTuple, Unpack, deprecated, override
+from typing_extensions import TypeVarTuple, Unpack, deprecated, override, Protocol
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,15 @@ _Tout = TypeVar("_Tout", covariant=True)
 
 ObjectFinalizedNode: TypeAlias = "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
 
+# node context protocol for type checking
+class NodeContextFactoryProtocol(Protocol):
+    def get_current(cls, path: str, node: "FinalizedNode") -> "NodeContext":
+        """Get the current node context for the given path."""
+        ...
+
+class NodeContext:
+    """A user-overridable container for per-node execution context."""
+    pass
 
 @dataclass(eq=False)
 class SuperNode:

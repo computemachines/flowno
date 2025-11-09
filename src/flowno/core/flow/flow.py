@@ -10,12 +10,13 @@ Key components:
     - NodeTaskStatus: State tracking for node execution
 """
 
+from contextvars import ContextVar
 import logging
 from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator
 from dataclasses import dataclass
 from types import coroutine
-from typing import Any, NamedTuple, TypeAlias, cast
+from typing import Any, Callable, NamedTuple, TypeAlias, cast
 
 from flowno.core.event_loop.commands import Command, StreamCancelCommand
 from flowno.core.event_loop.event_loop import EventLoop
@@ -29,6 +30,7 @@ from flowno.core.node_base import (
     FinalizedInputPortRef,
     FinalizedNode,
     MissingDefaultError,
+    NodeContextFactoryProtocol,
     StalledNodeRequestCommand,
     Stream,
     SuperNode,
@@ -46,6 +48,56 @@ ObjectFinalizedNode: TypeAlias = FinalizedNode[
     Unpack[tuple[object, ...]], tuple[object, ...]
 ]
 
+_current_flow: "Flow | None" = None
+
+def current_flow() -> "Flow | None":
+    """Get the currently executing Flow instance.
+    
+    Returns:
+        The current Flow instance, or None if not in a Flow context.
+    """
+    global _current_flow
+
+    return _current_flow
+
+def current_node() -> AnyFinalizedNode | None:
+    """Get the current node from the FlowEventLoop's task context."""
+    from flowno.core.event_loop import current_task
+
+    task = current_task()
+    flow = current_flow()
+    if flow is None:
+        return None
+
+    # TODO: replace the data structure with a more efficient reversible mapping
+    for node, task_and_status in flow.node_tasks.items():
+        if task_and_status.task is task:
+            return node
+
+    return None
+
+# Near the top with other module-level functions
+def current_context() -> Any:
+    """Get the context for the currently executing node. Calls the context factory provided to run_until_complete().
+    
+    Returns:
+        The NodeContext for the current node.
+        
+    Raises:
+        RuntimeError: If called outside a flow, outside a node, or if no context factory was provided.
+    """
+    flow = current_flow()
+    if flow is None:
+        raise RuntimeError("current_context() called outside of a flow")
+    
+    node = current_node()
+    if node is None:
+        raise RuntimeError("current_context() called outside of a node")
+
+    if flow._context_factory is None:
+        raise RuntimeError("No context factory provided to run_until_complete()")
+
+    return flow._context_factory(node)
 
 @dataclass
 class WaitForStartNextGenerationCommand(Command):
@@ -219,6 +271,7 @@ class Flow:
     _cancelled_streams: defaultdict[
         FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], set[Stream]
     ]
+    _context_factory: Callable[["FinalizedNode"], Any] | None
 
     resumable: bool
     event_loop: "FlowEventLoop"
@@ -244,6 +297,7 @@ class Flow:
         self.resolution_queue = AsyncSetQueue()
         self._defaulted_inputs = defaultdict(list)
         self._cancelled_streams = defaultdict(set)
+        self._context_factory = None
 
     def set_node_status(
         self,
@@ -668,6 +722,7 @@ class Flow:
         ) = (),
         terminate_on_node_error: bool = False,
         _debug_max_wait_time: float | None = None,
+        context_factory: Callable[["FinalizedNode"], Any] | None = None,
     ):
         """
         Execute the flow until completion or until a termination condition is met.
@@ -687,6 +742,14 @@ class Flow:
             Exception: Any exception raised by nodes and not caught
             TerminateLimitReached: When a node reaches its generation limit
         """
+        global _current_flow
+        _current_flow = self
+
+        if context_factory:
+            self._context_factory = context_factory
+        else:
+            self._context_factory = lambda node: None
+
         self.event_loop.run_until_complete(
             self._node_resolve_loop(
                 cast(
@@ -702,6 +765,8 @@ class Flow:
             join=True,
             _debug_max_wait_time=_debug_max_wait_time,
         )
+
+        _current_flow = None
 
     @log_async
     async def _node_resolve_loop(
