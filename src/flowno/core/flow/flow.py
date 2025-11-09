@@ -748,7 +748,7 @@ class Flow:
         if context_factory:
             self._context_factory = context_factory
         else:
-            self._context_factory = lambda node: None
+            self._context_factory = None
 
         self.event_loop.run_until_complete(
             self._node_resolve_loop(
