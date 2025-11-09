@@ -14,6 +14,7 @@ implementing a command-based coroutine system similar to Python's asyncio.
 This can be used as a standalone event loop without the rest of the Flowno runtime.
 """
 
+from contextvars import ContextVar
 import heapq
 import logging
 import selectors
@@ -65,6 +66,16 @@ logger = logging.getLogger(__name__)
 
 _ReturnT = TypeVar("_ReturnT")
 
+_current_task: ContextVar[RawTask[Command, Any, Any] | None] = ContextVar("_current_task", default=None)
+
+def current_task() -> RawTask[Command, Any, Any] | None:
+    """
+    Get the currently executing task in the event loop.
+    
+    Returns:
+        The currently executing task, or None if called outside a task context.
+    """
+    return _current_task.get()
 
 class EventLoop:
     """
@@ -703,6 +714,10 @@ class EventLoop:
 
             if self.tasks:
                 task_packet = self.tasks.popleft()
+                
+                # Set the current task before executing
+                token = _current_task.set(task_packet[0])
+                
                 try:
                     if task_packet[2] is not None:
                         command = task_packet[0].throw(task_packet[2])
@@ -740,6 +755,9 @@ class EventLoop:
                             return
                 else:
                     _ = self._handle_command(task_packet, command)
+                finally:
+                    # Reset the context after task execution
+                    _current_task.reset(token)
         if join and root_task in self.finished:
             return cast(_ReturnT, self.finished[root_task])
         elif join and root_task in self.exceptions:
