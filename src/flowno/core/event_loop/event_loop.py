@@ -77,6 +77,19 @@ def current_task() -> RawTask[Command, Any, Any] | None:
     """
     return _current_task.get()
 
+_current_event_loop: "EventLoop | None" = None
+
+def current_event_loop() -> "EventLoop | None":
+    """
+    Get the currently executing EventLoop instance.
+    
+    Returns:
+        The current EventLoop instance, or None if not in an EventLoop context.
+    """
+    global _current_event_loop
+    
+    return _current_event_loop
+
 class EventLoop:
     """
     The core event loop implementation for Flowno's asynchronous execution model.
@@ -625,142 +638,149 @@ class EventLoop:
         wait_for_spawned_tasks: bool = True,
         _debug_max_wait_time: float | None = None,
     ):
-        self._debug_max_wait_time = _debug_max_wait_time
-        self._loop_thread = threading.current_thread()
-        self._exit_requested = (False, None, None)  # Reset exit flag
-        self.tasks.append((root_task, None, None))
+        global _current_event_loop
+        _current_event_loop = self
+        
+        try:
+            self._debug_max_wait_time = _debug_max_wait_time
+            self._loop_thread = threading.current_thread()
+            self._exit_requested = (False, None, None)  # Reset exit flag
+            self.tasks.append((root_task, None, None))
 
-        # Register wakeup socket with selector
-        # Blank metadata for wakeup socket. Never used.
-        metadata = InstrumentationMetadata(
-            _task=None, _command=None, socket_handle=None
-        )
-        sel.register(self._wakeup_reader, selectors.EVENT_READ, metadata)
+            # Register wakeup socket with selector
+            # Blank metadata for wakeup socket. Never used.
+            metadata = InstrumentationMetadata(
+                _task=None, _command=None, socket_handle=None
+            )
+            sel.register(self._wakeup_reader, selectors.EVENT_READ, metadata)
 
-        while self.has_living_tasks():
-            # Check if exit was requested
-            exit_requested, exit_value, exit_exception = self._exit_requested
-            if exit_requested:
-                # Handle any requested exit
-                if exit_exception is not None:
-                    raise exit_exception
-                elif join:
-                    return cast(_ReturnT, exit_value)
-                else:
-                    return None
-
-            # Determine the timeout for selector based on tasks and sleeping tasks.
-            if self.tasks:
-                timeout = 0
-            elif self.sleeping:
-                timeout = self.sleeping[0][0] - timer()
-                if (
-                    self._debug_max_wait_time is not None
-                    and timeout > self._debug_max_wait_time
-                ):
-                    logger.error(
-                        f"Sleeping task timeout {timeout} exceeds max wait time {_debug_max_wait_time}."
-                    )
-                    timeout = self._debug_max_wait_time
-            else:
-                timeout = self._debug_max_wait_time
-
-            for key, _mask in sel.select(timeout):
-                data = cast(InstrumentationMetadata, key.data)
-                if key.fileobj == self._wakeup_reader:
-                    # Clear wakeup signal
-                    try:
-                        self._wakeup_reader.recv(1024)
-                    except (BlockingIOError, socket.error):
-                        pass
-                    continue  # Skip further processing for wakeup socket
-
-                # Handle regular socket commands
-                if data._command is None:
-                    # Skip processing if no command (shouldn't happen for regular sockets)
-                    continue
-
-                match data._command:
-                    case SocketAcceptCommand():
-                        get_current_instrument().on_socket_accept_ready(
-                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
-                                data
-                            )
-                        )
-                    case SocketRecvCommand():
-                        get_current_instrument().on_socket_recv_ready(
-                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
-                                data
-                            )
-                        )
-                    case SocketSendCommand():
-                        get_current_instrument().on_socket_send_ready(
-                            ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
-                                data
-                            )
-                        )
-                    case _:
-                        raise ValueError(
-                            f"Unknown selector command data type: {type(data._command)}"
-                        )
-
-                self.tasks.append((data._task, None, None))
-                _ = sel.unregister(key.fileobj)
-                self.waiting_on_network.remove(data._task)
-
-            while self.sleeping and self.sleeping[0][0] <= timer():
-                _, task = heapq.heappop(self.sleeping)
-                self.tasks.append((task, None, None))
-
-            if self.tasks:
-                task_packet = self.tasks.popleft()
-                
-                # Set the current task before executing
-                token = _current_task.set(task_packet[0])
-                
-                try:
-                    if task_packet[2] is not None:
-                        command = task_packet[0].throw(task_packet[2])
+            while self.has_living_tasks():
+                # Check if exit was requested
+                exit_requested, exit_value, exit_exception = self._exit_requested
+                if exit_requested:
+                    # Handle any requested exit
+                    if exit_exception is not None:
+                        raise exit_exception
+                    elif join:
+                        return cast(_ReturnT, exit_value)
                     else:
-                        command = task_packet[0].send(task_packet[1])
-                except StopIteration as e:
-                    returned_value = cast(object, e.value)
-                    self.finished[task_packet[0]] = returned_value
-                    for watcher in self.watching_task[task_packet[0]]:
-                        self.tasks.append((watcher, returned_value, None))
-                    del self.watching_task[task_packet[0]]
-                    if task_packet[0] == root_task and not wait_for_spawned_tasks:
-                        return cast(_ReturnT, returned_value) if join else None
-                except TaskCancelled as e:
-                    self.cancelled.add(task_packet[0])
-                    self.exceptions[task_packet[0]] = e
-                    for watcher in self.watching_task[task_packet[0]]:
-                        self.tasks.append((watcher, None, e))
-                    del self.watching_task[task_packet[0]]
-                    if task_packet[0] == root_task and not wait_for_spawned_tasks:
-                        if join:
-                            raise e
-                        else:
-                            return
-                except Exception as e:
-                    logger.exception(f"Task {task_packet[0]} raised an exception: {e}")
-                    self.exceptions[task_packet[0]] = e
-                    for watcher in self.watching_task[task_packet[0]]:
-                        self.tasks.append((watcher, None, e))
-                    del self.watching_task[task_packet[0]]
-                    if task_packet[0] == root_task and not wait_for_spawned_tasks:
-                        if join:
-                            raise e
-                        else:
-                            return
+                        return None
+
+                # Determine the timeout for selector based on tasks and sleeping tasks.
+                if self.tasks:
+                    timeout = 0
+                elif self.sleeping:
+                    timeout = self.sleeping[0][0] - timer()
+                    if (
+                        self._debug_max_wait_time is not None
+                        and timeout > self._debug_max_wait_time
+                    ):
+                        logger.error(
+                            f"Sleeping task timeout {timeout} exceeds max wait time {_debug_max_wait_time}."
+                        )
+                        timeout = self._debug_max_wait_time
                 else:
-                    _ = self._handle_command(task_packet, command)
-                finally:
-                    # Reset the context after task execution
-                    _current_task.reset(token)
-        if join and root_task in self.finished:
-            return cast(_ReturnT, self.finished[root_task])
-        elif join and root_task in self.exceptions:
-            raise self.exceptions[root_task]
-        elif join:
-            raise RuntimeError("Event loop exited without completing the root task.")
+                    timeout = self._debug_max_wait_time
+
+                for key, _mask in sel.select(timeout):
+                    data = cast(InstrumentationMetadata, key.data)
+                    if key.fileobj == self._wakeup_reader:
+                        # Clear wakeup signal
+                        try:
+                            self._wakeup_reader.recv(1024)
+                        except (BlockingIOError, socket.error):
+                            pass
+                        continue  # Skip further processing for wakeup socket
+
+                    # Handle regular socket commands
+                    if data._command is None:
+                        # Skip processing if no command (shouldn't happen for regular sockets)
+                        continue
+
+                    match data._command:
+                        case SocketAcceptCommand():
+                            get_current_instrument().on_socket_accept_ready(
+                                ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
+                                    data
+                                )
+                            )
+                        case SocketRecvCommand():
+                            get_current_instrument().on_socket_recv_ready(
+                                ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
+                                    data
+                                )
+                            )
+                        case SocketSendCommand():
+                            get_current_instrument().on_socket_send_ready(
+                                ReadySocketInstrumentationMetadata.from_instrumentation_metadata(
+                                    data
+                                )
+                            )
+                        case _:
+                            raise ValueError(
+                                f"Unknown selector command data type: {type(data._command)}"
+                            )
+
+                    self.tasks.append((data._task, None, None))
+                    _ = sel.unregister(key.fileobj)
+                    self.waiting_on_network.remove(data._task)
+
+                while self.sleeping and self.sleeping[0][0] <= timer():
+                    _, task = heapq.heappop(self.sleeping)
+                    self.tasks.append((task, None, None))
+
+                if self.tasks:
+                    task_packet = self.tasks.popleft()
+                    
+                    # Set the current task before executing
+                    token = _current_task.set(task_packet[0])
+                    
+                    try:
+                        if task_packet[2] is not None:
+                            command = task_packet[0].throw(task_packet[2])
+                        else:
+                            command = task_packet[0].send(task_packet[1])
+                    except StopIteration as e:
+                        returned_value = cast(object, e.value)
+                        self.finished[task_packet[0]] = returned_value
+                        for watcher in self.watching_task[task_packet[0]]:
+                            self.tasks.append((watcher, returned_value, None))
+                        del self.watching_task[task_packet[0]]
+                        if task_packet[0] == root_task and not wait_for_spawned_tasks:
+                            return cast(_ReturnT, returned_value) if join else None
+                    except TaskCancelled as e:
+                        self.cancelled.add(task_packet[0])
+                        self.exceptions[task_packet[0]] = e
+                        for watcher in self.watching_task[task_packet[0]]:
+                            self.tasks.append((watcher, None, e))
+                        del self.watching_task[task_packet[0]]
+                        if task_packet[0] == root_task and not wait_for_spawned_tasks:
+                            if join:
+                                raise e
+                            else:
+                                return
+                    except Exception as e:
+                        logger.exception(f"Task {task_packet[0]} raised an exception: {e}")
+                        self.exceptions[task_packet[0]] = e
+                        for watcher in self.watching_task[task_packet[0]]:
+                            self.tasks.append((watcher, None, e))
+                        del self.watching_task[task_packet[0]]
+                        if task_packet[0] == root_task and not wait_for_spawned_tasks:
+                            if join:
+                                raise e
+                            else:
+                                return
+                    else:
+                        _ = self._handle_command(task_packet, command)
+                    finally:
+                        # Reset the context after task execution
+                        _current_task.reset(token)
+            
+            if join and root_task in self.finished:
+                return cast(_ReturnT, self.finished[root_task])
+            elif join and root_task in self.exceptions:
+                raise self.exceptions[root_task]
+            elif join:
+                raise RuntimeError("Event loop exited without completing the root task.")
+        finally:
+            _current_event_loop = None

@@ -24,7 +24,7 @@ import logging
 import os
 from importlib.metadata import PackageNotFoundError, version
 
-from .core.event_loop.event_loop import EventLoop
+from .core.event_loop.event_loop import EventLoop, current_event_loop
 from .core.event_loop.primitives import azip, exit, sleep, socket, spawn
 from .core.event_loop.queues import AsyncQueue
 from .core.event_loop.selectors import SocketHandle
@@ -137,6 +137,7 @@ __all__ = [
     "EventLoop",
     "AsyncQueue",
     "TerminateLimitReached",
+    "current_event_loop",
     "current_flow",
     "current_node",
     "current_context",
