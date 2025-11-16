@@ -131,19 +131,33 @@ class ErrStreamingResponse(ResponseBase):
     """
     Error streaming HTTP response.
     
-    This class is used for streaming responses that resulted in an error,
-    where the full error body is available.
+    This class is used for streaming responses that resulted in an error.
+    The body may be either complete (bytes) or streaming (AsyncIterator[bytes]),
+    depending on whether the server used chunked transfer encoding.
     """
-    body: bytes
+    body: bytes | AsyncIterator[bytes]
 
     def is_json(self) -> bool:
         """Check if the response has a JSON content type."""
         content_type = self.headers.get("content-type")
         return content_type == "application/json"
 
-    def decode_json(self) -> Any:
-        """Decode the response body as JSON."""
-        return self.client.json_decoder.decode(self.body.decode("utf-8"))
+    async def decode_json(self) -> Any:
+        """
+        Decode the response body as JSON.
+        
+        Note: This method is async because it may need to collect streaming bodies.
+        For non-streaming bodies (bytes), it will return immediately.
+        """
+        if isinstance(self.body, bytes):
+            return self.client.json_decoder.decode(self.body.decode("utf-8"))
+        else:
+            # Collect streaming body
+            chunks = []
+            async for chunk in self.body:
+                chunks.append(chunk)
+            body_bytes = b''.join(chunks)
+            return self.client.json_decoder.decode(body_bytes.decode("utf-8"))
 
 
 def _status_ok(status: str) -> bool:
@@ -602,16 +616,30 @@ class HttpClient:
             )
         else:
             logger.warning(f"Status not OK: {status!r}", extra={"tag": "http"})
-            body = await self._receive_remainder(sock, initial_body, response_headers)
-            assert isinstance(body, bytes), f"Expected bytes, got {type(body)}"
+            body_result = await self._receive_remainder(sock, initial_body, response_headers)
 
-            decompressed_body = self._decompress_body(body, response_headers)
-            return ErrStreamingResponse(
-                self,
-                status=status,
-                headers=response_headers,
-                body=decompressed_body,
-            )
+            if isinstance(body_result, AsyncGenerator):
+                # Chunked error response - return streaming body with decompression
+                async def error_body_generator():
+                    async for chunk in body_result:
+                        decompressed = self._decompress_chunk(chunk, response_headers)
+                        yield decompressed
+
+                return ErrStreamingResponse(
+                    self,
+                    status=status,
+                    headers=response_headers,
+                    body=error_body_generator(),
+                )
+            else:
+                # Complete error response - return bytes
+                decompressed_body = self._decompress_body(body_result, response_headers)
+                return ErrStreamingResponse(
+                    self,
+                    status=status,
+                    headers=response_headers,
+                    body=decompressed_body,
+                )
 
     def _split_chunks_to_message_json(self, chunk: bytes) -> Generator[Any, None, None]:
         """

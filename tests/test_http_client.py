@@ -208,3 +208,122 @@ def test_parse_url():
     assert port == 8443
     assert path == "/"
     assert use_tls == True
+
+
+def test_err_streaming_response_with_bytes():
+    """Test that ErrStreamingResponse works correctly with non-streaming (bytes) body."""
+    from flowno.io.headers import Headers
+    
+    client = HttpClient()
+    headers = Headers()
+    headers.set("Content-Type", "application/json")
+    
+    error_body = b'{"error": "Not found"}'
+    response = ErrStreamingResponse(
+        client=client,
+        status="HTTP/1.1 404 Not Found",
+        headers=headers,
+        body=error_body
+    )
+    
+    assert response.status_code == 404
+    assert not response.is_ok
+    assert isinstance(response.body, bytes)
+    assert response.body == error_body
+
+
+def test_err_streaming_response_with_async_iterator():
+    """Test that ErrStreamingResponse works correctly with streaming (AsyncIterator) body."""
+    from flowno.io.headers import Headers
+    
+    async def main():
+        client = HttpClient()
+        headers = Headers()
+        headers.set("Content-Type", "application/json")
+        
+        # Create a streaming body
+        async def error_body_generator():
+            yield b'{"error": '
+            yield b'"Not found"}'
+        
+        response = ErrStreamingResponse(
+            client=client,
+            status="HTTP/1.1 404 Not Found",
+            headers=headers,
+            body=error_body_generator()
+        )
+        
+        assert response.status_code == 404
+        assert not response.is_ok
+        
+        # Collect chunks from streaming body
+        chunks = []
+        async for chunk in response.body:
+            chunks.append(chunk)
+        body_data = b''.join(chunks)
+        
+        assert body_data == b'{"error": "Not found"}'
+        return response
+    
+    loop = EventLoop()
+    response = loop.run_until_complete(main(), join=True)
+    assert response.status_code == 404
+
+
+def test_err_streaming_response_decode_json_with_bytes():
+    """Test decode_json() with non-streaming body."""
+    from flowno.io.headers import Headers
+    
+    async def main():
+        client = HttpClient()
+        headers = Headers()
+        headers.set("Content-Type", "application/json")
+        
+        error_body = b'{"error": "Not found", "code": 404}'
+        response = ErrStreamingResponse(
+            client=client,
+            status="HTTP/1.1 404 Not Found",
+            headers=headers,
+            body=error_body
+        )
+        
+        json_data = await response.decode_json()
+        assert json_data["error"] == "Not found"
+        assert json_data["code"] == 404
+        return json_data
+    
+    loop = EventLoop()
+    result = loop.run_until_complete(main(), join=True)
+    assert result["error"] == "Not found"
+
+
+def test_err_streaming_response_decode_json_with_async_iterator():
+    """Test decode_json() with streaming body."""
+    from flowno.io.headers import Headers
+    
+    async def main():
+        client = HttpClient()
+        headers = Headers()
+        headers.set("Content-Type", "application/json")
+        
+        # Create a streaming body
+        async def error_body_generator():
+            yield b'{"error": '
+            yield b'"Server error", '
+            yield b'"code": 500}'
+        
+        response = ErrStreamingResponse(
+            client=client,
+            status="HTTP/1.1 500 Internal Server Error",
+            headers=headers,
+            body=error_body_generator()
+        )
+        
+        json_data = await response.decode_json()
+        assert json_data["error"] == "Server error"
+        assert json_data["code"] == 500
+        return json_data
+    
+    loop = EventLoop()
+    result = loop.run_until_complete(main(), join=True)
+    assert result["code"] == 500

@@ -53,25 +53,32 @@ def test_response_decode_json_uses_utf8():
 
 def test_err_streaming_response_decode_json_uses_utf8():
     """Test that ErrStreamingResponse.decode_json() explicitly uses UTF-8."""
+    from flowno.core.event_loop.event_loop import EventLoop
     from flowno.io.http_client import ErrStreamingResponse
     
-    client = HttpClient()
-    headers = Headers()
-    headers.set("content-type", "application/json")
+    async def main():
+        client = HttpClient()
+        headers = Headers()
+        headers.set("content-type", "application/json")
+        
+        # Create an error response with UTF-8 JSON content
+        json_content = '{"error": "échec", "reason": "système"}'
+        response = ErrStreamingResponse(
+            client=client,
+            status="HTTP/1.1 500 Internal Server Error",
+            headers=headers,
+            body=json_content.encode("utf-8")
+        )
+        
+        # This should work correctly even on Windows
+        decoded = await response.decode_json()
+        assert decoded["error"] == "échec"
+        assert decoded["reason"] == "système"
+        return decoded
     
-    # Create an error response with UTF-8 JSON content
-    json_content = '{"error": "échec", "reason": "système"}'
-    response = ErrStreamingResponse(
-        client=client,
-        status="HTTP/1.1 500 Internal Server Error",
-        headers=headers,
-        body=json_content.encode("utf-8")
-    )
-    
-    # This should work correctly even on Windows
-    decoded = response.decode_json()
-    assert decoded["error"] == "échec"
-    assert decoded["reason"] == "système"
+    loop = EventLoop()
+    result = loop.run_until_complete(main(), join=True)
+    assert result["error"] == "échec"
 
 
 def test_header_parsing_with_special_chars():

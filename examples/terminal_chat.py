@@ -139,8 +139,18 @@ async def Inference(messages: Messages):
     )
 
     if not streaming_response_is_ok(response):
-        logger.error("Response Body: %s", response.body)
-        raise HTTPException(response.status, response.body)
+        # Handle both bytes and streaming error bodies
+        if isinstance(response.body, bytes):
+            error_message = response.body
+        else:
+            # Collect streaming error body
+            error_chunks = []
+            async for chunk in response.body:
+                error_chunks.append(chunk)
+            error_message = b''.join(error_chunks)
+        
+        logger.error("Response Body: %s", error_message)
+        raise HTTPException(response.status, error_message)
 
     async for response_stream_json in response.body:
         try:

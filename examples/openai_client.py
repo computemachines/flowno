@@ -56,7 +56,17 @@ async def main():
             print(chunk)
     else:
         print("[ERROR] Request failed")
-        print(response)
+        print(f"Status: {response.status}")
+        # Handle both bytes and streaming error bodies
+        if isinstance(response.body, bytes):
+            error_message = response.body.decode('utf-8', errors='replace')
+        else:
+            # Collect streaming error body
+            error_chunks = []
+            async for chunk in response.body:
+                error_chunks.append(chunk)
+            error_message = b''.join(error_chunks).decode('utf-8', errors='replace')
+        print(f"Error body: {error_message}")
 
 
 def main_wrapper():
