@@ -495,11 +495,7 @@ class Flow:
                     except NotImplementedError:
                         acc = None
 
-                # wait for the last output data to have been read before overwriting.
-                with get_current_flow_instrument().on_barrier_node_write(
-                    self, node, result, 1
-                ):
-                    await node._barrier1.wait()
+                # Push this iteration's data
                 node.push_data(result, 1)
                 # remember how many times output data must be read
                 node._barrier1.set_count(len(node.get_output_nodes_by_run_level(1)))
@@ -511,20 +507,19 @@ class Flow:
                 await self._terminate_if_reached_limit(node)
                 await self._enqueue_output_nodes(node)
 
+                # Wait for this iteration's data to be consumed before proceeding
+                with get_current_flow_instrument().on_barrier_node_write(
+                    self, node, result, 1
+                ):
+                    await node._barrier1.wait()
+
                 await _wait_for_start_next_generation(node, 1)
 
         except (StreamCancelled, StopAsyncIteration) as e:
             # Stream completed (either cancelled or naturally finished)
             # If StopAsyncIteration has args, use that as the final value (from explicit raise)
             # Otherwise use the accumulated run level 0 value
-
-            # Wait for all streaming consumers to finish consuming the last run level 1 data
-            # Only wait if there were streaming consumers that need to count down
-            if node._barrier1._count > 0:
-                with get_current_flow_instrument().on_barrier_node_write(
-                    self, node, None, 1
-                ):
-                    await node._barrier1.wait()
+            # Note: The last run level 1 chunk's barrier was already waited on in the loop above
 
             if isinstance(e, StopAsyncIteration) and e.args:
                 # User explicitly passed a final value via raise StopAsyncIteration(value)
@@ -548,14 +543,7 @@ class Flow:
             # python reraises any exception raised in the async generator as RuntimeError
             # `Exception.__cause__` is the original exception
             if isinstance(e.__cause__, StopAsyncIteration):
-                # Wait for all streaming consumers to finish consuming the last run level 1 data
-                # Only wait if there were streaming consumers that need to count down
-                if node._barrier1._count > 0:
-                    with get_current_flow_instrument().on_barrier_node_write(
-                        self, node, None, 1
-                    ):
-                        await node._barrier1.wait()
-
+                # Note: The last run level 1 chunk's barrier was already waited on in the loop above
                 # completion with explicit `raise StopAsyncIteration("final value")`
                 if not isinstance(e.__cause__.args[0], tuple):
                     raise ValueError(
