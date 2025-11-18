@@ -517,7 +517,15 @@ class Flow:
             # Stream completed (either cancelled or naturally finished)
             # If StopAsyncIteration has args, use that as the final value (from explicit raise)
             # Otherwise use the accumulated run level 0 value
-            
+
+            # Wait for all streaming consumers to finish consuming the last run level 1 data
+            # Only wait if there were streaming consumers that need to count down
+            if node._barrier1._count > 0:
+                with get_current_flow_instrument().on_barrier_node_write(
+                    self, node, None, 1
+                ):
+                    await node._barrier1.wait()
+
             if isinstance(e, StopAsyncIteration) and e.args:
                 # User explicitly passed a final value via raise StopAsyncIteration(value)
                 # The wrapper should have already wrapped it in a tuple
@@ -540,6 +548,14 @@ class Flow:
             # python reraises any exception raised in the async generator as RuntimeError
             # `Exception.__cause__` is the original exception
             if isinstance(e.__cause__, StopAsyncIteration):
+                # Wait for all streaming consumers to finish consuming the last run level 1 data
+                # Only wait if there were streaming consumers that need to count down
+                if node._barrier1._count > 0:
+                    with get_current_flow_instrument().on_barrier_node_write(
+                        self, node, None, 1
+                    ):
+                        await node._barrier1.wait()
+
                 # completion with explicit `raise StopAsyncIteration("final value")`
                 if not isinstance(e.__cause__.args[0], tuple):
                     raise ValueError(
