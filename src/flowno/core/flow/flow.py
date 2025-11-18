@@ -37,8 +37,8 @@ from flowno.core.node_base import (
     SuperNode,
     StreamCancelled,
 )
-from flowno.core.types import Generation, InputPortIndex
-from flowno.utilities.helpers import cmp_generation, clip_generation, parent_generation, stitched_generation
+from flowno.core.types import Generation, InputPortIndex, SKIP
+from flowno.utilities.helpers import cmp_generation, clip_generation, inc_generation, parent_generation, stitched_generation
 from flowno.utilities.logging import log_async
 from typing_extensions import Never, Unpack, override
 
@@ -429,6 +429,12 @@ class Flow:
         # in evaluate_node
         result = await returned
 
+        # If the result contains SKIP, mark this generation as skipped
+        # Result is a tuple like (value,) so check if SKIP is in it
+        if isinstance(result, tuple) and any(item is SKIP for item in result):
+            next_generation = inc_generation(node.generation, 0)
+            node.mark_skipped(next_generation)
+
         # Wait for the last output data to have been read before overwriting
         with get_current_flow_instrument().on_barrier_node_write(self, node, result, 0):
             await node._barrier0.wait()
@@ -610,6 +616,36 @@ class Flow:
             await _wait_for_start_next_generation(node, 0)
             with get_current_flow_instrument().node_lifecycle(self, node, run_level=0):
                 positional_arg_values, defaulted_inputs = node.gather_inputs()
+
+                # Check if any input is SKIP - if so, propagate skip without executing
+                # Inputs can be tuples containing SKIP, so check both scalar and tuple cases
+                has_skip_input = any(
+                    (v is SKIP) or (isinstance(v, tuple) and any(item is SKIP for item in v))
+                    for v in positional_arg_values
+                )
+
+                if has_skip_input:
+                    next_generation = inc_generation(node.generation, 0)
+                    node.mark_skipped(next_generation)
+
+                    await node.count_down_upstream_latches(defaulted_inputs)
+
+                    # Determine the output tuple structure and fill with SKIP
+                    # For now, assume single output (SKIP,) - this works for most cases
+                    skip_output = (SKIP,)
+
+                    # Wait for the last output data to have been read before overwriting
+                    with get_current_flow_instrument().on_barrier_node_write(self, node, skip_output, 0):
+                        await node._barrier0.wait()
+                    node.push_data(skip_output, 0)
+                    # Remember how many times output data must be read
+                    node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
+
+                    get_current_flow_instrument().on_node_emitted_data(self, node, skip_output, 0)
+
+                    await self._terminate_if_reached_limit(node)
+                    await self._enqueue_output_nodes(node)
+                    continue
 
                 await node.count_down_upstream_latches(defaulted_inputs)
 

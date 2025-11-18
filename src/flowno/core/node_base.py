@@ -426,6 +426,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         self._barrier1 = CountdownLatch(0)
 
         self._data = dict()
+        self._skipped_generations: set[DataGeneration] = set()
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -570,6 +571,26 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
 
         logger.debug(f"{self}.data[{new_generation}] = {repr(data)}")
         self._data[tuple(new_generation)] = data
+
+    def mark_skipped(self, generation: DataGeneration) -> None:
+        """Mark a specific generation as skipped due to conditional execution.
+
+        Args:
+            generation: The generation to mark as skipped
+        """
+        self._skipped_generations.add(generation)
+        logger.debug(f"{self} marked generation {generation} as skipped")
+
+    def is_skipped(self, generation: DataGeneration) -> bool:
+        """Check if a specific generation was skipped.
+
+        Args:
+            generation: The generation to check
+
+        Returns:
+            True if the generation was skipped, False otherwise
+        """
+        return generation in self._skipped_generations
 
     def _get_maximum_input_generation(self) -> Generation:
         """Return the highest generation of the connected inputs using
