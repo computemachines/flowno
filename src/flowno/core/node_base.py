@@ -324,6 +324,32 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             InputPortIndex(port_index),
         )
 
+    def if_(
+        self, condition: "DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]] | DraftOutputPortRef[object]"
+    ) -> "DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]":
+        """Conditionally propagate this node's output based on a boolean condition.
+
+        This is a convenience method that creates a PropagateIf node wrapping this node.
+        When the condition is True, this node's value is propagated. When False, downstream
+        nodes skip execution.
+
+        Args:
+            condition: A node or node output that produces a boolean value
+
+        Returns:
+            A PropagateIf node that conditionally propagates this node's output
+
+        Example:
+            >>> with FlowHDL() as f:
+            ...     f.enabled = BooleanSource(True)
+            ...     f.value = IntSource(42)
+            ...     f.result = f.value.if_(f.enabled)  # Equivalent to PropagateIf(f.enabled, f.value)
+        """
+        # Import here to avoid circular dependency
+        from flowno.conditional import PropagateIf
+
+        return PropagateIf(condition, self)
+
     @abstractmethod
     def call(
         self, *args: Unpack[_Ts]
