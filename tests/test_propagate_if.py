@@ -241,5 +241,113 @@ def test_propagate_if_with_different_types():
     assert f.gated.get_data() == ("hello",), f"Should propagate string value"
 
 
+def test_if_method_with_true_condition():
+    """Test .if_() method with True condition."""
+    with FlowHDL() as f:
+        f.cond = BooleanSource(True)
+        f.value = Constant(42)
+        f.result = f.value.if_(f.cond)
+
+    f.run_until_complete()
+
+    # Value should be propagated
+    assert f.result.get_data() == (42,), f"Expected (42,), got {f.result.get_data()}"
+    assert not f.result.is_skipped((0,)), "Should not be skipped when condition is True"
+
+
+def test_if_method_with_false_condition():
+    """Test .if_() method with False condition."""
+    with FlowHDL() as f:
+        f.cond = BooleanSource(False)
+        f.value = Constant(42)
+        f.result = f.value.if_(f.cond)
+
+    f.run_until_complete()
+
+    # Should return SKIP
+    assert f.result.get_data() == (SKIP,), f"Expected (SKIP,), got {f.result.get_data()}"
+    assert f.result.is_skipped((0,)), "Should be skipped when condition is False"
+
+
+def test_if_method_chained():
+    """Test .if_() method can be chained with other operations."""
+    with FlowHDL() as f:
+        f.cond = BooleanSource(True)
+        f.value = Constant(10)
+        f.result = Add(f.value.if_(f.cond), 5)
+
+    f.run_until_complete()
+
+    # 10 gated (passes) + 5 = 15
+    assert f.result.get_data() == (15,), f"Expected (15,), got {f.result.get_data()}"
+
+
+def test_if_method_with_node_output():
+    """Test .if_() method with a node output reference."""
+    with FlowHDL() as f:
+        f.toggle = Toggle()
+        f.value = Constant(99)
+        f.result = f.value.if_(f.toggle.output(0))
+
+    f.run_until_complete()
+
+    # Toggle starts at False, then becomes True
+    # First execution: current=False (starts False), then toggles to True, returns True
+    # So the value should propagate
+    assert f.result.get_data() == (99,), f"Expected (99,), got {f.result.get_data()}"
+
+
+def test_if_method_downstream_skip():
+    """Test .if_() method propagates skip to downstream nodes."""
+    call_count = [0]
+
+    @node
+    async def TrackingPrint(value: int) -> int:
+        """Print that tracks calls."""
+        call_count[0] += 1
+        print(f"TrackingPrint: {value}")
+        return value
+
+    with FlowHDL() as f:
+        f.cond = BooleanSource(False)
+        f.value = Constant(42)
+        f.gated = f.value.if_(f.cond)
+        f.result = TrackingPrint(f.gated)
+
+    f.run_until_complete()
+
+    # TrackingPrint should NOT have been called
+    assert call_count[0] == 0, f"Print should not be called, but was called {call_count[0]} times"
+
+    # Both nodes should be marked as skipped
+    assert f.gated.is_skipped((0,)), "gated should be skipped"
+    assert f.result.is_skipped((0,)), "result should be skipped"
+
+
+def test_if_method_syntax_equivalence():
+    """Test that .if_() method is equivalent to PropagateIf()."""
+    # Using .if_() method
+    with FlowHDL() as f1:
+        f1.cond = BooleanSource(True)
+        f1.value = Constant(123)
+        f1.result = f1.value.if_(f1.cond)
+
+    f1.run_until_complete()
+    result1 = f1.result.get_data()
+
+    # Using PropagateIf directly
+    with FlowHDL() as f2:
+        f2.cond = BooleanSource(True)
+        f2.value = Constant(123)
+        f2.result = PropagateIf(f2.cond, f2.value)
+
+    f2.run_until_complete()
+    result2 = f2.result.get_data()
+
+    # Both should produce the same result
+    assert result1 == result2, f".if_() method should be equivalent to PropagateIf()"
+    assert result1 == (123,), f"Expected (123,), got {result1}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
