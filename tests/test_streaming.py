@@ -531,3 +531,224 @@ def test_stream_chunking():
         f.run_until_complete()
 
     assert f.total.get_data() == ((2, 4),)
+
+
+# Tests for streaming race conditions with multiple consumers
+# Bug: When multiple consumers read from the same stream, slow consumers may miss data
+
+
+@pytest.mark.timeout(5)
+def test_stream_two_consumers_fast_slow_race():
+    """
+    Regression test: Single streaming source with two consumers (fast/slow).
+    Bug: Slow consumer misses stream values when fast consumer exhausts stream first.
+    """
+    fast_chunks = []
+    slow_chunks = []
+
+    @node
+    async def SingleChunkSource():
+        """Yield a single value."""
+        yield "chunk1"
+
+    @node(stream_in=["chunk"])
+    async def FastConsumer(chunk: Stream[str]):
+        """Consume immediately without delay."""
+        async for c in chunk:
+            fast_chunks.append(c)
+
+    @node(stream_in=["chunk"])
+    async def SlowConsumer(chunk: Stream[str]):
+        """Delay before consuming to lag behind."""
+        await sleep(0.05)  # 50ms delay
+        async for c in chunk:
+            slow_chunks.append(c)
+
+    with FlowHDL() as f:
+        f.source = SingleChunkSource()
+        f.fast = FastConsumer(f.source)
+        f.slow = SlowConsumer(f.source)
+
+    f.run_until_complete()
+
+    # Both consumers should receive the chunk
+    assert "chunk1" in fast_chunks, "Fast consumer should receive chunk1"
+    assert "chunk1" in slow_chunks, "Slow consumer should receive chunk1 (BUG: currently fails)"
+
+
+@pytest.mark.timeout(5)
+def test_stream_two_consumers_both_delayed():
+    """
+    Test with two consumers both having delays (10ms vs 50ms).
+    Both should still receive all chunks.
+    """
+    medium_chunks = []
+    slow_chunks = []
+
+    @node
+    async def SingleChunkSource():
+        yield "data"
+
+    @node(stream_in=["chunk"])
+    async def MediumConsumer(chunk: Stream[str]):
+        """Delay 10ms before consuming."""
+        await sleep(0.01)
+        async for c in chunk:
+            medium_chunks.append(c)
+
+    @node(stream_in=["chunk"])
+    async def SlowConsumer(chunk: Stream[str]):
+        """Delay 50ms before consuming."""
+        await sleep(0.05)
+        async for c in chunk:
+            slow_chunks.append(c)
+
+    with FlowHDL() as f:
+        f.source = SingleChunkSource()
+        f.medium = MediumConsumer(f.source)
+        f.slow = SlowConsumer(f.source)
+
+    f.run_until_complete()
+
+    assert "data" in medium_chunks, "Medium consumer should receive data"
+    assert "data" in slow_chunks, "Slow consumer should receive data (BUG: currently fails)"
+
+
+@pytest.mark.timeout(5)
+def test_stream_three_consumers_varied_speeds():
+    """
+    Test with three consumers: fast, medium, slow.
+    All three should receive all chunks.
+    """
+    fast_chunks = []
+    medium_chunks = []
+    slow_chunks = []
+
+    @node
+    async def MultiChunkSource():
+        """Yield multiple chunks to test ordering."""
+        yield "first"
+        yield "second"
+
+    @node(stream_in=["chunk"])
+    async def FastConsumer(chunk: Stream[str]):
+        """No delay."""
+        async for c in chunk:
+            fast_chunks.append(c)
+
+    @node(stream_in=["chunk"])
+    async def MediumConsumer(chunk: Stream[str]):
+        """10ms delay per chunk."""
+        async for c in chunk:
+            await sleep(0.01)
+            medium_chunks.append(c)
+
+    @node(stream_in=["chunk"])
+    async def SlowConsumer(chunk: Stream[str]):
+        """50ms delay per chunk."""
+        async for c in chunk:
+            await sleep(0.05)
+            slow_chunks.append(c)
+
+    with FlowHDL() as f:
+        f.source = MultiChunkSource()
+        f.fast = FastConsumer(f.source)
+        f.medium = MediumConsumer(f.source)
+        f.slow = SlowConsumer(f.source)
+
+    f.run_until_complete()
+
+    # All consumers should receive all chunks
+    assert fast_chunks == ["first", "second"], "Fast consumer should receive both chunks"
+    assert medium_chunks == ["first", "second"], "Medium consumer should receive both chunks (BUG: may fail)"
+    assert slow_chunks == ["first", "second"], "Slow consumer should receive both chunks (BUG: currently fails)"
+
+
+@pytest.mark.timeout(5)
+def test_stream_multiple_chunks_delayed_consumption():
+    """
+    Test streaming source with multiple chunks where consumers have different delays.
+    Verifies that chunk ordering is preserved and all consumers get all chunks.
+    """
+    consumer1_chunks = []
+    consumer2_chunks = []
+
+    @node
+    async def ThreeChunkSource():
+        """Yield three distinct chunks."""
+        yield "alpha"
+        yield "beta"
+        yield "gamma"
+
+    @node(stream_in=["chunk"])
+    async def Consumer1(chunk: Stream[str]):
+        """Consumes with variable delays."""
+        c_iter = chunk.__aiter__()
+        
+        # First chunk: immediate
+        c1 = await c_iter.__anext__()
+        consumer1_chunks.append(c1)
+        
+        # Second chunk: small delay
+        await sleep(0.01)
+        c2 = await c_iter.__anext__()
+        consumer1_chunks.append(c2)
+        
+        # Third chunk: no delay
+        c3 = await c_iter.__anext__()
+        consumer1_chunks.append(c3)
+
+    @node(stream_in=["chunk"])
+    async def Consumer2(chunk: Stream[str]):
+        """Consumes with consistent delay."""
+        async for c in chunk:
+            await sleep(0.03)
+            consumer2_chunks.append(c)
+
+    with FlowHDL() as f:
+        f.source = ThreeChunkSource()
+        f.c1 = Consumer1(f.source)
+        f.c2 = Consumer2(f.source)
+
+    f.run_until_complete()
+
+    assert consumer1_chunks == ["alpha", "beta", "gamma"], "Consumer1 should receive all chunks in order"
+    assert consumer2_chunks == ["alpha", "beta", "gamma"], "Consumer2 should receive all chunks in order (BUG: may fail)"
+
+
+@pytest.mark.timeout(5)
+def test_stream_no_delay_vs_delayed_start():
+    """
+    Test where one consumer starts immediately and another delays before starting iteration.
+    Tests the critical window where stream completion might race with consumer startup.
+    """
+    immediate_chunks = []
+    delayed_start_chunks = []
+
+    @node
+    async def QuickSource():
+        """Yields immediately."""
+        yield "quick"
+
+    @node(stream_in=["chunk"])
+    async def ImmediateConsumer(chunk: Stream[str]):
+        """Starts consuming immediately."""
+        async for c in chunk:
+            immediate_chunks.append(c)
+
+    @node(stream_in=["chunk"])
+    async def DelayedStartConsumer(chunk: Stream[str]):
+        """Delays before even starting to iterate."""
+        await sleep(0.1)  # 100ms delay before starting
+        async for c in chunk:
+            delayed_start_chunks.append(c)
+
+    with FlowHDL() as f:
+        f.source = QuickSource()
+        f.immediate = ImmediateConsumer(f.source)
+        f.delayed = DelayedStartConsumer(f.source)
+
+    f.run_until_complete()
+
+    assert "quick" in immediate_chunks, "Immediate consumer should receive chunk"
+    assert "quick" in delayed_start_chunks, "Delayed-start consumer should receive chunk (BUG: currently fails)"
