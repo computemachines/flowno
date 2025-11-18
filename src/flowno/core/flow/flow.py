@@ -495,11 +495,7 @@ class Flow:
                     except NotImplementedError:
                         acc = None
 
-                # wait for the last output data to have been read before overwriting.
-                with get_current_flow_instrument().on_barrier_node_write(
-                    self, node, result, 1
-                ):
-                    await node._barrier1.wait()
+                # Push this iteration's data
                 node.push_data(result, 1)
                 # remember how many times output data must be read
                 node._barrier1.set_count(len(node.get_output_nodes_by_run_level(1)))
@@ -511,13 +507,20 @@ class Flow:
                 await self._terminate_if_reached_limit(node)
                 await self._enqueue_output_nodes(node)
 
+                # Wait for this iteration's data to be consumed before proceeding
+                with get_current_flow_instrument().on_barrier_node_write(
+                    self, node, result, 1
+                ):
+                    await node._barrier1.wait()
+
                 await _wait_for_start_next_generation(node, 1)
 
         except (StreamCancelled, StopAsyncIteration) as e:
             # Stream completed (either cancelled or naturally finished)
             # If StopAsyncIteration has args, use that as the final value (from explicit raise)
             # Otherwise use the accumulated run level 0 value
-            
+            # Note: The last run level 1 chunk's barrier was already waited on in the loop above
+
             if isinstance(e, StopAsyncIteration) and e.args:
                 # User explicitly passed a final value via raise StopAsyncIteration(value)
                 # The wrapper should have already wrapped it in a tuple
@@ -541,6 +544,7 @@ class Flow:
             # `Exception.__cause__` is the original exception
             if isinstance(e.__cause__, StopAsyncIteration):
                 # completion with explicit `raise StopAsyncIteration("final value")`
+                # Note: The last run level 1 chunk's barrier was already waited on in the loop above
                 if not isinstance(e.__cause__.args[0], tuple):
                     raise ValueError(
                         (
