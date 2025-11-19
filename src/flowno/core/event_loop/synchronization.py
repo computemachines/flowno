@@ -108,12 +108,12 @@ class CountdownLatch:
     def set_count(self, count: int) -> None:
         """
         Set a new count for the latch.
-        
+
         This method should only be called when no tasks are waiting on the latch.
-        
+
         Args:
             count: The new count value. Must be non-negative.
-            
+
         Raises:
             ValueError: If count is negative.
         """
