@@ -1,0 +1,972 @@
+/home/user/flowno/src/flowno/__init__.py
+  /home/user/flowno/src/flowno/__init__.py:45:24 - warning: Type of parameter "tags" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/__init__.py:45:24 - warning: Type annotation is missing for parameter "tags" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/__init__.py:50:14 - warning: Type annotation for attribute `tags` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/__init__.py:52:9 - warning: Method "filter" is not marked as override but is overriding a method in class "Filter" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/__init__.py:60:27 - warning: Type of "tags" is unknown (reportUnknownMemberType)
+/home/user/flowno/src/flowno/core/event_loop/__init__.py
+  /home/user/flowno/src/flowno/core/event_loop/__init__.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/__init__.py
+    /home/user/flowno/src/flowno/core/event_loop/event_loop.py
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py
+    /home/user/flowno/src/flowno/core/flow/flow.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/__init__.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/__init__.py
+    /home/user/flowno/src/flowno/core/event_loop/primitives.py
+    /home/user/flowno/src/flowno/core/event_loop/tasks.py
+    /home/user/flowno/src/flowno/core/event_loop/event_loop.py
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py
+    /home/user/flowno/src/flowno/core/flow/flow.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/__init__.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/__init__.py
+    /home/user/flowno/src/flowno/core/event_loop/primitives.py
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py
+    /home/user/flowno/src/flowno/core/flow/flow.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/__init__.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/__init__.py
+    /home/user/flowno/src/flowno/core/event_loop/primitives.py
+    /home/user/flowno/src/flowno/core/event_loop/selectors.py
+    /home/user/flowno/src/flowno/core/event_loop/instrumentation.py
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py
+    /home/user/flowno/src/flowno/core/flow/flow.py (reportImportCycles)
+/home/user/flowno/src/flowno/core/event_loop/commands.py
+  /home/user/flowno/src/flowno/core/event_loop/commands.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/event_loop/synchronization.py
+    /home/user/flowno/src/flowno/core/event_loop/queues.py
+    /home/user/flowno/src/flowno/core/event_loop/instrumentation.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/event_loop/synchronization.py
+    /home/user/flowno/src/flowno/core/event_loop/queues.py
+    /home/user/flowno/src/flowno/core/event_loop/instrumentation.py
+    /home/user/flowno/src/flowno/core/event_loop/selectors.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/commands.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/event_loop/synchronization.py
+    /home/user/flowno/src/flowno/core/event_loop/queues.py
+    /home/user/flowno/src/flowno/core/event_loop/instrumentation.py
+    /home/user/flowno/src/flowno/core/event_loop/selectors.py
+    /home/user/flowno/src/flowno/core/event_loop/types.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py:19:29 - warning: Import "Generator" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py:21:19 - warning: Import "coroutine" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py:26:9 - warning: Import "ObjectDraftNode" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py:68:32 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py:229:21 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/commands.py:231:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+/home/user/flowno/src/flowno/core/event_loop/event_loop.py
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:69:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:69:49 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:71:40 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:71:45 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:102:50 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:107:62 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:107:67 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:109:72 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:109:77 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:111:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:111:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:112:48 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:112:53 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:113:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:113:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:116:14 - warning: Type annotation for attribute `_wakeup_reader` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:116:35 - warning: Type annotation for attribute `_wakeup_writer` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:124:14 - warning: Type annotation for attribute `_signal_handlers_installed` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:147:27 - warning: Type of "send_value" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:215:41 - warning: Type of parameter "frame" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:215:48 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:224:13 - warning: Result of call expression is of type "_HANDLER" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:225:13 - warning: Result of call expression is of type "_HANDLER" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:228:17 - warning: Result of call expression is of type "_HANDLER" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:241:13 - warning: Result of call expression is of type "_HANDLER" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:242:13 - warning: Result of call expression is of type "_HANDLER" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:244:17 - warning: Result of call expression is of type "_HANDLER" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:263:36 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:263:41 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:283:17 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:291:56 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:291:61 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:300:23 - warning: Unnecessary "cast" call; type is already "SpawnCommand[object]" (reportUnnecessaryCast)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:302:56 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:302:61 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:313:55 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:313:60 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:396:59 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:396:64 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:411:35 - warning: "_put_waiting" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:412:46 - warning: Unnecessary "# pyright: ignore" rule: "reportPrivateUsage" (reportUnnecessaryTypeIgnoreComment)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:441:59 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:465:31 - warning: "_get_waiting" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:466:42 - warning: Unnecessary "# pyright: ignore" rule: "reportPrivateUsage" (reportUnnecessaryTypeIgnoreComment)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:481:56 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:487:23 - warning: "_get_waiting" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:488:35 - warning: Unnecessary "# pyright: ignore" rule: "reportPrivateUsage" (reportUnnecessaryTypeIgnoreComment)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:490:27 - warning: "_get_waiting" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:491:38 - warning: Unnecessary "# pyright: ignore" rule: "reportPrivateUsage" (reportUnnecessaryTypeIgnoreComment)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:503:61 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:526:52 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:551:49 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:551:54 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:569:37 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:578:37 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:586:37 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:636:37 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:653:23 - error: Argument of type "None" cannot be assigned to parameter "_task" of type "RawTask[Any, None, None]" in function "__init__"
+    "None" is not assignable to "Coroutine[Any, None, None]" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:653:38 - error: Argument of type "None" cannot be assigned to parameter "_command" of type "Command" in function "__init__"
+    "None" is not assignable to "Command" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:653:58 - error: Argument of type "None" cannot be assigned to parameter "socket_handle" of type "SocketHandle" in function "__init__"
+    "None" is not assignable to "SocketHandle" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:655:13 - warning: Result of call expression is of type "SelectorKey" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:690:29 - warning: Result of call expression is of type "bytes" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:696:24 - warning: Condition will always evaluate to False since the types "Command" and "None" have no overlap (reportUnnecessaryComparison)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:696:29 - warning: "_command" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:700:32 - warning: "_command" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:721:82 - warning: "_command" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:724:45 - warning: "_task" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/event_loop.py:726:57 - warning: "_task" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+/home/user/flowno/src/flowno/core/event_loop/instrumentation.py
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/instrumentation.py
+    /home/user/flowno/src/flowno/core/event_loop/queues.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/event_loop/instrumentation.py
+    /home/user/flowno/src/flowno/core/event_loop/selectors.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:50:55 - warning: "_Address" is private and used outside of the module in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:64:21 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:78:51 - warning: Type of parameter "kwargs" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:78:59 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:86:15 - warning: Argument type is Any
+    Argument corresponds to parameter "finish_time" in function "__init__" (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:113:54 - warning: Type of parameter "kwargs" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:113:62 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:120:15 - warning: Argument type is Any
+    Argument corresponds to parameter "finish_time" in function "__init__" (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:252:23 - error: Cannot assign to attribute "_token" for class "EventLoopInstrument*"
+    Type "Token[EventLoopInstrument | None]" is not assignable to type "Token[Self@EventLoopInstrument | None] | None"
+      "Token[EventLoopInstrument | None]" is not assignable to "Token[Self@EventLoopInstrument | None]"
+        Type parameter "_T@Token" is invariant, but "EventLoopInstrument | None" is not the same as "Self@EventLoopInstrument | None"
+      "Token[EventLoopInstrument | None]" is not assignable to "None" (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:261:35 - error: Argument of type "Token[Self@EventLoopInstrument | None] | None" cannot be assigned to parameter "token" of type "Token[EventLoopInstrument | None]" in function "reset"
+    Type "Token[Self@EventLoopInstrument | None] | None" is not assignable to type "Token[EventLoopInstrument | None]"
+      "Token[Self@EventLoopInstrument | None]" is not assignable to "Token[EventLoopInstrument | None]"
+        Type parameter "_T@Token" is invariant, but "Self@EventLoopInstrument | None" is not the same as "EventLoopInstrument | None" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:271:5 - warning: Type annotation for attribute `print` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:275:20 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/instrumentation.py:334:5 - warning: Type annotation for attribute `print` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+/home/user/flowno/src/flowno/core/event_loop/primitives.py
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:83:9 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:84:9 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:101:5 - warning: Type of "sending" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:125:10 - warning: Type of parameter "return_value" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:125:24 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:152:23 - warning: Argument type is Any
+    Argument corresponds to parameter "return_value" in function "__init__" (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:211:11 - error: Overloaded implementation is not consistent with signature of overload 1
+    Function return type "CoroutineType[Any, Any, AsyncGenerator[tuple[_T_co@azip], None]]" is incompatible with type "AsyncGenerator[tuple[object, ...], None]"
+      "CoroutineType[Any, Any, AsyncGenerator[tuple[_T_co@azip], None]]" is incompatible with protocol "AsyncGenerator[tuple[object, ...], None]"
+        "__anext__" is not present
+        "asend" is not present
+        "athrow" is not present
+        "aclose" is not present
+        "__aiter__" is not present (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:211:11 - error: Overloaded implementation is not consistent with signature of overload 2
+    Function return type "CoroutineType[Any, Any, AsyncGenerator[tuple[_T1@azip, _T2@azip], None]]" is incompatible with type "AsyncGenerator[tuple[object, ...], None]"
+      "CoroutineType[Any, Any, AsyncGenerator[tuple[_T1@azip, _T2@azip], None]]" is incompatible with protocol "AsyncGenerator[tuple[object, ...], None]"
+        "__anext__" is not present
+        "asend" is not present
+        "athrow" is not present
+        "aclose" is not present
+        "__aiter__" is not present (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:211:11 - error: Overloaded implementation is not consistent with signature of overload 3
+    Function return type "CoroutineType[Any, Any, AsyncGenerator[tuple[_T1@azip, _T2@azip, _T3@azip], None]]" is incompatible with type "AsyncGenerator[tuple[object, ...], None]"
+      "CoroutineType[Any, Any, AsyncGenerator[tuple[_T1@azip, _T2@azip, _T3@azip], None]]" is incompatible with protocol "AsyncGenerator[tuple[object, ...], None]"
+        "__anext__" is not present
+        "asend" is not present
+        "athrow" is not present
+        "aclose" is not present
+        "__aiter__" is not present (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/core/event_loop/primitives.py:211:11 - error: Overloaded implementation is not consistent with signature of overload 4
+    Function return type "CoroutineType[Any, Any, AsyncGenerator[tuple[_T1@azip, _T2@azip, _T3@azip, _T4@azip], None]]" is incompatible with type "AsyncGenerator[tuple[object, ...], None]"
+      "CoroutineType[Any, Any, AsyncGenerator[tuple[_T1@azip, _T2@azip, _T3@azip, _T4@azip], None]]" is incompatible with protocol "AsyncGenerator[tuple[object, ...], None]"
+        "__anext__" is not present
+        "asend" is not present
+        "athrow" is not present
+        "aclose" is not present
+        "__aiter__" is not present (reportInconsistentOverload)
+/home/user/flowno/src/flowno/core/event_loop/queues.py
+  /home/user/flowno/src/flowno/core/event_loop/queues.py:201:16 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/event_loop/queues.py:232:16 - warning: Return type is Any (reportAny)
+/home/user/flowno/src/flowno/core/event_loop/selectors.py
+  /home/user/flowno/src/flowno/core/event_loop/selectors.py:104:20 - warning: "_Address" is private and used outside of the module in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/selectors.py:127:14 - warning: Type annotation for attribute `socket` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/selectors.py:271:14 - warning: Type annotation for attribute `ssl_context` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/selectors.py:272:14 - warning: Type annotation for attribute `server_hostname` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/selectors.py:283:14 - warning: Type annotation for attribute `socket` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+/home/user/flowno/src/flowno/core/event_loop/synchronization.py
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:59:20 - warning: This type is deprecated as of Python 3.10; use "| None" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:59:20 - warning: Import "Optional" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:95:14 - warning: Type annotation for attribute `_count` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:96:9 - warning: Type of "_queue" is partially unknown
+    Type of "_queue" is "AsyncQueue[Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:96:14 - warning: Type annotation for attribute `_queue` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:133:19 - warning: Type of "_queue" is partially unknown
+    Type of "_queue" is "AsyncQueue[Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:160:19 - warning: Type of "_queue" is partially unknown
+    Type of "_queue" is "AsyncQueue[Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:160:19 - warning: Type of "put" is partially unknown
+    Type of "put" is "(item: Unknown) -> CoroutineType[Any, Any, None]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:162:9 - warning: Method "__repr__" is not marked as override but is overriding a method in class "object" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:168:35 - warning: Type of "_queue" is partially unknown
+    Type of "_queue" is "AsyncQueue[Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:168:47 - warning: "_get_waiting" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:199:14 - warning: Type annotation for attribute `_parties` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:200:14 - warning: Type annotation for attribute `_count` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/event_loop/synchronization.py:201:14 - warning: Type annotation for attribute `_generation` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+/home/user/flowno/src/flowno/core/event_loop/tasks.py
+  /home/user/flowno/src/flowno/core/event_loop/tasks.py:148:9 - warning: Method "__str__" is not marked as override but is overriding a method in class "BaseException" (reportImplicitOverride)
+/home/user/flowno/src/flowno/core/event_loop/types.py
+  /home/user/flowno/src/flowno/core/event_loop/types.py:43:33 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/types.py:43:38 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/event_loop/types.py:63:29 - warning: Type `Any` is not allowed (reportExplicitAny)
+/home/user/flowno/src/flowno/core/flow/flow.py
+  /home/user/flowno/src/flowno/core/flow/flow.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/flow/flow.py
+    /home/user/flowno/src/flowno/core/node_base.py
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/flow/flow.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/flow/flow.py
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/flow/flow.py:13:25 - warning: Import "ContextVar" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow/flow.py:15:38 - warning: Import "deque" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow/flow.py:27:5 - warning: Import "DraftInputPortRef" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow/flow.py:33:5 - warning: Import "NodeContextFactoryProtocol" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow/flow.py:46:58 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:46:76 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:80:5 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:80:26 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:97:8 - warning: Type of "_context_factory" is partially unknown
+    Type of "_context_factory" is "((FinalizedNode[*tuple[Unknown, ...], Unknown]) -> Any) | None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:97:13 - warning: "_context_factory" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:100:12 - warning: Type of "_context_factory" is partially unknown
+    Type of "_context_factory" is "(FinalizedNode[*tuple[Unknown, ...], Unknown]) -> Any" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:100:12 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:100:17 - warning: "_context_factory" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:272:76 - error: Expected type arguments for generic class "Stream" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow/flow.py:274:34 - error: Expected type arguments for generic class "FinalizedNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow/flow.py:274:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:343:18 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:420:24 - warning: "_barrier0" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:423:14 - warning: "_barrier0" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:456:17 - warning: Type of "cancelled_streams" is partially unknown
+    Type of "cancelled_streams" is "set[Stream[Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:456:37 - warning: Type of "_cancelled_streams" is partially unknown
+    Type of "_cancelled_streams" is "defaultdict[FinalizedNode[*tuple[object, ...], tuple[object, ...]], set[Stream[Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:456:37 - warning: Type of "get" is partially unknown
+    Type of "get" is "Overload[(key: FinalizedNode[*tuple[object, ...], tuple[object, ...]], default: None = None, /) -> (set[Stream[Unknown]] | None), (key: FinalizedNode[*tuple[object, ...], tuple[object, ...]], default: set[Stream[Unknown]], /) -> set[Stream[Unknown]], (key: FinalizedNode[*tuple[object, ...], tuple[object, ...]], default: _T@get, /) -> (set[Stream[Unknown]] | _T@get)]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:461:21 - warning: Type of "cancelled_streams" is partially unknown
+    Type of "cancelled_streams" is "set[Stream[Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:462:21 - warning: Type of "_cancelled_streams" is partially unknown
+    Type of "_cancelled_streams" is "defaultdict[FinalizedNode[*tuple[object, ...], tuple[object, ...]], set[Stream[Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:478:56 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "stream" in function "__init__"
+    Argument type is "Stream[Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:478:61 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "i" in function "next"
+    Argument type is "Iterator[Stream[Unknown]]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:478:66 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "object" in function "iter"
+    Argument type is "set[Stream[Unknown]]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:493:34 - warning: "_draft_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:501:22 - warning: "_barrier1" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:514:32 - warning: "_barrier1" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:527:17 - warning: Type of "data" is partially unknown
+    Type of "data" is "tuple[Unknown, ...] | tuple[Any]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:529:24 - error: Type "None" is not assignable to declared type "tuple[object, ...]"
+    "None" is not assignable to "tuple[object, ...]" (reportAssignmentType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:535:28 - warning: "_barrier0" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:538:18 - warning: "_barrier0" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:558:17 - warning: Type of "data" is partially unknown
+    Type of "data" is "tuple[Unknown, ...]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:562:32 - warning: "_barrier0" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:565:22 - warning: "_barrier0" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:607:28 - warning: Unnecessary isinstance call; "Coroutine[Any, Any, tuple[object, ...]] | AsyncGenerator[tuple[object, ...], None]" is always an instance of "Coroutine[Unknown, Unknown, Unknown] | AsyncGenerator[Unknown, Unknown]" (reportUnnecessaryIsInstance)
+  /home/user/flowno/src/flowno/core/flow/flow.py:625:57 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:625:75 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:677:54 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:677:72 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:721:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:721:62 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:722:42 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:722:60 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:729:9 - warning: Type of parameter "context_factory" is partially unknown
+    Parameter type is "((FinalizedNode[*tuple[Unknown, ...], Unknown]) -> Any) | None" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:729:37 - error: Expected type arguments for generic class "FinalizedNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow/flow.py:729:54 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:929:40 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1069:14 - warning: Type annotation for attribute `flow` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1074:56 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1074:61 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1125:45 - warning: "_enqueue_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1133:13 - warning: Type of "_cancelled_streams" is partially unknown
+    Type of "_cancelled_streams" is "defaultdict[FinalizedNode[*tuple[object, ...], tuple[object, ...]], set[Stream[Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1133:13 - warning: Type of "add" is partially unknown
+    Type of "add" is "(element: Stream[Unknown], /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow/flow.py:1133:23 - warning: "_cancelled_streams" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+/home/user/flowno/src/flowno/core/flow/instrumentation.py
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/flow/instrumentation.py
+    /home/user/flowno/src/flowno/core/node_base.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:214:98 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:225:78 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:284:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:293:45 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:293:51 - warning: Type of parameter "data" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:293:57 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:303:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:312:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:323:79 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:404:5 - warning: Type annotation for attribute `print` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:407:29 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:411:27 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:415:34 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:415:40 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:419:31 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:419:37 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:423:39 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:423:45 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:427:39 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:427:45 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:431:32 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:431:38 - warning: Type annotation is missing for parameter "head_node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:431:49 - warning: Type annotation is missing for parameter "solution_nodes" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:435:31 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:435:37 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:435:43 - warning: Type annotation is missing for parameter "run_level" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:439:31 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:439:37 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:439:43 - warning: Type annotation is missing for parameter "stalled_input" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:443:36 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:443:42 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:443:48 - warning: Type annotation is missing for parameter "data" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:443:54 - warning: Type annotation is missing for parameter "run_level" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:447:40 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:447:46 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:447:52 - warning: Type annotation is missing for parameter "limit" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:451:29 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:451:35 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:455:29 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:455:35 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:455:41 - warning: Type annotation is missing for parameter "run_level" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:465:31 - warning: Type annotation is missing for parameter "stream" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:469:30 - warning: Type annotation is missing for parameter "stream" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:469:38 - warning: Type of parameter "data" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:469:38 - warning: Type annotation is missing for parameter "data" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:473:29 - warning: Type annotation is missing for parameter "stream" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:477:31 - warning: Type annotation is missing for parameter "stream" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:482:79 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:503:42 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:521:5 - warning: Type annotation for attribute `print` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:531:9 - warning: Method "on_flow_start" is not marked as override but is overriding a method in class "FlowInstrument" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:531:29 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:534:9 - warning: Method "on_flow_end" is not marked as override but is overriding a method in class "FlowInstrument" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:534:27 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:538:30 - warning: Type annotation is missing for parameter "flow" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:538:36 - warning: Type annotation is missing for parameter "node" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow/instrumentation.py:538:42 - warning: Type annotation is missing for parameter "run_level" (reportMissingParameterType)
+/home/user/flowno/src/flowno/core/flow_hdl.py
+  /home/user/flowno/src/flowno/core/flow_hdl.py:30:8 - warning: Import "inspect" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:32:19 - warning: Import "TracebackType" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:33:45 - warning: Import "cast" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:41:5 - warning: Import "DraftInputPortRef" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:44:5 - warning: Import "NodeContextFactoryProtocol" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:45:5 - warning: Import "NodePlaceholder" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:46:5 - warning: Import "OutputPortRefPlaceholder" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:49:31 - warning: Import "Self" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:88:41 - warning: Type of parameter "node" is partially unknown
+    Parameter type is "FinalizedNode[*tuple[Unknown, ...], Unknown]" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:88:47 - error: Expected type arguments for generic class "FinalizedNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:90:33 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "node" in function "add_node"
+    Argument type is "FinalizedNode[*tuple[Unknown, ...], Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:91:9 - warning: Type of "__init__" is partially unknown
+    Type of "__init__" is "(on_register_finalized_node: (FinalizedNode[*tuple[Unknown, ...], Unknown]) -> None) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:95:32 - warning: Type annotation is missing for parameter "key" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:99:9 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:99:27 - warning: Type annotation is missing for parameter "key" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:100:16 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:107:40 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:107:58 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:108:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:108:64 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:115:9 - warning: Type of parameter "context_factory" is partially unknown
+    Parameter type is "((FinalizedNode[*tuple[Unknown, ...], Unknown]) -> Any) | None" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:115:37 - error: Expected type arguments for generic class "FinalizedNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:115:54 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:125:9 - warning: Type of "run_until_complete" is partially unknown
+    Type of "run_until_complete" is "(stop_at_node_generation: dict[FinalizedNode[*tuple[Any, ...], tuple[Any, ...]] | DraftNode[*tuple[Any, ...], tuple[Any, ...]], tuple[int, ...] | None] | tuple[int, ...] | None = (), terminate_on_node_error: bool = False, _debug_max_wait_time: float | None = None, context_factory: ((FinalizedNode[*tuple[Unknown, ...], Unknown]) -> Any) | None = None) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:135:36 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl.py:135:41 - warning: Type `Any` is not allowed (reportExplicitAny)
+/home/user/flowno/src/flowno/core/flow_hdl_view.py
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/flow_hdl_view.py
+    /home/user/flowno/src/flowno/core/group_node.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/flow_hdl_view.py
+    /home/user/flowno/src/flowno/core/node_base.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py: error: Cycle detected in import chain
+    /home/user/flowno/src/flowno/core/flow_hdl_view.py
+    /home/user/flowno/src/flowno/core/group_node.py
+    /home/user/flowno/src/flowno/core/node_base.py (reportImportCycles)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:8:35 - warning: Import "Flow" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:10:5 - warning: Import "DraftInputPortRef" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:43:5 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:43:51 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:47:26 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:53:24 - warning: Type of parameter "on_register_finalized_node" is partially unknown
+    Parameter type is "(FinalizedNode[*tuple[Unknown, ...], Unknown]) -> None" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:53:62 - error: Expected type arguments for generic class "FinalizedNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:57:9 - warning: Type of "_on_register_finalized_node" is partially unknown
+    Type of "_on_register_finalized_node" is "(FinalizedNode[*tuple[Unknown, ...], Unknown]) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:57:14 - warning: Type annotation for attribute `_on_register_finalized_node` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:61:9 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:72:12 - warning: Type of "draft_nodes" is partially unknown
+    Type of "draft_nodes" is "list[DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:72:26 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:73:36 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:73:36 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "obj" in function "len"
+    Argument type is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:74:18 - warning: Type of "_finalize" is partially unknown
+    Type of "_finalize" is "(draft_nodes: list[DraftNode[*tuple[Unknown, ...], Unknown]], *, finalize_connections: bool = True) -> FinalizationResult" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:75:12 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:76:36 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:76:36 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "sequence" in function "__new__"
+    Argument type is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:81:37 - warning: Type of parameter "value" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:81:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:104:20 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:106:20 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:110:9 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:110:40 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:118:12 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:120:38 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:120:38 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "sequence" in function "__new__"
+    Argument type is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:121:13 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[Self@FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:121:13 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: DraftNode[*tuple[Unknown, ...], Unknown], /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:125:17 - warning: Implicit string concatenation not allowed (reportImplicitStringConcatenation)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:133:25 - warning: Type of parameter "draft_nodes" is partially unknown
+    Parameter type is "list[DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:133:43 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:146:9 - warning: Type of "all_draft_nodes" is partially unknown
+    Type of "all_draft_nodes" is "list[DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:146:31 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:155:13 - warning: Type of "extend" is partially unknown
+    Type of "extend" is "(iterable: Iterable[DraftNode[*tuple[Unknown, ...], Unknown]], /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:158:9 - warning: Type of "group_alias" is partially unknown
+    Type of "group_alias" is "dict[DraftGroupNode[*tuple[Unknown, ...]], DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:158:27 - error: Expected type arguments for generic class "DraftGroupNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:158:43 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:160:13 - warning: Return type, "DraftNode[*tuple[Unknown, ...], Unknown]", is partially unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:160:28 - warning: Type of parameter "node" is partially unknown
+    Parameter type is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:160:34 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:160:48 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:163:21 - warning: Type of "node" is partially unknown
+    Type of "node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:165:21 - warning: Type of "node" is partially unknown
+    Type of "node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:165:28 - warning: Type of "_return_node" is partially unknown
+    Type of "_return_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:165:33 - warning: "_return_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:166:20 - warning: Return type, "DraftNode[*tuple[Unknown, ...], Unknown]", is partially unknown (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:172:19 - warning: Type of "obj" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:176:17 - warning: Type of "target" is partially unknown
+    Type of "target" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:176:41 - warning: Type of "_return_node" is partially unknown
+    Type of "_return_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:176:45 - warning: "_return_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:180:9 - warning: Type of "clean_draft_nodes" is partially unknown
+    Type of "clean_draft_nodes" is "list[DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:180:33 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:181:13 - warning: Type of "dn" is partially unknown
+    Type of "dn" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:187:17 - warning: Type of "target" is partially unknown
+    Type of "target" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:187:41 - warning: Type of "_return_node" is partially unknown
+    Type of "_return_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:187:44 - warning: "_return_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:188:17 - warning: Type of "setdefault" is partially unknown
+    Type of "setdefault" is "(key: DraftGroupNode[*tuple[Unknown, ...]], default: DraftNode[*tuple[Unknown, ...], Unknown], /) -> DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:188:17 - warning: Result of call expression is of type "DraftNode[*tuple[Unknown, ...], Unknown]" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:190:13 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: DraftNode[*tuple[Unknown, ...], Unknown], /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:191:13 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: DraftNode[*tuple[Unknown, ...], Unknown], /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:196:13 - warning: Type of "draft_node" is partially unknown
+    Type of "draft_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:197:42 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:205:21 - warning: Type of "replacement" is partially unknown
+    Type of "replacement" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:207:25 - warning: Type of "replacement" is partially unknown
+    Type of "replacement" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:210:36 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:211:29 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "value" in function "remove"
+    Argument type is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:216:33 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:217:25 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "object" in function "append"
+    Argument type is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:224:13 - warning: Type of "producer" is partially unknown
+    Type of "producer" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:225:51 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:226:26 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:237:13 - warning: Type of "unknown_node" is partially unknown
+    Type of "unknown_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:244:60 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:268:21 - warning: Type of "output_source_node" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:290:13 - warning: Type of "draft_node" is partially unknown
+    Type of "draft_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:291:13 - warning: Type of "finalized_node" is partially unknown
+    Type of "finalized_node" is "FinalizedNode[*tuple[Unknown, ...], Unknown]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:291:41 - warning: "_blank_finalized" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:293:13 - warning: Type of "_on_register_finalized_node" is partially unknown
+    Type of "_on_register_finalized_node" is "(FinalizedNode[*tuple[Unknown, ...], Unknown]) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:300:32 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:301:45 - warning: "_finalize" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:302:63 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:304:32 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:309:63 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:315:23 - warning: Type of "obj" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/flow_hdl_view.py:317:21 - warning: Type of "target" is partially unknown
+    Type of "target" is "DraftNode[*tuple[Unknown, ...], tuple[object, ...]]" (reportUnknownVariableType)
+/home/user/flowno/src/flowno/core/group_node.py
+  /home/user/flowno/src/flowno/core/group_node.py:6:35 - warning: Import "OriginalCall" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/group_node.py:9:32 - warning: Import "FlowHDLView" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/core/group_node.py:14:26 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/group_node.py:17:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/group_node.py:20:29 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/group_node.py:21:19 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/group_node.py:24:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/group_node.py:26:27 - warning: Argument type is Any
+    Argument corresponds to parameter "args[0]" in function "__init__" (reportAny)
+  /home/user/flowno/src/flowno/core/group_node.py:29:41 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/group_node.py:29:41 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "sequence" in function "__new__"
+    Argument type is "OrderedDict[FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/group_node.py:30:12 - warning: Condition will always evaluate to False since the types "FlowHDLView" and "None" have no overlap (reportUnnecessaryComparison)
+  /home/user/flowno/src/flowno/core/group_node.py:34:40 - warning: Type of "_on_register_finalized_node" is partially unknown
+    Type of "_on_register_finalized_node" is "(FinalizedNode[*tuple[Unknown, ...], Unknown]) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/group_node.py:34:56 - warning: "_on_register_finalized_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/group_node.py:36:33 - warning: Type of "original_func" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/group_node.py:37:13 - warning: Type of "_debug_context_nodes" is partially unknown
+    Type of "_debug_context_nodes" is "list[DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/group_node.py:37:18 - warning: Type annotation for attribute `_debug_context_nodes` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/group_node.py:37:41 - warning: Type of "contextStack" is partially unknown
+    Type of "contextStack" is "OrderedDict[FlowHDLView, list[DraftNode[*tuple[Unknown, ...], Unknown]]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/group_node.py:39:15 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[*_Ts@DraftGroupNode, tuple[Any, ...]]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/group_node.py:44:72 - warning: Type of "_debug_context_nodes" is partially unknown
+    Type of "_debug_context_nodes" is "list[DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/group_node.py:44:116 - warning: Type of "_return_node" is partially unknown
+    Type of "_return_node" is "DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownMemberType)
+/home/user/flowno/src/flowno/core/mono_node.py
+  /home/user/flowno/src/flowno/core/mono_node.py:68:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:69:52 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:69:57 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:72:7 - error: Class "MonoNode0" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "MonoNode0.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/mono_node.py:80:9 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[*tuple[()], _ReturnTupleT_co@MonoNode0]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/mono_node.py:80:33 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:80:38 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:83:7 - error: Class "MonoNode0_0" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "MonoNode0_0.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/mono_node.py:91:9 - warning: Method "call" is not marked as override but is overriding a method in class "MonoNode0[tuple[None]]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/mono_node.py:91:33 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:91:38 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:97:7 - error: Class "MonoNode0_1" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "MonoNode0_1.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/mono_node.py:105:9 - warning: Method "call" is not marked as override but is overriding a method in class "MonoNode0[tuple[_T1_co@MonoNode0_1]]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/mono_node.py:105:33 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:105:38 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:108:9 - error: Overload 1 for "output" overlaps overload 2 and returns an incompatible type (reportOverlappingOverload)
+  /home/user/flowno/src/flowno/core/mono_node.py:108:9 - error: "output" is marked as overload, but no implementation is provided (reportNoOverloadImplementation)
+  /home/user/flowno/src/flowno/core/mono_node.py:115:48 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:118:7 - error: Class "MonoNode1" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "MonoNode1.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/mono_node.py:119:15 - error: Type "*tuple[_T1_contra@MonoNode1]" cannot be assigned to type variable "_Ts@DraftNode"
+    Variance of type argument "*tuple[_T1_contra@MonoNode1]" is incompatible with base class "DraftNode" (reportInvalidTypeArguments)
+  /home/user/flowno/src/flowno/core/mono_node.py:128:25 - warning: Type of parameter "args" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:128:31 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:130:9 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[_T1_contra@MonoNode1, _ReturnTupleT_co@MonoNode1]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/mono_node.py:130:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:130:56 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:133:7 - error: Class "MonoNode2" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "MonoNode2.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/mono_node.py:143:9 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[_T1_contra@MonoNode2, _T2_contra@MonoNode2, _ReturnTupleT_co@MonoNode2]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/mono_node.py:143:69 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/mono_node.py:143:74 - warning: Type `Any` is not allowed (reportExplicitAny)
+/home/user/flowno/src/flowno/core/node_base.py
+  /home/user/flowno/src/flowno/core/node_base.py:68:21 - error: Instance methods should take a "self" parameter (reportSelfClsParameterName)
+  /home/user/flowno/src/flowno/core/node_base.py:68:37 - warning: Type of parameter "node" is partially unknown
+    Parameter type is "FinalizedNode[*tuple[Unknown, ...], Unknown]" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/core/node_base.py:68:44 - error: Expected type arguments for generic class "FinalizedNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/core/node_base.py:120:5 - warning: Function "_node_id" is not accessed (reportUnusedFunction)
+  /home/user/flowno/src/flowno/core/node_base.py:126:22 - warning: "_draft_node" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:126:59 - warning: "_instance_id" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:130:5 - warning: Function "_node_label" is not accessed (reportUnusedFunction)
+  /home/user/flowno/src/flowno/core/node_base.py:208:69 - error: Cannot assign to attribute "minimum_run_level" for class "DraftInputPort[object]"
+    Type "int" is not assignable to type "RunLevel"
+      "int" is not assignable to type "Literal[0]"
+      "int" is not assignable to type "Literal[1]"
+      "int" is not assignable to type "Literal[2]"
+      "int" is not assignable to type "Literal[3]" (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/core/node_base.py:251:17 - warning: Unnecessary "cast" call; type is already "DraftOutputPortRef[object]" (reportUnnecessaryCast)
+  /home/user/flowno/src/flowno/core/node_base.py:331:19 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:331:24 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:332:68 - warning: Unnecessary "# pyright: ignore" rule: "reportExplicitAny" (reportUnnecessaryTypeIgnoreComment)
+  /home/user/flowno/src/flowno/core/node_base.py:336:53 - error: Covariant type variable cannot be used in parameter type (reportGeneralTypeIssues)
+  /home/user/flowno/src/flowno/core/node_base.py:336:79 - error: Covariant type variable cannot be used in parameter type (reportGeneralTypeIssues)
+  /home/user/flowno/src/flowno/core/node_base.py:430:9 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:430:41 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:438:20 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:440:16 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:442:9 - warning: Method "__setattr__" is not marked as override but is overriding a method in class "object" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/node_base.py:442:38 - warning: Type of parameter "value" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:442:45 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:495:21 - warning: Variable "input_port_index" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/core/node_base.py:572:9 - error: Argument of type "ReturnTupleT_co@FinalizedNode | None" cannot be assigned to parameter "value" of type "ReturnTupleT_co@FinalizedNode" in function "__setitem__"
+    Type "ReturnTupleT_co@FinalizedNode | None" is not assignable to type "ReturnTupleT_co@FinalizedNode" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:610:13 - warning: Variable "my_input_port_index" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/core/node_base.py:636:9 - warning: Method "__repr__" is not marked as override but is overriding a method in class "object" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/node_base.py:651:19 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:651:24 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:652:68 - warning: Unnecessary "# pyright: ignore" rule: "reportExplicitAny" (reportUnnecessaryTypeIgnoreComment)
+  /home/user/flowno/src/flowno/core/node_base.py:684:47 - error: Argument of type "Self@FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]" cannot be assigned to parameter "node" of type "FinalizedNode[*tuple[object, ...], tuple[object, ...]]" in function "__init__"
+    "FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]*" is not assignable to "FinalizedNode[*tuple[object, ...], tuple[object, ...]]"
+      Type parameter "_Ts@FinalizedNode" is invariant, but "*_Ts@FinalizedNode" is not the same as "*tuple[object, ...]" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:701:77 - error: Argument of type "Self@FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]" cannot be assigned to parameter "node" of type "DraftNode[*tuple[object, ...], tuple[object, ...]]" in function "__init__"
+    "FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]*" is not assignable to "DraftNode[*tuple[object, ...], tuple[object, ...]]" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:705:47 - error: Argument of type "Self@FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]" cannot be assigned to parameter "node" of type "FinalizedNode[*tuple[object, ...], tuple[object, ...]]" in function "__init__"
+    "FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]*" is not assignable to "FinalizedNode[*tuple[object, ...], tuple[object, ...]]"
+      Type parameter "_Ts@FinalizedNode" is invariant, but "*_Ts@FinalizedNode" is not the same as "*tuple[object, ...]" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:715:62 - error: Argument of type "Self@FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]" cannot be assigned to parameter "node" of type "DraftNode[*tuple[object, ...], tuple[object, ...]]" in function "__init__"
+    "FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]*" is not assignable to "DraftNode[*tuple[object, ...], tuple[object, ...]]" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:720:17 - warning: Type of "input_port_index" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:724:47 - error: Argument of type "Self@FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]" cannot be assigned to parameter "node" of type "FinalizedNode[*tuple[object, ...], tuple[object, ...]]" in function "__init__"
+    "FinalizedNode[*_Ts@FinalizedNode, ReturnTupleT_co@FinalizedNode]*" is not assignable to "FinalizedNode[*tuple[object, ...], tuple[object, ...]]"
+      Type parameter "_Ts@FinalizedNode" is invariant, but "*_Ts@FinalizedNode" is not the same as "*tuple[object, ...]" (reportArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:724:53 - warning: Argument type is Any
+    Argument corresponds to parameter "input_index" in function "__init__" (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:811:40 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:867:40 - warning: "_barrier1" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:887:43 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:957:19 - warning: "_connected_output_nodes" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:958:21 - warning: "_input_ports" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:1028:64 - warning: "_finalize" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:1147:5 - warning: Variable "param_strings" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/core/node_base.py:1166:9 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: Unknown, /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/node_base.py:1175:59 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "param_positions" in function "build_underline_line"
+    Argument type is "list[Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/core/node_base.py:1207:9 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: Unknown, /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/core/node_base.py:1215:12 - warning: Return type, "tuple[str, list[Unknown]]", is partially unknown (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/core/node_base.py:1222:18 - warning: Type of "annotation" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:1222:38 - warning: Type of "annotation" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:1222:66 - warning: "_empty" is private and used outside of the module in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:1230:8 - warning: Type of "default" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:1233:48 - warning: Type of "default" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/node_base.py:1261:15 - warning: "_original_call" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/core/node_base.py:1282:40 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:1283:14 - warning: Type annotation for attribute `stream` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/core/node_base.py:1334:34 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/node_base.py:1334:52 - warning: Type `Any` is not allowed (reportExplicitAny)
+/home/user/flowno/src/flowno/core/streaming_node.py
+  /home/user/flowno/src/flowno/core/streaming_node.py:59:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/streaming_node.py:63:7 - error: Class "StreamingNode0" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "StreamingNode0.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/streaming_node.py:71:9 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[*tuple[()], _ReturnTupleT_co@StreamingNode0]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/streaming_node.py:113:53 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/streaming_node.py:116:7 - error: Class "StreamingNode1" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "StreamingNode1.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/streaming_node.py:117:15 - error: Type "*tuple[_T1_contra@StreamingNode1]" cannot be assigned to type variable "_Ts@DraftNode"
+    Variance of type argument "*tuple[_T1_contra@StreamingNode1]" is incompatible with base class "DraftNode" (reportInvalidTypeArguments)
+  /home/user/flowno/src/flowno/core/streaming_node.py:126:25 - warning: Type of parameter "args" is Any (reportAny)
+  /home/user/flowno/src/flowno/core/streaming_node.py:126:31 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/core/streaming_node.py:128:9 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[_T1_contra@StreamingNode1, _ReturnTupleT_co@StreamingNode1]" (reportImplicitOverride)
+  /home/user/flowno/src/flowno/core/streaming_node.py:131:7 - error: Class "StreamingNode2" is implicitly abstract because it extends an abstract class without implementing all abstract symbols. If this is intentional, add `ABC` to its base classes or use `metaclass=ABCMeta`.
+    "StreamingNode2.__init__" is not implemented (reportImplicitAbstractClass)
+  /home/user/flowno/src/flowno/core/streaming_node.py:141:9 - warning: Method "call" is not marked as override but is overriding a method in class "DraftNode[_T1_contra@StreamingNode2, _T2_contra@StreamingNode2, _ReturnTupleT_co@StreamingNode2]" (reportImplicitOverride)
+/home/user/flowno/src/flowno/decorators/multiple_output.py
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:14:35 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:24:52 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:45:5 - warning: Variable "filename" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:46:5 - warning: Variable "lineno" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:65:68 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:75:9 - warning: Type annotation for attribute `_minimum_run_level` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:76:9 - warning: Type annotation for attribute `_default_values` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:77:9 - warning: Type annotation for attribute `_original_call` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/multiple_output.py:88:33 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+/home/user/flowno/src/flowno/decorators/node.py
+  /home/user/flowno/src/flowno/decorators/node.py:48:50 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/node.py:48:50 - warning: Import "Union" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:55:5 - warning: Import "MonoNode0" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:59:5 - warning: Import "MonoNode2" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:64:5 - warning: Import "StreamingNode0" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:65:5 - warning: Import "StreamingNode1" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:66:5 - warning: Import "StreamingNode2" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:72:5 - warning: Import "MonoClassCall" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:73:5 - warning: Import "StreamingClassCall" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:77:31 - warning: Import "override" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node.py:175:43 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:175:48 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:193:5 - error: Overload 2 for "node" overlaps overload 3 and returns an incompatible type (reportOverlappingOverload)
+  /home/user/flowno/src/flowno/decorators/node.py:193:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:193:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:197:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:197:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:241:5 - error: Overloaded implementation is not consistent with signature of overload 2
+    Function return type "type[MonoNode0_0]" is incompatible with type "type[MonoNode[*tuple[Any, ...], tuple[None]]] | type[StreamingNode[*tuple[Any, ...], tuple[None]]] | node_meta_single_dec | node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+      Type "type[MonoNode0_0]" is not assignable to type "type[MonoNode[*tuple[Any, ...], tuple[None]]] | type[StreamingNode[*tuple[Any, ...], tuple[None]]] | node_meta_single_dec | node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+        Type "type[MonoNode0_0]" is not assignable to type "node_meta_single_dec"
+        Type "type[MonoNode0_0]" is not assignable to type "node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+        "MonoNode0_0" is incompatible with protocol "MonoNode[*tuple[Any, ...], tuple[None]]"
+        Type "type[MonoNode0_0]" is not assignable to type "type[MonoNode[*tuple[Any, ...], tuple[None]]]"
+          "__init__" is an incompatible type
+            Type "() -> None" is not assignable to type "(*args: *tuple[Any, ...]) -> None" (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/decorators/node.py:241:5 - error: Overloaded implementation is not consistent with signature of overload 3
+    Function return type "type[MonoNode0_1[_ReturnT_co@node]]" is incompatible with type "type[MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | type[StreamingNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | node_meta_single_dec | node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+      Type "type[MonoNode0_1[_ReturnT_co@node]]" is not assignable to type "type[MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | type[StreamingNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | node_meta_single_dec | node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+        Type "type[MonoNode0_1[_ReturnT_co@node]]" is not assignable to type "node_meta_single_dec"
+        Type "type[MonoNode0_1[_ReturnT_co@node]]" is not assignable to type "node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+        "MonoNode0_1[_ReturnT_co@node]" is incompatible with protocol "MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]"
+        Type "type[MonoNode0_1[_ReturnT_co@node]]" is not assignable to type "type[MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]]"
+          "__init__" is an incompatible type
+            Type "() -> None" is not assignable to type "(*args: *tuple[Any, ...]) -> None" (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/decorators/node.py:243:33 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:243:38 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:245:26 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:253:32 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:254:39 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node.py:311:20 - error: Type "type[DraftNode[*tuple[Any, ...], Tuple[_ReturnT_co@node]]]" is not assignable to return type "type[MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | type[StreamingNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | node_meta_single_dec | node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+    Type "type[DraftNode[*tuple[Any, ...], Tuple[_ReturnT_co@node]]]" is not assignable to type "type[MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | type[StreamingNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]] | node_meta_single_dec | node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+      Type "type[DraftNode[*tuple[Any, ...], Tuple[_ReturnT_co@node]]]" is not assignable to type "node_meta_single_dec"
+      Type "type[DraftNode[*tuple[Any, ...], Tuple[_ReturnT_co@node]]]" is not assignable to type "node_meta_multiple_dec[*tuple[object, ...], _ReturnTupleT_co@node]"
+      "DraftNode[*tuple[Any, ...], Tuple[_ReturnT_co@node]]" is incompatible with protocol "MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]"
+      Type "type[DraftNode[*tuple[Any, ...], Tuple[_ReturnT_co@node]]]" is not assignable to type "type[MonoNode[*tuple[Any, ...], tuple[_ReturnT_co@node]]]"
+        "call" is an incompatible type
+          Type "(*Any) -> (Coroutine[Any, Any, Tuple[_ReturnT_co@node]] | AsyncGenerator[Tuple[_ReturnT_co@node], None])" is not assignable to type "(*args: *Ts@MonoNode) -> Coroutine[Any, Any, _ReturnTupleT_co@MonoNode]"
+            Function return type "Coroutine[Any, Any, Tuple[_ReturnT_co@node]] | AsyncGenerator[Tuple[_ReturnT_co@node], None]" is incompatible with type "Coroutine[Any, Any, _ReturnTupleT_co@MonoNode]"
+    ... (reportReturnType)
+  /home/user/flowno/src/flowno/decorators/node.py:320:5 - warning: Return type, "type[DraftGroupNode[*tuple[Unknown, ...]]]", is partially unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/node.py:320:37 - warning: Type of parameter "func" is partially unknown
+    Parameter type is "(...) -> DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/node.py:320:57 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/decorators/node.py:320:77 - error: Expected type arguments for generic class "DraftGroupNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/decorators/node.py:322:26 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "obj" in function "signature"
+    Argument type is "(...) -> DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/node.py:326:12 - warning: Type of "default" is Any (reportAny)
+  /home/user/flowno/src/flowno/decorators/node.py:327:35 - warning: Type of "default" is Any (reportAny)
+  /home/user/flowno/src/flowno/decorators/node.py:329:28 - error: Expected type arguments for generic class "DraftGroupNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/decorators/node.py:330:9 - error: "_minimum_run_level" overrides symbol of same name in class "DraftNode"
+    Variable is mutable so its type is invariant
+      Override type "list[int]" is not the same as base type "list[RunLevel]" (reportIncompatibleVariableOverride)
+  /home/user/flowno/src/flowno/decorators/node.py:332:9 - warning: Type annotation for attribute `_original_call` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/node.py:338:9 - warning: Type of "original_func" is partially unknown
+    Type of "original_func" is "staticmethod[..., DraftNode[*tuple[Unknown, ...], Unknown]]" (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/decorators/node.py:338:9 - warning: Type annotation for attribute `original_func` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/node.py:338:38 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "f" in function "__init__"
+    Argument type is "(...) -> DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/node.py:344:5 - warning: Return type, "type[DraftGroupNode[*tuple[Unknown, ...]]]", is partially unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/node.py:344:14 - warning: Type of parameter "func" is partially unknown
+    Parameter type is "(...) -> DraftNode[*tuple[Unknown, ...], Unknown]" (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/node.py:344:34 - error: Expected type arguments for generic class "DraftNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/decorators/node.py:344:54 - error: Expected type arguments for generic class "DraftGroupNode" (reportMissingTypeArgument)
+  /home/user/flowno/src/flowno/decorators/node.py:345:12 - warning: Return type, "type[DraftGroupNode[*tuple[Unknown, ...]]]", is partially unknown (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/decorators/node.py:349:6 - error: Cannot assign to attribute "template" for class "FunctionType"
+    Attribute "template" is unknown (reportFunctionMemberAccess)
+/home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:16:31 - warning: Import "overload" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:20:5 - warning: Import "MonoNode" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:21:5 - warning: Import "MonoNode0" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:22:5 - warning: Import "MonoNode1" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:23:5 - warning: Import "MonoNode2" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:27:5 - warning: Import "StreamingNode" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:28:5 - warning: Import "StreamingNode0" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:29:5 - warning: Import "StreamingNode1" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:30:5 - warning: Import "StreamingNode2" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:105:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/node_meta_multiple_dec.py:105:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+/home/user/flowno/src/flowno/decorators/node_meta_single_dec.py
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:16:27 - warning: Import "Generic" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:20:5 - warning: Import "MonoNode" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:22:5 - warning: Import "MonoNode1" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:23:5 - warning: Import "MonoNode2" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:27:5 - warning: Import "StreamingNode" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:28:5 - warning: Import "StreamingNode0" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:29:5 - warning: Import "StreamingNode1" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:30:5 - warning: Import "StreamingNode2" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:33:5 - warning: Import "MonoClassCall" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:35:5 - warning: Import "StreamingClassCall" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:120:9 - error: "__call__" is marked as overload, but additional overloads are missing (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/decorators/node_meta_single_dec.py:164:20 - error: Type "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@__call__]]] | type[StreamingNode[*tuple[object, ...], tuple[_ReturnT_co@__call__]]]" is not assignable to return type "type[DraftNode[*Ts@__call__, tuple[_ReturnT_co@__call__]]]"
+    Type "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@__call__]]] | type[StreamingNode[*tuple[object, ...], tuple[_ReturnT_co@__call__]]]" is not assignable to type "type[DraftNode[*Ts@__call__, tuple[_ReturnT_co@__call__]]]"
+      "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@__call__]]]" is not assignable to "type[DraftNode[*Ts@__call__, tuple[_ReturnT_co@__call__]]]"
+      Type "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@__call__]]]" is not assignable to type "type[DraftNode[*Ts@__call__, tuple[_ReturnT_co@__call__]]]" (reportReturnType)
+/home/user/flowno/src/flowno/decorators/single_output.py
+  /home/user/flowno/src/flowno/decorators/single_output.py:14:35 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:14:51 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:36:52 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:36:57 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:46:10 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:46:26 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:46:31 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:69:13 - warning: Type of "val" is Any (reportAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:70:29 - warning: Argument type is Any
+    Argument corresponds to parameter "obj" in function "callable" (reportAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:77:18 - warning: Type of parameter "self" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:77:18 - warning: Type annotation is missing for parameter "self" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:77:25 - warning: Type of parameter "args" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:77:25 - warning: Type annotation is missing for parameter "args" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:77:33 - warning: Type of parameter "kwargs" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:77:33 - warning: Type annotation is missing for parameter "kwargs" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:78:13 - warning: Type of "field" is unknown (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:78:20 - warning: Type of "initial_val" is unknown (reportUnknownVariableType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:79:21 - warning: Argument type is unknown
+    Argument corresponds to parameter "obj" in function "setattr" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:79:27 - warning: Argument type is unknown
+    Argument corresponds to parameter "name" in function "setattr" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:80:9 - warning: Type of "__init__" is partially unknown
+    Type of "__init__" is "(self: DraftNode[Unknown, Unknown], *args: *tuple[object, ...]) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:80:28 - warning: Argument type is unknown
+    Argument corresponds to parameter "self" in function "__init__" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:80:35 - warning: Argument type is unknown
+    Argument corresponds to parameter "args[0]" in function "__init__" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:84:14 - warning: Type of parameter "self" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:84:14 - warning: Type annotation is missing for parameter "self" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:84:21 - warning: Type of parameter "args" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:84:21 - warning: Type annotation is missing for parameter "args" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:84:29 - warning: Type of parameter "kwargs" is unknown (reportUnknownParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:84:29 - warning: Type annotation is missing for parameter "kwargs" (reportMissingParameterType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:85:18 - error: Argument of type "tuple[Unknown, ...]" cannot be assigned to parameter "args" of type "Ts@create_class_node_subclass_single" in function "call"
+    Type "tuple[Unknown, ...]" is not assignable to type "Ts@create_class_node_subclass_single" (reportArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:85:27 - warning: Argument type is unknown
+    Argument corresponds to parameter "self" in function "call" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:88:14 - warning: Unnecessary isinstance call; "AsyncGenerator[_ReturnT_co@create_class_node_subclass_single, None]" is always an instance of "AsyncGenerator[Unknown, Unknown]" (reportUnnecessaryIsInstance)
+  /home/user/flowno/src/flowno/decorators/single_output.py:105:12 - warning: Type of "default" is Any (reportAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:106:41 - warning: Type of "default" is Any (reportAny)
+  /home/user/flowno/src/flowno/decorators/single_output.py:112:5 - warning: Variable "func_params" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/decorators/single_output.py:117:43 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "dict" in function "__init__"
+    Argument type is "dict[Unknown, Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:119:17 - error: Cannot assign to attribute "_initial_state" for class "type[_]"
+    Attribute "_initial_state" is unknown (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/decorators/single_output.py:120:17 - warning: "_default_values" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/decorators/single_output.py:121:17 - warning: "_minimum_run_level" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/decorators/single_output.py:122:17 - error: Cannot assign to attribute "_original_signature" for class "type[_]"
+    Attribute "_original_signature" is unknown (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/decorators/single_output.py:123:17 - error: Cannot assign to attribute "_original_filename" for class "type[_]"
+    Attribute "_original_filename" is unknown (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/decorators/single_output.py:124:17 - error: Cannot assign to attribute "_original_lineno" for class "type[_]"
+    Attribute "_original_lineno" is unknown (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/decorators/single_output.py:125:17 - error: Cannot assign to attribute "_original_signature_name" for class "type[_]"
+    Attribute "_original_signature_name" is unknown (reportAttributeAccessIssue)
+  /home/user/flowno/src/flowno/decorators/single_output.py:127:17 - warning: "_original_call" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/decorators/single_output.py:134:12 - error: Type "type[_]" is not assignable to return type "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]] | type[StreamingNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]]"
+    Type "type[_]" is not assignable to type "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]] | type[StreamingNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]]"
+      "_" is incompatible with protocol "MonoNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]"
+      Type "type[_]" is not assignable to type "type[MonoNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]]"
+        "call" is an incompatible type
+          Type "(*Unknown) -> (Coroutine[Any, Any, Unknown] | AsyncGenerator[Unknown, None])" is not assignable to type "(*args: *Ts@MonoNode) -> Coroutine[Any, Any, _ReturnTupleT_co@MonoNode]"
+            Function return type "Coroutine[Any, Any, Unknown] | AsyncGenerator[Unknown, None]" is incompatible with type "Coroutine[Any, Any, _ReturnTupleT_co@MonoNode]"
+      "_" is incompatible with protocol "StreamingNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]"
+      Type "type[_]" is not assignable to type "type[StreamingNode[*tuple[object, ...], tuple[_ReturnT_co@create_class_node_subclass_single]]]"
+    ... (reportReturnType)
+  /home/user/flowno/src/flowno/decorators/single_output.py:143:33 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:157:5 - warning: Variable "filename" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/decorators/single_output.py:158:5 - warning: Variable "lineno" is not accessed (reportUnusedVariable)
+  /home/user/flowno/src/flowno/decorators/single_output.py:182:57 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:192:9 - warning: Type annotation for attribute `_minimum_run_level` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/single_output.py:193:9 - warning: Type annotation for attribute `_default_values` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/single_output.py:194:9 - warning: Type annotation for attribute `_original_call` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/single_output.py:204:40 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:204:83 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+  /home/user/flowno/src/flowno/decorators/single_output.py:205:33 - warning: This type is deprecated as of Python 3.9; use "tuple" instead (reportDeprecated)
+/home/user/flowno/src/flowno/decorators/wrappers.py
+  /home/user/flowno/src/flowno/decorators/wrappers.py:1:45 - warning: Import "Awaitable" is not accessed (reportUnusedImport)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:8:46 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:8:51 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:16:14 - warning: Type annotation for attribute `_gen` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:44:15 - error: @override decorator should be applied only to the implementation (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:50:15 - error: @override decorator should be applied only to the implementation (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:112:14 - warning: Type annotation for attribute `_gen` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:124:15 - error: @override decorator should be applied only to the implementation (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/decorators/wrappers.py:130:15 - error: @override decorator should be applied only to the implementation (reportInconsistentOverload)
+/home/user/flowno/src/flowno/io/http_client.py
+  /home/user/flowno/src/flowno/io/http_client.py:113:9 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/io/http_client.py:113:30 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/io/http_client.py:115:16 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/io/http_client.py:145:15 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/io/http_client.py:145:36 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/io/http_client.py:153:20 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/io/http_client.py:158:17 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: Unknown, /) -> None" (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/io/http_client.py:159:35 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "iterable_of_bytes" in function "join"
+    Argument type is "list[Unknown]" (reportUnknownArgumentType)
+  /home/user/flowno/src/flowno/io/http_client.py:160:20 - warning: Return type is Any (reportAny)
+  /home/user/flowno/src/flowno/io/http_client.py:457:44 - warning: "_headers" is protected and used outside of the class in which it is declared (reportPrivateUsage)
+  /home/user/flowno/src/flowno/io/http_client.py:603:25 - warning: Type of "message" is Any (reportAny)
+  /home/user/flowno/src/flowno/io/http_client.py:644:72 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /home/user/flowno/src/flowno/io/http_client.py:682:21 - warning: Type of "message" is Any (reportAny)
+/home/user/flowno/src/flowno/io/http_server.py
+  /home/user/flowno/src/flowno/io/http_server.py:62:14 - warning: Type annotation for attribute `host` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/io/http_server.py:63:14 - warning: Type annotation for attribute `port` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/io/http_server.py:117:13 - warning: Type of "close" is unknown (reportUnknownMemberType)
+  /home/user/flowno/src/flowno/io/http_server.py:117:25 - error: Cannot access attribute "close" for class "SocketHandle"
+    Attribute "close" is unknown (reportAttributeAccessIssue)
+/home/user/flowno/src/flowno/utilities/asyncgen_wrapper.py
+  /home/user/flowno/src/flowno/utilities/asyncgen_wrapper.py:34:14 - warning: Type annotation for attribute `_agen` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/utilities/asyncgen_wrapper.py:35:14 - warning: Type annotation for attribute `_func_name` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/utilities/asyncgen_wrapper.py:36:14 - warning: Type annotation for attribute `_arg_str` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/utilities/asyncgen_wrapper.py:57:15 - error: @override decorator should be applied only to the implementation (reportInconsistentOverload)
+  /home/user/flowno/src/flowno/utilities/asyncgen_wrapper.py:63:15 - error: @override decorator should be applied only to the implementation (reportInconsistentOverload)
+/home/user/flowno/src/flowno/utilities/coroutine_wrapper.py
+  /home/user/flowno/src/flowno/utilities/coroutine_wrapper.py:42:14 - warning: Type annotation for attribute `_coro` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/utilities/coroutine_wrapper.py:43:14 - warning: Type annotation for attribute `_func_name` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/utilities/coroutine_wrapper.py:44:14 - warning: Type annotation for attribute `_arg_str` is required because this class is not decorated with `@final` (reportUnannotatedClassAttribute)
+  /home/user/flowno/src/flowno/utilities/coroutine_wrapper.py:46:9 - warning: Method "__repr__" is not marked as override but is overriding a method in class "object" (reportImplicitOverride)
+91 errors, 559 warnings, 0 notes

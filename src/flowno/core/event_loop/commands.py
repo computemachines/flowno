@@ -22,10 +22,16 @@ from types import coroutine
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from flowno.core.node_base import ObjectDraftNode
+    from flowno.core.node_base import (
+        ObjectDraftNode,
+        Stream,
+        FinalizedNode,
+        FinalizedInputPortRef,
+    )
     from flowno.core.event_loop.tasks import TaskHandle
     from flowno.core.event_loop.selectors import SocketHandle
     from flowno.core.event_loop.queues import AsyncQueue
+    from typing_extensions import Unpack
 
 from .types import DeltaTime, RawTask
 
