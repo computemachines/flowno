@@ -553,6 +553,10 @@ class Flow:
 
             get_current_flow_instrument().on_node_emitted_data(self, node, data, 0)
 
+            # Enqueue output nodes immediately after pushing final data
+            # This ensures consumers can process the final data before the node continues
+            await self._enqueue_output_nodes(node)
+
         except Exception as e:
             # python reraises any exception raised in the async generator as RuntimeError
             # `Exception.__cause__` is the original exception
@@ -579,6 +583,10 @@ class Flow:
                 node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
 
                 get_current_flow_instrument().on_node_emitted_data(self, node, data, 0)
+
+                # Enqueue output nodes immediately after pushing final data
+                # This ensures consumers can process the final data and complete properly
+                await self._enqueue_output_nodes(node)
             else:
                 raise
 
