@@ -711,10 +711,26 @@ class Flow:
         output_nodes = out_node.get_output_nodes()
 
         if not self.resolution_queue.closed:
-            for out_node in output_nodes:
-                get_current_flow_instrument().on_resolution_queue_put(self, out_node)
+            nodes_to_enqueue = []
+            for output_node in output_nodes:
+                # Skip nodes that are stalled waiting for the out_node
+                # They will be automatically resumed when they receive the StalledNodeRequestCommand
+                # response. Enqueuing them would cause them to restart instead of continuing.
+                if output_node in self.node_tasks:
+                    status = self.node_tasks[output_node].status
+                    if isinstance(status, NodeTaskStatus.Stalled):
+                        # Check if this node was stalled on out_node
+                        stalling_input_ref = status.stalling_input
+                        stalling_input_port = output_node._input_ports[stalling_input_ref.port_index]
+                        if stalling_input_port.connected_output and stalling_input_port.connected_output.node == out_node:
+                            # Don't enqueue - it's already waiting and will be resumed automatically
+                            logger.debug(f"Skipping enqueue of {output_node} - already stalled waiting for {out_node}")
+                            continue
 
-            await self.resolution_queue.putAll(output_nodes)
+                nodes_to_enqueue.append(output_node)
+                get_current_flow_instrument().on_resolution_queue_put(self, output_node)
+
+            await self.resolution_queue.putAll(nodes_to_enqueue)
 
     async def _enqueue_node(
         self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
