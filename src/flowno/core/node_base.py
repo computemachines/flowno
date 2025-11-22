@@ -879,18 +879,8 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
             stitched_generation(stream.output.node.generation, stitch_0), run_level=stream.run_level
         )
 
-    # Loop until data is ready (original while loop from Stream.__anext__)
-    while cmp_generation(get_clipped_stitched_gen(), state.last_consumed_generation) <= 0:
-        logger.debug(
-            f"{stream.output.node}'s generation, "
-            f"when clipped/stitched {get_clipped_stitched_gen()}, "
-            f"is <= last consumed {state.last_consumed_generation}, requesting new data."
-        )
-        yield from _node_stalled(stream.input, stream.output.node)
-
-    logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
-
     # Check if parent generation changed (stream complete/restarted)
+    # This MUST be checked BEFORE requesting new data to avoid restarting a completed stream
     current_parent_gen = parent_generation(stream.output.node.generation)
     if (state.last_consumed_generation is not None
         and current_parent_gen != state.last_consumed_parent_generation):
@@ -901,6 +891,17 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
         logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
         get_current_flow_instrument().on_stream_end(stream)
         raise StopAsyncIteration
+
+    # Loop until data is ready (original while loop from Stream.__anext__)
+    while cmp_generation(get_clipped_stitched_gen(), state.last_consumed_generation) <= 0:
+        logger.debug(
+            f"{stream.output.node}'s generation, "
+            f"when clipped/stitched {get_clipped_stitched_gen()}, "
+            f"is <= last consumed {state.last_consumed_generation}, requesting new data."
+        )
+        yield from _node_stalled(stream.input, stream.output.node)
+
+    logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
 
     # Update state
     state.last_consumed_generation = get_clipped_stitched_gen()
