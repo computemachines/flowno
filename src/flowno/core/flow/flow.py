@@ -711,10 +711,28 @@ class Flow:
         output_nodes = out_node.get_output_nodes()
 
         if not self.resolution_queue.closed:
-            for out_node in output_nodes:
-                get_current_flow_instrument().on_resolution_queue_put(self, out_node)
+            nodes_to_enqueue = []
+            for node in output_nodes:
+                # Skip streaming consumer leaf nodes that have completed
+                # A leaf node has no outputs. If it's a streaming consumer and has completed,
+                # it doesn't need to be re-evaluated (this prevents infinite loops).
+                has_stream_input = any(
+                    inp.minimum_run_level > 0
+                    for inp in node._input_ports.values()
+                    if inp.connected_output is not None
+                )
+                has_outputs = len(node.get_output_nodes()) > 0
+                is_completed = node.generation is not None and len(node.generation) == 1
 
-            await self.resolution_queue.putAll(output_nodes)
+                if has_stream_input and not has_outputs and is_completed:
+                    # Streaming consumer leaf node has completed, skip re-enqueuing
+                    continue
+
+                get_current_flow_instrument().on_resolution_queue_put(self, node)
+                nodes_to_enqueue.append(node)
+
+            if nodes_to_enqueue:
+                await self.resolution_queue.putAll(nodes_to_enqueue)
 
     async def _enqueue_node(
         self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]

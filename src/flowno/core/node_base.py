@@ -406,6 +406,10 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
     # level. Replace with a forgetful datastructure
     _data: dict[DataGeneration, ReturnTupleT_co]
 
+    # Cache for Stream objects to preserve state across evaluations
+    # Key: (input_port_index, output_node_id, output_port_index)
+    _stream_cache: "dict[tuple[InputPortIndex, int, OutputPortIndex], Stream[object]]"
+
     def __init__(
         self,
         original_call: OriginalCall,
@@ -426,6 +430,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         self._barrier1 = CountdownLatch(0)
 
         self._data = dict()
+        self._stream_cache = dict()
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -708,7 +713,12 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 individual_last_data = last_data[input_port.connected_output.port_index]
 
             if input_port.minimum_run_level > 0 and not this_port_defaulted:
-                inputs[input_port_index] = Stream(self.input(input_port_index), input_port.connected_output)
+                # Reuse cached Stream objects to preserve state across evaluations
+                # Use a hashable cache key: (input_port_index, output_node_id, output_port_index)
+                cache_key = (input_port_index, id(input_port.connected_output.node), input_port.connected_output.port_index)
+                if cache_key not in self._stream_cache:
+                    self._stream_cache[cache_key] = Stream(self.input(input_port_index), input_port.connected_output)
+                inputs[input_port_index] = self._stream_cache[cache_key]
             else:
                 inputs[input_port_index] = individual_last_data
 
@@ -891,20 +901,22 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
     logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
 
     # Check if parent generation changed (stream complete/restarted)
-    current_parent_gen = parent_generation(stream.output.node.generation)
+    # Use the parent of the generation we're about to consume, not the source's current generation
+    next_generation = get_clipped_stitched_gen()
+    next_parent_gen = parent_generation(next_generation)
     if (state.last_consumed_generation is not None
-        and current_parent_gen != state.last_consumed_parent_generation):
+        and next_parent_gen != state.last_consumed_parent_generation):
         logger.debug(
             f"Parent generation changed from {state.last_consumed_parent_generation} "
-            f"to {current_parent_gen}, stream complete"
+            f"to {next_parent_gen}, stream complete"
         )
         logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
         get_current_flow_instrument().on_stream_end(stream)
         raise StopAsyncIteration
 
     # Update state
-    state.last_consumed_generation = get_clipped_stitched_gen()
-    state.last_consumed_parent_generation = current_parent_gen
+    state.last_consumed_generation = next_generation
+    state.last_consumed_parent_generation = next_parent_gen
 
     # Get the data
     data_tuple = stream.output.node.get_data(run_level=stream.run_level)
