@@ -862,10 +862,12 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
     if flow is None:
         raise RuntimeError("_stream_get called outside of flow context")
 
-    if stream not in flow._stream_consumer_state:
+    # Use stable key based on port refs so state persists across Stream object recreation
+    stream_key = (stream.input.node, stream.input.port_index, stream.output.node, stream.output.port_index)
+    if stream_key not in flow._stream_consumer_state:
         from flowno.core.flow.flow import StreamConsumerState
-        flow._stream_consumer_state[stream] = StreamConsumerState()
-    state = flow._stream_consumer_state[stream]
+        flow._stream_consumer_state[stream_key] = StreamConsumerState()
+    state = flow._stream_consumer_state[stream_key]
 
     # Check if cancelled
     producer_node = stream.output.node

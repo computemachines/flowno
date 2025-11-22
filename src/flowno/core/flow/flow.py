@@ -310,7 +310,8 @@ class Flow:
         self.resolution_queue = AsyncSetQueue()
         self._defaulted_inputs = defaultdict(list)
         self._cancelled_streams = defaultdict(set)
-        self._stream_consumer_state: dict[Stream, "StreamConsumerState"] = {}
+        # Use tuple of port refs as key to ensure state persists across Stream object recreation
+        self._stream_consumer_state: dict[tuple, "StreamConsumerState"] = {}
         self._context_factory = None
 
     def set_node_status(
@@ -1145,10 +1146,12 @@ class FlowEventLoop(EventLoop):
             current_task = current_task_packet[0]
 
             # Get or create stream consumer state
-            if stream not in self.flow._stream_consumer_state:
-                self.flow._stream_consumer_state[stream] = StreamConsumerState()
+            # Use stable key based on port refs so state persists across Stream object recreation
+            stream_key = (stream.input.node, stream.input.port_index, stream.output.node, stream.output.port_index)
+            if stream_key not in self.flow._stream_consumer_state:
+                self.flow._stream_consumer_state[stream_key] = StreamConsumerState()
 
-            state = self.flow._stream_consumer_state[stream]
+            state = self.flow._stream_consumer_state[stream_key]
 
             # Check if stream is cancelled
             producer_node = stream.output.node
