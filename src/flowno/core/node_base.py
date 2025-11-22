@@ -879,8 +879,18 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
             stitched_generation(stream.output.node.generation, stitch_0), run_level=stream.run_level
         )
 
-    # Check if parent generation changed (stream complete/restarted)
+    # Check if generator has finished (prevents requesting data from completed stream)
     # This MUST be checked BEFORE requesting new data to avoid restarting a completed stream
+    if (state.last_consumed_generation is not None
+        and stream.output.node in flow._generator_finished):
+        logger.debug(
+            f"{stream.output.node}'s generator has finished, stream complete"
+        )
+        logger.info(f"Stream {stream} is complete (generator finished).", extra={"tag": "flow"})
+        get_current_flow_instrument().on_stream_end(stream)
+        raise StopAsyncIteration
+
+    # Check if parent generation changed (stream complete/restarted)
     current_parent_gen = parent_generation(stream.output.node.generation)
     if (state.last_consumed_generation is not None
         and current_parent_gen != state.last_consumed_parent_generation):

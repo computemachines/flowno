@@ -311,6 +311,7 @@ class Flow:
         self._defaulted_inputs = defaultdict(list)
         self._cancelled_streams = defaultdict(set)
         self._stream_consumer_state: dict[Stream, "StreamConsumerState"] = {}
+        self._generator_finished: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]] = set()
         self._context_factory = None
 
     def set_node_status(
@@ -531,6 +532,8 @@ class Flow:
 
         except (StreamCancelled, StopAsyncIteration) as e:
             # Stream completed (either cancelled or naturally finished)
+            # Mark generator as finished to prevent consumers from requesting more data
+            self._generator_finished.add(node)
             # If StopAsyncIteration has args, use that as the final value (from explicit raise)
             # Otherwise use the accumulated run level 0 value
             # Note: The last run level 1 chunk's barrier was already waited on in the loop above
@@ -608,6 +611,8 @@ class Flow:
         """
         while True:
             await _wait_for_start_next_generation(node, 0)
+            # Clear generator finished flag when starting a new generation
+            self._generator_finished.discard(node)
             with get_current_flow_instrument().node_lifecycle(self, node, run_level=0):
                 positional_arg_values, defaulted_inputs = node.gather_inputs()
 
