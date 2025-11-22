@@ -101,8 +101,53 @@ Use AsyncMapQueue to deduplicate node restart requests:
 - Source restarts before Consumer2 can detect completion
 - ✗ Infinite loop
 
+## Attempted Fix: Generator Finished Flag (INCOMPLETE)
+
+Attempted to add `_generator_finished` set to track completed generators:
+- Added flag to Flow.__init__
+- Set flag when StopAsyncIteration is caught
+- Clear flag when generator restarts
+- Check flag in _stream_get before requesting data
+
+### Why It Didn't Work
+The flag is set TOO LATE in the execution sequence:
+
+```
+Timeline:
+1. Producer yields last chunk at (0,2) and waits at barrier (count=2)
+2. Consumer1 reads chunk (barrier -> 1)
+3. Consumer2 reads chunk (barrier -> 0) and sleeps for 30ms
+4. Barrier reaches 0 and releases producer
+5. Consumer2 wakes from sleep
+6. Consumer2 checks _generator_finished (FALSE - not set yet!)
+7. Consumer2 requests new data (current_gen (0,2) == last_consumed (0,2))
+8. Producer is queued for resumption
+9. Producer resumes, generator __anext__ raises StopAsyncIteration
+10. Flag is set (TOO LATE - restart already queued)
+```
+
+The fundamental issue: We can't know if a generator has more data without actually calling `__anext__()` on it, which happens AFTER the barrier is released.
+
 ## Next Steps
-1. Implement Option 1 (Generator Finished Flag) as most straightforward
-2. Test with all streaming tests
-3. Consider Option 4 (Two-Phase Barrier) if Option 1 doesn't work
-4. Document the fix and why it works
+1. **Option A: Two-Phase Barrier System**
+   - barrier1: All consumers have read current data (existing)
+   - barrier2: All consumers are ready for next iteration (new)
+   - Set flag between barrier1 release and barrier2 setup
+   - Consumers check flag before barrier2 countdown
+
+2. **Option B: "Last Chunk" Metadata**
+   - Modify yield behavior to include "is_last" flag
+   - Producers signal when yielding their final chunk
+   - Consumers check this flag to know not to request more
+
+3. **Option C: Peek-Ahead Mechanism**
+   - After barrier release, peek if generator has more data
+   - Set flag based on peek result
+   - Block consumers until peek is complete
+
+4. **Option D: AsyncMapQueue with Completion Tracking**
+   - Use AsyncMapQueue to deduplicate restart requests
+   - Add completion tracking to prevent any restart after StopAsyncIteration
+   - May still need flag to prevent initial restart request
+
+**Recommendation**: Try Option A (Two-Phase Barrier) as it provides a clean synchronization point where we can definitively set the completion flag before any consumer can request new data.
