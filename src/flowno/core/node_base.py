@@ -884,7 +884,6 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
         # Check if parent generation changed (stream complete/restarted) BEFORE stalling
         # This prevents stalling when the stream has already completed
         current_parent_gen = parent_generation(stream.output.node.generation)
-        logger.debug(f">>> Checking parent gen: current={current_parent_gen}, last={state.last_consumed_parent_generation}, node gen={stream.output.node.generation}")
         if (state.last_consumed_generation is not None
             and current_parent_gen != state.last_consumed_parent_generation):
             logger.debug(
