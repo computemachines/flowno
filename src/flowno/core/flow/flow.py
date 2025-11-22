@@ -1146,8 +1146,13 @@ class FlowEventLoop(EventLoop):
             current_task = current_task_packet[0]
 
             # Get or create stream consumer state
-            # Use stable key based on port refs so state persists across Stream object recreation
-            stream_key = (stream.input.node, stream.input.port_index, stream.output.node, stream.output.port_index)
+            # Use stable key based on port refs AND consumer generation
+            # Consumer generation is None during first execution, then (0,), (1,), etc.
+            # This allows state to persist across Stream object recreation within an execution,
+            # but provides fresh state for each new execution (when generation advances)
+            # We use the generation directly (including None) as part of the key
+            consumer_gen = stream.input.node.generation
+            stream_key = (stream.input.node, stream.input.port_index, stream.output.node, stream.output.port_index, consumer_gen)
             if stream_key not in self.flow._stream_consumer_state:
                 self.flow._stream_consumer_state[stream_key] = StreamConsumerState()
 

@@ -1,0 +1,225 @@
+2025-11-22 17:25:50,504 - INFO:flowno:File logging enabled: cycle_debug.log
+2025-11-22 17:25:50,504 - INFO:flowno:Log level set to DEBUG
+2025-11-22 17:25:50,505 - INFO:flowno:Log filter set to ['all']
+2025-11-22 17:25:50,505 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function StreamOutList at 0x7ebdc65d7740>, with stream_in: []
+2025-11-22 17:25:50,505 - DEBUG:flowno.decorators.single_output:Extracted default for parameter index 0: None
+2025-11-22 17:25:50,505 - DEBUG:flowno.decorators.single_output:Final default_values: {0: None}
+2025-11-22 17:25:50,506 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {0: None}
+2025-11-22 17:25:50,506 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Upcase at 0x7ebdc5ddc5e0>, with stream_in: ['stream']
+2025-11-22 17:25:50,506 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:25:50,506 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:25:50,506 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:25:50,507 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function ReverseStream at 0x7ebdc5ddc900>, with stream_in: ['stream']
+2025-11-22 17:25:50,507 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:25:50,507 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:25:50,507 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:25:50,507 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function JoinReverse at 0x7ebdc5ddcfe0>, with stream_in: ['stream']
+2025-11-22 17:25:50,507 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:25:50,508 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:25:50,508 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:25:50,508 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function ListOfWords at 0x7ebdc5ddd260>, with stream_in: []
+2025-11-22 17:25:50,508 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:25:50,508 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:25:50,508 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:25:50,512 - DEBUG:flowno.core.node_base:Initializing StreamOutList#0 with args (NodePlaceholder(name='chars'),)
+2025-11-22 17:25:50,513 - DEBUG:flowno.core.node_base:Initializing StreamOutList#0.input(0) with arg NodePlaceholder(name='chars') (type=NodePlaceholder)
+2025-11-22 17:25:50,513 - DEBUG:flowno.core.node_base:StreamOutList has _default_values: {0: None}
+2025-11-22 17:25:50,513 - DEBUG:flowno.core.node_base:Setting default, None, for StreamOutList#0.input(0)
+2025-11-22 17:25:50,513 - DEBUG:flowno.core.node_base:Initialized StreamOutList#0.input(0) with connected_output=NodePlaceholder(name='chars').output(0), minimum_run_level=0, default_value=None
+2025-11-22 17:25:50,514 - DEBUG:flowno.core.node_base:Initializing JoinReverse#0 with args (StreamOutList#0,)
+2025-11-22 17:25:50,514 - DEBUG:flowno.core.node_base:Initializing JoinReverse#0.input(0) with arg StreamOutList#0 (type=StreamOutList)
+2025-11-22 17:25:50,514 - INFO:flowno.core.node_base:Connecting StreamOutList#0.output(0) -> JoinReverse#0.input(0)
+2025-11-22 17:25:50,514 - DEBUG:flowno.core.node_base:JoinReverse has no _default_values, extracting from call method signature
+2025-11-22 17:25:50,514 - DEBUG:flowno.core.node_base:Checking JoinReverse#0 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.node_base:Initialized JoinReverse#0.input(0) with connected_output=StreamOutList#0.output(0), minimum_run_level=1, default_value=<class 'inspect._empty'>
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.node_base:Initializing ListOfWords#0 with args (JoinReverse#0,)
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.node_base:Initializing ListOfWords#0.input(0) with arg JoinReverse#0 (type=JoinReverse)
+2025-11-22 17:25:50,515 - INFO:flowno.core.node_base:Connecting JoinReverse#0.output(0) -> ListOfWords#0.input(0)
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.node_base:ListOfWords has no _default_values, extracting from call method signature
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.node_base:Checking ListOfWords#0 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.node_base:Initialized ListOfWords#0.input(0) with connected_output=JoinReverse#0.output(0), minimum_run_level=0, default_value=<class 'inspect._empty'>
+2025-11-22 17:25:50,515 - INFO:flowno.core.flow_hdl_view:Finalizing FlowHDL
+2025-11-22 17:25:50,515 - DEBUG:flowno.core.flow_hdl_view:Connecting ListOfWords#0 to DraftInputPort(connected_output=NodePlaceholder(name='chars').output(0), minimum_run_level=0, default_value=None)
+2025-11-22 17:25:50,516 - INFO:flowno.core.node_base:Connecting ListOfWords#0.output(0) -> StreamOutList#0.input(0)
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, StreamOutList#0)
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, StreamOutList#0) is a coroutine
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded WaitForStartNextGenerationCommand(node=StreamOutList#0, run_level=0)
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, JoinReverse#0)
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, JoinReverse#0) is a coroutine
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,516 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded WaitForStartNextGenerationCommand(node=JoinReverse#0, run_level=0)
+2025-11-22 17:25:50,517 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, ListOfWords#0)
+2025-11-22 17:25:50,517 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, ListOfWords#0) is a coroutine
+2025-11-22 17:25:50,517 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ListOfWords#0) with send(None)
+2025-11-22 17:25:50,517 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ListOfWords#0) yielded WaitForStartNextGenerationCommand(node=ListOfWords#0, run_level=0)
+2025-11-22 17:25:50,517 - DEBUG:flowno.core.flow_hdl_view:Finished Finalizing FlowHDL into Flow
+2025-11-22 17:25:50,517 - DEBUG:flowno.utilities.logging:Calling function: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True)
+2025-11-22 17:25:50,518 - DEBUG:flowno.utilities.logging:_node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) is a coroutine
+2025-11-22 17:25:50,518 - DEBUG:flowno.core.event_loop.event_loop:Signal handlers installed for event loop debugging
+2025-11-22 17:25:50,518 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,518 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,518 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result StreamOutList#0
+2025-11-22 17:25:50,519 - DEBUG:flowno.core.node_base:JoinReverse#0 input port 0 does NOT have a default value
+2025-11-22 17:25:50,519 - DEBUG:flowno.core.node_base:StreamOutList#0 input port 0 has a default value: None
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, StreamOutList#0)
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, StreamOutList#0) is a coroutine
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded WaitForStartNextGenerationCommand(node=StreamOutList#0, run_level=0)
+2025-11-22 17:25:50,519 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=StreamOutList#0)
+2025-11-22 17:25:50,520 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,520 - DEBUG:flowno.core.node_base:Gathering input data for StreamOutList#0.input(0)
+2025-11-22 17:25:50,520 - DEBUG:flowno.core.node_base:StreamOutList#0 input port 0 has a default value: None
+2025-11-22 17:25:50,520 - INFO:flowno.core.node_base:While gathering input data for StreamOutList#0.input(0), using default value None
+2025-11-22 17:25:50,520 - DEBUG:flowno.core.node_base:Input data for StreamOutList#0.input(0): None
+2025-11-22 17:25:50,520 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for StreamOutList#0, cancelled_streams=set()
+2025-11-22 17:25:50,521 - DEBUG:flowno.core.node_base:push_data(StreamOutList#0, ('a',), run_level=1)
+2025-11-22 17:25:50,521 - INFO:flowno.core.node_base:StreamOutList#0 advanced to generation (0, 0) with data=('a',)
+2025-11-22 17:25:50,521 - DEBUG:flowno.core.node_base:StreamOutList#0.data[(0, 0)] = ('a',)
+2025-11-22 17:25:50,521 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:25:50,521 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,521 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,522 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,522 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,522 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result JoinReverse#0
+2025-11-22 17:25:50,522 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=JoinReverse#0)
+2025-11-22 17:25:50,522 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,522 - DEBUG:flowno.core.node_base:Gathering input data for JoinReverse#0.input(0)
+2025-11-22 17:25:50,522 - DEBUG:flowno.core.node_base:Input data for JoinReverse#0.input(0): Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+2025-11-22 17:25:50,523 - DEBUG:flowno.core.node_base:calling __anext__(Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:25:50,523 - DEBUG:flowno.core.node_base:StreamOutList#0's generation is greater than last consumed, continuing
+2025-11-22 17:25:50,523 - DEBUG:flowno.core.node_base:_stream_get returning 'a'
+2025-11-22 17:25:50,523 - INFO:flowno.core.node_base:Stream Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'a'
+2025-11-22 17:25:50,523 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=1, remaining_counts=1)
+2025-11-22 17:25:50,523 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,524 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,524 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,524 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,524 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,524 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:25:50,524 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,525 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded WaitForStartNextGenerationCommand(node=StreamOutList#0, run_level=1)
+2025-11-22 17:25:50,525 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,525 - DEBUG:flowno.core.node_base:calling __anext__(Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:25:50,525 - DEBUG:flowno.core.node_base:StreamOutList#0's generation, when clipped/stitched (0, 0), is <= last consumed (0, 0), requesting new data.
+2025-11-22 17:25:50,525 - INFO:flowno.core.node_base:JoinReverse#0.input(0) is stalled. Requesting new data from StreamOutList#0.
+2025-11-22 17:25:50,525 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded StalledNodeRequestCommand(stalled_input=JoinReverse#0.input(0), stalling_node=StreamOutList#0)
+2025-11-22 17:25:50,525 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(StreamOutList#0)
+2025-11-22 17:25:50,526 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result StreamOutList#0
+2025-11-22 17:25:50,526 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=StreamOutList#0)
+2025-11-22 17:25:50,526 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,526 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for StreamOutList#0, cancelled_streams=set()
+2025-11-22 17:25:50,526 - DEBUG:flowno.core.node_base:push_data(StreamOutList#0, ('b',), run_level=1)
+2025-11-22 17:25:50,526 - INFO:flowno.core.node_base:StreamOutList#0 advanced to generation (0, 1) with data=('b',)
+2025-11-22 17:25:50,526 - DEBUG:flowno.core.node_base:StreamOutList#0.data[(0, 1)] = ('b',)
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result JoinReverse#0
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=JoinReverse#0)
+2025-11-22 17:25:50,527 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,527 - DEBUG:flowno.core.node_base:StreamOutList#0's generation is greater than last consumed, continuing
+2025-11-22 17:25:50,527 - DEBUG:flowno.core.node_base:_stream_get returning 'b'
+2025-11-22 17:25:50,527 - INFO:flowno.core.node_base:Stream Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'b'
+2025-11-22 17:25:50,528 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=1, remaining_counts=1)
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:25:50,528 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,529 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded WaitForStartNextGenerationCommand(node=StreamOutList#0, run_level=1)
+2025-11-22 17:25:50,529 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,529 - DEBUG:flowno.core.node_base:calling __anext__(Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:25:50,529 - DEBUG:flowno.core.node_base:StreamOutList#0's generation, when clipped/stitched (0, 1), is <= last consumed (0, 1), requesting new data.
+2025-11-22 17:25:50,529 - INFO:flowno.core.node_base:JoinReverse#0.input(0) is stalled. Requesting new data from StreamOutList#0.
+2025-11-22 17:25:50,529 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded StalledNodeRequestCommand(stalled_input=JoinReverse#0.input(0), stalling_node=StreamOutList#0)
+2025-11-22 17:25:50,529 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(StreamOutList#0)
+2025-11-22 17:25:50,529 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result StreamOutList#0
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=StreamOutList#0)
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,530 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for StreamOutList#0, cancelled_streams=set()
+2025-11-22 17:25:50,530 - DEBUG:flowno.core.node_base:push_data(StreamOutList#0, ('ab',), run_level=0)
+2025-11-22 17:25:50,530 - INFO:flowno.core.node_base:StreamOutList#0 advanced to generation (0,) with data=('ab',)
+2025-11-22 17:25:50,530 - DEBUG:flowno.core.node_base:StreamOutList#0.data[(0,)] = ('ab',)
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded WaitForStartNextGenerationCommand(node=StreamOutList#0, run_level=0)
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,530 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,531 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result JoinReverse#0
+2025-11-22 17:25:50,531 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=JoinReverse#0)
+2025-11-22 17:25:50,531 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,531 - DEBUG:flowno.core.node_base:StreamOutList#0's generation is greater than last consumed, continuing
+2025-11-22 17:25:50,531 - DEBUG:flowno.core.node_base:Parent generation changed from (0,) to (), stream complete
+2025-11-22 17:25:50,531 - INFO:flowno.core.node_base:Stream Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) is complete or restarted.
+2025-11-22 17:25:50,531 - DEBUG:flowno.core.node_base:push_data(JoinReverse#0, ('b a',), run_level=0)
+2025-11-22 17:25:50,531 - INFO:flowno.core.node_base:JoinReverse#0 advanced to generation (0,) with data=('b a',)
+2025-11-22 17:25:50,532 - DEBUG:flowno.core.node_base:JoinReverse#0.data[(0,)] = ('b a',)
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded WaitForStartNextGenerationCommand(node=JoinReverse#0, run_level=0)
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ListOfWords#0
+2025-11-22 17:25:50,532 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=ListOfWords#0)
+2025-11-22 17:25:50,533 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ListOfWords#0) with send(None)
+2025-11-22 17:25:50,533 - DEBUG:flowno.core.node_base:Gathering input data for ListOfWords#0.input(0)
+2025-11-22 17:25:50,533 - DEBUG:flowno.core.node_base:Input data for ListOfWords#0.input(0): b a
+2025-11-22 17:25:50,533 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=1, remaining_counts=0)
+2025-11-22 17:25:50,533 - DEBUG:flowno.core.node_base:push_data(ListOfWords#0, (['b', 'a'],), run_level=0)
+2025-11-22 17:25:50,533 - INFO:flowno.core.node_base:ListOfWords#0 advanced to generation (0,) with data=(['b', 'a'],)
+2025-11-22 17:25:50,533 - DEBUG:flowno.core.node_base:ListOfWords#0.data[(0,)] = (['b', 'a'],)
+2025-11-22 17:25:50,533 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ListOfWords#0) yielded WaitForStartNextGenerationCommand(node=ListOfWords#0, run_level=0)
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([StreamOutList#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result StreamOutList#0
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=StreamOutList#0)
+2025-11-22 17:25:50,534 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, StreamOutList#0) with send(None)
+2025-11-22 17:25:50,534 - DEBUG:flowno.core.node_base:Gathering input data for StreamOutList#0.input(0)
+2025-11-22 17:25:50,534 - DEBUG:flowno.core.node_base:Input data for StreamOutList#0.input(0): ['b', 'a']
+2025-11-22 17:25:50,534 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=1, remaining_counts=0)
+2025-11-22 17:25:50,534 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for StreamOutList#0, cancelled_streams=set()
+2025-11-22 17:25:50,535 - DEBUG:flowno.core.node_base:push_data(StreamOutList#0, ('b',), run_level=1)
+2025-11-22 17:25:50,535 - INFO:flowno.core.node_base:StreamOutList#0 advanced to generation (1, 0) with data=('b',)
+2025-11-22 17:25:50,535 - DEBUG:flowno.core.node_base:StreamOutList#0.data[(1, 0)] = ('b',)
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, StreamOutList#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([JoinReverse#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result JoinReverse#0
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=JoinReverse#0)
+2025-11-22 17:25:50,535 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, JoinReverse#0) with send(None)
+2025-11-22 17:25:50,535 - DEBUG:flowno.core.node_base:Gathering input data for JoinReverse#0.input(0)
+2025-11-22 17:25:50,536 - DEBUG:flowno.core.node_base:Input data for JoinReverse#0.input(0): Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+2025-11-22 17:25:50,536 - DEBUG:flowno.core.node_base:calling __anext__(Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:25:50,536 - DEBUG:flowno.core.node_base:StreamOutList#0's generation is greater than last consumed, continuing
+2025-11-22 17:25:50,536 - DEBUG:flowno.core.node_base:Parent generation changed from (0,) to (1,), stream complete
+2025-11-22 17:25:50,536 - INFO:flowno.core.node_base:Stream Stream(StreamOutList#0.output(0)->JoinReverse#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) is complete or restarted.
+2025-11-22 17:25:50,536 - DEBUG:flowno.core.node_base:push_data(JoinReverse#0, ('',), run_level=0)
+2025-11-22 17:25:50,536 - INFO:flowno.core.node_base:JoinReverse#0 advanced to generation (1,) with data=('',)
+2025-11-22 17:25:50,536 - DEBUG:flowno.core.node_base:JoinReverse#0.data[(1,)] = ('',)
+2025-11-22 17:25:50,536 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, JoinReverse#0) yielded WaitForStartNextGenerationCommand(node=JoinReverse#0, run_level=0)
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) with send(None)
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([ListOfWords#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ListOfWords#0
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, {ListOfWords#0: (1,)}, True) yielded ResumeNodeCommand(node=ListOfWords#0)
+2025-11-22 17:25:50,537 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ListOfWords#0) with send(None)
+2025-11-22 17:25:50,537 - DEBUG:flowno.core.node_base:Gathering input data for ListOfWords#0.input(0)
+2025-11-22 17:25:50,537 - DEBUG:flowno.core.node_base:Input data for ListOfWords#0.input(0): 
+2025-11-22 17:25:50,538 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=1, remaining_counts=0)
+2025-11-22 17:25:50,538 - DEBUG:flowno.core.node_base:push_data(ListOfWords#0, ([],), run_level=0)
+2025-11-22 17:25:50,538 - INFO:flowno.core.node_base:ListOfWords#0 advanced to generation (1,) with data=([],)
+2025-11-22 17:25:50,538 - DEBUG:flowno.core.node_base:ListOfWords#0.data[(1,)] = ([],)
+2025-11-22 17:25:50,538 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ListOfWords#0) yielded TerminateReachedLimitCommand()
+2025-11-22 17:25:50,538 - DEBUG:flowno.core.event_loop.event_loop:Signal handlers uninstalled

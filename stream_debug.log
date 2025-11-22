@@ -1,0 +1,387 @@
+2025-11-22 17:34:09,362 - INFO:flowno:File logging enabled: stream_debug.log
+2025-11-22 17:34:09,362 - INFO:flowno:Log level set to DEBUG
+2025-11-22 17:34:09,362 - INFO:flowno:Log filter set to ['all']
+2025-11-22 17:34:09,363 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function DummyConstant at 0x7efafc19b6a0>, with stream_in: []
+2025-11-22 17:34:09,363 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,363 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,363 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function DummyWords at 0x7efafb9d8fe0>, with stream_in: []
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function StreamingWords at 0x7efafb9d9260>, with stream_in: []
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,364 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function UpcaseSentence at 0x7efafb9d9580>, with stream_in: []
+2025-11-22 17:34:09,365 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,365 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,365 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,365 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function UpcaseStreamReversedWords at 0x7efafb9d9940>, with stream_in: ['words']
+2025-11-22 17:34:09,366 - DEBUG:flowno.decorators.single_output:Extracted default for parameter index 0: None
+2025-11-22 17:34:09,366 - DEBUG:flowno.decorators.single_output:Final default_values: {0: None}
+2025-11-22 17:34:09,366 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {0: None}
+2025-11-22 17:34:09,366 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Counter at 0x7efafb9da020>, with stream_in: []
+2025-11-22 17:34:09,366 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,367 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,367 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Sum at 0x7efafb9da200>, with stream_in: ['values']
+2025-11-22 17:34:09,367 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,367 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,367 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,367 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Print at 0x7efafb9da480>, with stream_in: []
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function ImmediateTerminateStream at 0x7efafb9da8e0>, with stream_in: []
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,368 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Identity at 0x7efafb9daac0>, with stream_in: []
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function OnePartStream at 0x7efafb9dae80>, with stream_in: []
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function ShortCounter at 0x7efafb9db1a0>, with stream_in: []
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,369 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Words at 0x7efafb9db4c0>, with stream_in: []
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:Extracted default for parameter index 0: None
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:Final default_values: {0: None}
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {0: None}
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Upcase at 0x7efafb9db740>, with stream_in: ['words']
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,370 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function ReverseSentence at 0x7efafb9db9c0>, with stream_in: ['words']
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Listify at 0x7efafb9dbc40>, with stream_in: []
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,371 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,372 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,372 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function StreamToList at 0x7efafb9f82c0>, with stream_in: ['stream']
+2025-11-22 17:34:09,373 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,373 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,374 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,374 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function NumberStream at 0x7efafb9f8860>, with stream_in: []
+2025-11-22 17:34:09,374 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,374 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Range at 0x7efafb9f8c20>, with stream_in: []
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:No default for parameter index 1
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function AddPiecewise at 0x7efafb9f8e00>, with stream_in: ['left', 'right']
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,375 - DEBUG:flowno.decorators.single_output:No default for parameter index 1
+2025-11-22 17:34:09,376 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,376 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,376 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function Sum at 0x7efafb9f9080>, with stream_in: ['stream']
+2025-11-22 17:34:09,376 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,376 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,376 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,381 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function test_stream_multiple_chunks_delayed_consumption.<locals>.ThreeChunkSource at 0x7efafb9f98a0>, with stream_in: []
+2025-11-22 17:34:09,382 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,382 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,382 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function test_stream_multiple_chunks_delayed_consumption.<locals>.Consumer1 at 0x7efafb9f9d00>, with stream_in: ['chunk']
+2025-11-22 17:34:09,382 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,382 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,383 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,383 - DEBUG:flowno.decorators.single_output:Creating node class for function: <function test_stream_multiple_chunks_delayed_consumption.<locals>.Consumer2 at 0x7efafb9f9f80>, with stream_in: ['chunk']
+2025-11-22 17:34:09,383 - DEBUG:flowno.decorators.single_output:No default for parameter index 0
+2025-11-22 17:34:09,383 - DEBUG:flowno.decorators.single_output:Final default_values: {}
+2025-11-22 17:34:09,384 - DEBUG:flowno.decorators.single_output:Created node class: <class 'flowno.decorators.single_output.create_func_node_factory_single.<locals>.DynamicSimpleNode'>, _default_values: {}
+2025-11-22 17:34:09,384 - DEBUG:flowno.core.node_base:Initializing ThreeChunkSource#0 with args ()
+2025-11-22 17:34:09,385 - DEBUG:flowno.core.node_base:ThreeChunkSource has no _default_values, extracting from call method signature
+2025-11-22 17:34:09,385 - DEBUG:flowno.core.node_base:Checking ThreeChunkSource#0 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+2025-11-22 17:34:09,385 - DEBUG:flowno.core.node_base:Initializing Consumer1#0 with args (ThreeChunkSource#0,)
+2025-11-22 17:34:09,385 - DEBUG:flowno.core.node_base:Initializing Consumer1#0.input(0) with arg ThreeChunkSource#0 (type=ThreeChunkSource)
+2025-11-22 17:34:09,385 - INFO:flowno.core.node_base:Connecting ThreeChunkSource#0.output(0) -> Consumer1#0.input(0)
+2025-11-22 17:34:09,385 - DEBUG:flowno.core.node_base:Consumer1 has no _default_values, extracting from call method signature
+2025-11-22 17:34:09,385 - DEBUG:flowno.core.node_base:Checking Consumer1#0 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+2025-11-22 17:34:09,386 - DEBUG:flowno.core.node_base:Initialized Consumer1#0.input(0) with connected_output=ThreeChunkSource#0.output(0), minimum_run_level=1, default_value=<class 'inspect._empty'>
+2025-11-22 17:34:09,386 - DEBUG:flowno.core.node_base:Initializing Consumer2#0 with args (ThreeChunkSource#0,)
+2025-11-22 17:34:09,386 - DEBUG:flowno.core.node_base:Initializing Consumer2#0.input(0) with arg ThreeChunkSource#0 (type=ThreeChunkSource)
+2025-11-22 17:34:09,386 - INFO:flowno.core.node_base:Connecting ThreeChunkSource#0.output(0) -> Consumer2#0.input(0)
+2025-11-22 17:34:09,386 - DEBUG:flowno.core.node_base:Consumer2 has no _default_values, extracting from call method signature
+2025-11-22 17:34:09,386 - DEBUG:flowno.core.node_base:Checking Consumer2#0 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+2025-11-22 17:34:09,386 - DEBUG:flowno.core.node_base:Initialized Consumer2#0.input(0) with connected_output=ThreeChunkSource#0.output(0), minimum_run_level=1, default_value=<class 'inspect._empty'>
+2025-11-22 17:34:09,386 - INFO:flowno.core.flow_hdl_view:Finalizing FlowHDL
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, ThreeChunkSource#0)
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, ThreeChunkSource#0) is a coroutine
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded WaitForStartNextGenerationCommand(node=ThreeChunkSource#0, run_level=0)
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, Consumer1#0)
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, Consumer1#0) is a coroutine
+2025-11-22 17:34:09,387 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,388 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded WaitForStartNextGenerationCommand(node=Consumer1#0, run_level=0)
+2025-11-22 17:34:09,388 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, Consumer2#0)
+2025-11-22 17:34:09,388 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, Consumer2#0) is a coroutine
+2025-11-22 17:34:09,388 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,388 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded WaitForStartNextGenerationCommand(node=Consumer2#0, run_level=0)
+2025-11-22 17:34:09,388 - DEBUG:flowno.core.flow_hdl_view:Finished Finalizing FlowHDL into Flow
+2025-11-22 17:34:09,389 - DEBUG:flowno.utilities.logging:Calling function: _node_resolve_loop(<Flow#0>, (), True)
+2025-11-22 17:34:09,389 - DEBUG:flowno.utilities.logging:_node_resolve_loop(<Flow#0>, (), True) is a coroutine
+2025-11-22 17:34:09,389 - DEBUG:flowno.core.event_loop.event_loop:Signal handlers installed for event loop debugging
+2025-11-22 17:34:09,389 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,389 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,389 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,389 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,390 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ThreeChunkSource#0
+2025-11-22 17:34:09,390 - DEBUG:flowno.utilities.logging:Calling function: evaluate_node(<Flow#0>, ThreeChunkSource#0)
+2025-11-22 17:34:09,390 - DEBUG:flowno.utilities.logging:evaluate_node(<Flow#0>, ThreeChunkSource#0) is a coroutine
+2025-11-22 17:34:09,390 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,390 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded WaitForStartNextGenerationCommand(node=ThreeChunkSource#0, run_level=0)
+2025-11-22 17:34:09,390 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,391 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,391 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for ThreeChunkSource#0, cancelled_streams=set()
+2025-11-22 17:34:09,391 - DEBUG:flowno.core.node_base:push_data(ThreeChunkSource#0, ('alpha',), run_level=1)
+2025-11-22 17:34:09,391 - INFO:flowno.core.node_base:ThreeChunkSource#0 advanced to generation (0, 0) with data=('alpha',)
+2025-11-22 17:34:09,391 - DEBUG:flowno.core.node_base:ThreeChunkSource#0.data[(0, 0)] = ('alpha',)
+2025-11-22 17:34:09,391 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer1#0
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer1#0)
+2025-11-22 17:34:09,392 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,393 - DEBUG:flowno.core.node_base:Gathering input data for Consumer1#0.input(0)
+2025-11-22 17:34:09,393 - DEBUG:flowno.core.node_base:Input data for Consumer1#0.input(0): Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+2025-11-22 17:34:09,393 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,393 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 0), parent gen=(0,), stream_key=(Consumer1#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,393 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,393 - DEBUG:flowno.core.node_base:_stream_get returning 'alpha'
+2025-11-22 17:34:09,393 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'alpha'
+2025-11-22 17:34:09,394 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer2#0
+2025-11-22 17:34:09,394 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer2#0)
+2025-11-22 17:34:09,395 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,395 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,395 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,395 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded SleepCommand(end_time=2267.630100954)
+2025-11-22 17:34:09,395 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,395 - DEBUG:flowno.core.node_base:Gathering input data for Consumer2#0.input(0)
+2025-11-22 17:34:09,395 - DEBUG:flowno.core.node_base:Input data for Consumer2#0.input(0): Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+2025-11-22 17:34:09,395 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,395 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 0), parent gen=(0,), stream_key=(Consumer2#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,396 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,396 - DEBUG:flowno.core.node_base:_stream_get returning 'alpha'
+2025-11-22 17:34:09,396 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'alpha'
+2025-11-22 17:34:09,396 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,396 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,396 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,396 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,396 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,396 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,397 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,397 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,397 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded WaitForStartNextGenerationCommand(node=ThreeChunkSource#0, run_level=1)
+2025-11-22 17:34:09,397 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,397 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded SleepCommand(end_time=2267.652311112)
+2025-11-22 17:34:09,406 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,406 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,406 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 0), parent gen=(0,), stream_key=(Consumer1#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,406 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation, when clipped/stitched (0, 0), is <= last consumed (0, 0), requesting new data.
+2025-11-22 17:34:09,407 - INFO:flowno.core.node_base:Consumer1#0.input(0) is stalled. Requesting new data from ThreeChunkSource#0.
+2025-11-22 17:34:09,407 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded StalledNodeRequestCommand(stalled_input=Consumer1#0.input(0), stalling_node=ThreeChunkSource#0)
+2025-11-22 17:34:09,407 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(ThreeChunkSource#0)
+2025-11-22 17:34:09,407 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ThreeChunkSource#0
+2025-11-22 17:34:09,407 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,408 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,408 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for ThreeChunkSource#0, cancelled_streams=set()
+2025-11-22 17:34:09,408 - DEBUG:flowno.core.node_base:push_data(ThreeChunkSource#0, ('beta',), run_level=1)
+2025-11-22 17:34:09,408 - INFO:flowno.core.node_base:ThreeChunkSource#0 advanced to generation (0, 1) with data=('beta',)
+2025-11-22 17:34:09,408 - DEBUG:flowno.core.node_base:ThreeChunkSource#0.data[(0, 1)] = ('beta',)
+2025-11-22 17:34:09,408 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,408 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,408 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,409 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,409 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,409 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer1#0
+2025-11-22 17:34:09,409 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer1#0)
+2025-11-22 17:34:09,409 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,409 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,409 - DEBUG:flowno.core.node_base:_stream_get returning 'beta'
+2025-11-22 17:34:09,409 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'beta'
+2025-11-22 17:34:09,409 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer2#0
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer2#0)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,410 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,410 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,411 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 1), parent gen=(0,), stream_key=(Consumer1#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,411 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation, when clipped/stitched (0, 1), is <= last consumed (0, 1), requesting new data.
+2025-11-22 17:34:09,411 - INFO:flowno.core.node_base:Consumer1#0.input(0) is stalled. Requesting new data from ThreeChunkSource#0.
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded StalledNodeRequestCommand(stalled_input=Consumer1#0.input(0), stalling_node=ThreeChunkSource#0)
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([ThreeChunkSource#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ThreeChunkSource#0
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,411 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,412 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,412 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,412 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,428 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,429 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,429 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 1), parent gen=(0,), stream_key=(Consumer2#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,429 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,429 - DEBUG:flowno.core.node_base:_stream_get returning 'beta'
+2025-11-22 17:34:09,430 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'beta'
+2025-11-22 17:34:09,430 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,430 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,430 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,430 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded WaitForStartNextGenerationCommand(node=ThreeChunkSource#0, run_level=1)
+2025-11-22 17:34:09,430 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,430 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded SleepCommand(end_time=2267.685727628)
+2025-11-22 17:34:09,461 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,461 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,462 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 1), parent gen=(0,), stream_key=(Consumer2#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,462 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation, when clipped/stitched (0, 1), is <= last consumed (0, 1), requesting new data.
+2025-11-22 17:34:09,462 - INFO:flowno.core.node_base:Consumer2#0.input(0) is stalled. Requesting new data from ThreeChunkSource#0.
+2025-11-22 17:34:09,462 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded StalledNodeRequestCommand(stalled_input=Consumer2#0.input(0), stalling_node=ThreeChunkSource#0)
+2025-11-22 17:34:09,462 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(ThreeChunkSource#0)
+2025-11-22 17:34:09,463 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ThreeChunkSource#0
+2025-11-22 17:34:09,463 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,463 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,463 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for ThreeChunkSource#0, cancelled_streams=set()
+2025-11-22 17:34:09,463 - DEBUG:flowno.core.node_base:push_data(ThreeChunkSource#0, ('gamma',), run_level=1)
+2025-11-22 17:34:09,463 - INFO:flowno.core.node_base:ThreeChunkSource#0 advanced to generation (0, 2) with data=('gamma',)
+2025-11-22 17:34:09,463 - DEBUG:flowno.core.node_base:ThreeChunkSource#0.data[(0, 2)] = ('gamma',)
+2025-11-22 17:34:09,464 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,464 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,464 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,464 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,464 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,464 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer1#0
+2025-11-22 17:34:09,465 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer1#0)
+2025-11-22 17:34:09,465 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,465 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,465 - DEBUG:flowno.core.node_base:_stream_get returning 'gamma'
+2025-11-22 17:34:09,465 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'gamma'
+2025-11-22 17:34:09,465 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,465 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,465 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,466 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,466 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,466 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,466 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer2#0
+2025-11-22 17:34:09,466 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer2#0)
+2025-11-22 17:34:09,467 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,467 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,467 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,467 - DEBUG:flowno.core.node_base:push_data(Consumer1#0, (None,), run_level=0)
+2025-11-22 17:34:09,467 - INFO:flowno.core.node_base:Consumer1#0 advanced to generation (0,) with data=(None,)
+2025-11-22 17:34:09,468 - DEBUG:flowno.core.node_base:Consumer1#0.data[(0,)] = (None,)
+2025-11-22 17:34:09,468 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded WaitForStartNextGenerationCommand(node=Consumer1#0, run_level=0)
+2025-11-22 17:34:09,468 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,468 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,468 - DEBUG:flowno.core.node_base:_stream_get returning 'gamma'
+2025-11-22 17:34:09,468 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'gamma'
+2025-11-22 17:34:09,468 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,468 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,469 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded WaitForStartNextGenerationCommand(node=ThreeChunkSource#0, run_level=1)
+2025-11-22 17:34:09,470 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,470 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded SleepCommand(end_time=2267.7250525950003)
+2025-11-22 17:34:09,501 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,501 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,502 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(0, 2), parent gen=(0,), stream_key=(Consumer2#0, 0, ThreeChunkSource#0, 0, (0,))
+2025-11-22 17:34:09,502 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation, when clipped/stitched (0, 2), is <= last consumed (0, 2), requesting new data.
+2025-11-22 17:34:09,502 - INFO:flowno.core.node_base:Consumer2#0.input(0) is stalled. Requesting new data from ThreeChunkSource#0.
+2025-11-22 17:34:09,502 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded StalledNodeRequestCommand(stalled_input=Consumer2#0.input(0), stalling_node=ThreeChunkSource#0)
+2025-11-22 17:34:09,503 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(ThreeChunkSource#0)
+2025-11-22 17:34:09,503 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ThreeChunkSource#0
+2025-11-22 17:34:09,503 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,503 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,503 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for ThreeChunkSource#0, cancelled_streams=set()
+2025-11-22 17:34:09,504 - DEBUG:flowno.core.node_base:push_data(ThreeChunkSource#0, ('alphabetagamma',), run_level=0)
+2025-11-22 17:34:09,504 - INFO:flowno.core.node_base:ThreeChunkSource#0 advanced to generation (0,) with data=('alphabetagamma',)
+2025-11-22 17:34:09,504 - DEBUG:flowno.core.node_base:ThreeChunkSource#0.data[(0,)] = ('alphabetagamma',)
+2025-11-22 17:34:09,504 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded WaitForStartNextGenerationCommand(node=ThreeChunkSource#0, run_level=0)
+2025-11-22 17:34:09,504 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,504 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,504 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,505 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,505 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0, Consumer2#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer1#0
+2025-11-22 17:34:09,505 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,505 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,505 - DEBUG:flowno.core.flow.flow:_node_gen_lifecycle loop start for ThreeChunkSource#0, cancelled_streams=set()
+2025-11-22 17:34:09,505 - DEBUG:flowno.core.node_base:push_data(ThreeChunkSource#0, ('alpha',), run_level=1)
+2025-11-22 17:34:09,506 - INFO:flowno.core.node_base:ThreeChunkSource#0 advanced to generation (1, 0) with data=('alpha',)
+2025-11-22 17:34:09,506 - DEBUG:flowno.core.node_base:ThreeChunkSource#0.data[(1, 0)] = ('alpha',)
+2025-11-22 17:34:09,506 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,506 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,506 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0, Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,506 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0, Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,506 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0, Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,507 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer2#0, Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer2#0
+2025-11-22 17:34:09,507 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer2#0)
+2025-11-22 17:34:09,507 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer2#0) with send(None)
+2025-11-22 17:34:09,507 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,507 - DEBUG:flowno.core.node_base:Parent generation changed from (0,) to (1,), stream complete
+2025-11-22 17:34:09,507 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer2#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) is complete or restarted.
+2025-11-22 17:34:09,507 - DEBUG:flowno.core.node_base:push_data(Consumer2#0, (None,), run_level=0)
+2025-11-22 17:34:09,507 - INFO:flowno.core.node_base:Consumer2#0 advanced to generation (0,) with data=(None,)
+2025-11-22 17:34:09,508 - DEBUG:flowno.core.node_base:Consumer2#0.data[(0,)] = (None,)
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer2#0) yielded WaitForStartNextGenerationCommand(node=Consumer2#0, run_level=0)
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Consumer1#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Consumer1#0
+2025-11-22 17:34:09,508 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=Consumer1#0)
+2025-11-22 17:34:09,509 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,509 - DEBUG:flowno.core.node_base:Gathering input data for Consumer1#0.input(0)
+2025-11-22 17:34:09,509 - DEBUG:flowno.core.node_base:Input data for Consumer1#0.input(0): Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+2025-11-22 17:34:09,509 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,509 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(1, 0), parent gen=(1,), stream_key=(Consumer1#0, 0, ThreeChunkSource#0, 0, (1,))
+2025-11-22 17:34:09,509 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation is greater than last consumed, continuing
+2025-11-22 17:34:09,509 - DEBUG:flowno.core.node_base:_stream_get returning 'alpha'
+2025-11-22 17:34:09,509 - INFO:flowno.core.node_base:Stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'alpha'
+2025-11-22 17:34:09,510 - DEBUG:flowno.core.event_loop.synchronization:counting down latch: CountdownLatch(original_count=2, remaining_counts=1)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, ThreeChunkSource#0) with send(None)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, ThreeChunkSource#0) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,510 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded SleepCommand(end_time=2267.745696981)
+2025-11-22 17:34:09,521 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: evaluate_node(<Flow#0>, Consumer1#0) with send(None)
+2025-11-22 17:34:09,522 - DEBUG:flowno.core.node_base:calling __anext__(Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+2025-11-22 17:34:09,522 - DEBUG:flowno.core.node_base:_stream_get: stream Stream(ThreeChunkSource#0.output(0)->Consumer1#0.input(0), last_consumed=None, last_consumed_parent=None, run_level=1), producer gen=(1, 0), parent gen=(1,), stream_key=(Consumer1#0, 0, ThreeChunkSource#0, 0, (1,))
+2025-11-22 17:34:09,522 - DEBUG:flowno.core.node_base:ThreeChunkSource#0's generation, when clipped/stitched (1, 0), is <= last consumed (1, 0), requesting new data.
+2025-11-22 17:34:09,523 - INFO:flowno.core.node_base:Consumer1#0.input(0) is stalled. Requesting new data from ThreeChunkSource#0.
+2025-11-22 17:34:09,523 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine evaluate_node(<Flow#0>, Consumer1#0) yielded StalledNodeRequestCommand(stalled_input=Consumer1#0.input(0), stalling_node=ThreeChunkSource#0)
+2025-11-22 17:34:09,523 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(ThreeChunkSource#0)
+2025-11-22 17:34:09,523 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ThreeChunkSource#0
+2025-11-22 17:34:09,523 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded ResumeNodeCommand(node=ThreeChunkSource#0)
+2025-11-22 17:34:09,523 - DEBUG:flowno.utilities.coroutine_wrapper:Resuming coroutine: _node_resolve_loop(<Flow#0>, (), True) with send(None)
+2025-11-22 17:34:09,523 - DEBUG:flowno.utilities.logging:Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+2025-11-22 17:34:09,524 - DEBUG:flowno.utilities.logging:__anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+2025-11-22 17:34:09,524 - DEBUG:flowno.utilities.coroutine_wrapper:Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+2025-11-22 17:34:09,524 - DEBUG:flowno.utilities.coroutine_wrapper:Coroutine _node_resolve_loop(<Flow#0>, (), True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+2025-11-22 17:34:14,381 - DEBUG:flowno.core.event_loop.event_loop:Signal handlers uninstalled
