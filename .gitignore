@@ -12,3 +12,5 @@ dist/
 *.egg-info/
 /docs/generated/
 /docs/source/**/_autosummary/
+bugfix-a/
+bugfix-b/
