@@ -33,11 +33,12 @@ from flowno.core.node_base import (
     NodeContextFactoryProtocol,
     StalledNodeRequestCommand,
     Stream,
+    StreamGetCommand,
     SuperNode,
     StreamCancelled,
 )
 from flowno.core.types import Generation, InputPortIndex
-from flowno.utilities.helpers import cmp_generation
+from flowno.utilities.helpers import cmp_generation, clip_generation, parent_generation, stitched_generation
 from flowno.utilities.logging import log_async
 from typing_extensions import Never, Unpack, override
 
@@ -224,6 +225,18 @@ class NodeTaskAndStatus(NamedTuple):
     status: NodeTaskStatus.Type
 
 
+@dataclass
+class StreamConsumerState:
+    """Tracks the consumption state of a stream consumer.
+
+    This state is used to determine when to return data, stall waiting
+    for the producer, or raise StopAsyncIteration (stream complete).
+    """
+    last_consumed_generation: Generation | None = None
+    last_consumed_parent_generation: Generation | None = None
+    cancelled: bool = False
+
+
 class Flow:
     """
     Dataflow graph execution engine.
@@ -297,6 +310,7 @@ class Flow:
         self.resolution_queue = AsyncSetQueue()
         self._defaulted_inputs = defaultdict(list)
         self._cancelled_streams = defaultdict(set)
+        self._stream_consumer_state: dict[Stream, "StreamConsumerState"] = {}
         self._context_factory = None
 
     def set_node_status(
@@ -1123,6 +1137,90 @@ class FlowEventLoop(EventLoop):
                 self.flow, stalling_node, stalled_input
             )
             self.tasks.insert(0, (self.flow._enqueue_node(stalling_node), None, None))
+
+        elif isinstance(command, StreamGetCommand):
+            logger.debug(f"StreamGetCommand handler ENTERED for stream {command.stream}")
+            stream = command.stream
+            consumer_node = command.consumer_node
+            current_task = current_task_packet[0]
+
+            # Get or create stream consumer state
+            if stream not in self.flow._stream_consumer_state:
+                self.flow._stream_consumer_state[stream] = StreamConsumerState()
+
+            state = self.flow._stream_consumer_state[stream]
+
+            # Check if stream is cancelled
+            producer_node = stream.output.node
+            if stream in self.flow._cancelled_streams.get(producer_node, set()):
+                logger.debug(f"Stream {stream} is cancelled, raising StopAsyncIteration")
+                self.tasks.append((current_task, None, StopAsyncIteration("Stream was cancelled")))
+                return True
+
+            # Calculate clipped stitched generation
+            stitch_0 = stream.input.node._input_ports[stream.input.port_index].stitch_level_0
+            clipped_stitched_gen = clip_generation(
+                stitched_generation(stream.output.node.generation, stitch_0),
+                run_level=stream.run_level
+            )
+
+            # Check if data is ready
+            logger.debug(f"StreamGetCommand: checking data readiness: clipped_stitched={clipped_stitched_gen}, last_consumed={state.last_consumed_generation}")
+            if cmp_generation(clipped_stitched_gen, state.last_consumed_generation) <= 0:
+                # Data not ready - stall the consumer and request producer
+                logger.debug(
+                    f"{stream.output.node}'s generation (clipped/stitched: {clipped_stitched_gen}) "
+                    f"is <= last consumed {state.last_consumed_generation}, stalling consumer"
+                )
+
+                # Set consumer to stalled status (removes from running_nodes)
+                self.flow.set_node_status(
+                    consumer_node, NodeTaskStatus.Stalled(stream.input)
+                )
+
+                # Enqueue producer to generate more data
+                self.tasks.insert(0, (self.flow._enqueue_node(producer_node), None, None))
+
+                # Don't reschedule consumer - it will be resumed when producer finishes
+                return True
+
+            logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
+
+            # Check if parent generation changed (stream complete/restarted)
+            current_parent_gen = parent_generation(stream.output.node.generation)
+            if (state.last_consumed_generation is not None
+                and current_parent_gen != state.last_consumed_parent_generation):
+                logger.debug(
+                    f"Parent generation changed from {state.last_consumed_parent_generation} "
+                    f"to {current_parent_gen}, stream complete"
+                )
+                logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
+                get_current_flow_instrument().on_stream_end(stream)
+
+                # Raise StopAsyncIteration to consumer
+                self.tasks.append((current_task, None, StopAsyncIteration()))
+                return True
+
+            # Data is ready - update state and return data
+            state.last_consumed_generation = clipped_stitched_gen
+            state.last_consumed_parent_generation = current_parent_gen
+
+            # Get the data
+            data_tuple = stream.output.node.get_data(run_level=stream.run_level)
+            assert data_tuple is not None
+            data = cast(Any, data_tuple[stream.output.port_index])
+
+            logger.debug(f"Stream {stream} returning {repr(data)}")
+            logger.info(f"Stream {stream} consumed data {repr(data)}", extra={"tag": "flow"})
+
+            # Instrumentation
+            get_current_flow_instrument().on_stream_next(stream, data)
+
+            # Resume consumer task with the data
+            # Note: The consumer (_stream_get) will handle barrier countdown after receiving data
+            logger.debug(f"StreamGetCommand handler: resuming consumer with data={data!r}")
+            self.tasks.append((current_task, data, None))
+            return True
 
         elif isinstance(command, StreamCancelCommand):
             # _node = command.node

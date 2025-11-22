@@ -800,86 +800,35 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
         
     @override
     async def __anext__(self) -> _InputType:
+        """Get the next value from the stream.
+
+        All stream iteration logic (checking data readiness, detecting completion,
+        etc.) has been moved to the Flow/EventLoop command handler. This method
+        simply delegates to _stream_get which yields a StreamGetCommand.
+        """
         logger.debug(f"calling __anext__({self})")
-
-        # Check if stream is cancelled
-        if self._cancelled:
-            logger.debug(f"Stream {self} is cancelled, raising StopAsyncIteration")
-            raise StopAsyncIteration("Stream was cancelled")
-        
-        def get_clipped_stitched_gen():
-            stitch_0 = self.input.node._input_ports[self.input.port_index].stitch_level_0
-            return clip_generation(
-                stitched_generation(self.output.node.generation, stitch_0), run_level=self.run_level
-            )
-
-        while (
-            cmp_generation(
-                get_clipped_stitched_gen(),
-                self._last_consumed_generation,
-            )
-            <= 0
-        ):
-            logger.debug(
-                (
-                    f"{self.output.node}'s generation, "
-                    f"when clipped {clip_generation(self.output.node.generation, run_level=self.run_level)}, "
-                    f"and stitched {get_clipped_stitched_gen()}, "
-                    f"is less than or equal to the last consumed generation {self._last_consumed_generation}"
-                    f", requesting new data."
-                )
-            )
-            await _node_stalled(self.input, self.output.node)
-        logger.debug(
-            f"{self.output.node}'s generation, when clipped and stitched, is greater than the last consumed generation, continuing."
-        )
-        logger.debug(f"__anext__({self}): continuing")
-        if (
-            self._last_consumed_generation is not None
-            and parent_generation(self.output.node.generation) != self._last_consumed_parent_generation
-        ):
-            logger.debug(
-                (
-                    f"Parent generation changed from {self._last_consumed_parent_generation} "
-                    f"to {parent_generation(self.output.node.generation)} "
-                    f"indicating the stream is complete or restarted."
-                )
-            )
-            logger.info(f"Stream {self} is complete or restarted.", extra={"tag": "flow"})
-            get_current_flow_instrument().on_stream_end(self)
-            raise StopAsyncIteration
-
-        self._last_consumed_generation = get_clipped_stitched_gen()
-        self._last_consumed_parent_generation = parent_generation(self.output.node.generation)
-
-        data_tuple = self.output.node.get_data(run_level=self.run_level)
-        assert data_tuple is not None
-        data = cast(_InputType, data_tuple[self.output.port_index])
-
-        logger.debug(f"__anext__({self}) returning {repr(data)}")
-        logger.info(
-            f"Stream {self} consumed data {repr(data)}",
-            extra={"tag": "flow"},
-        )
-
-        with get_current_flow_instrument().on_barrier_node_read(self.output.node, 1):
-            try:
-                await self.output.node._barrier1.count_down(exception_if_zero=True)  # TODO: check if this needs to be async-awaited
-            except Exception as e:
-                logger.warning(f"Stream {self} anext count_down error: {e}")
-                logger.warning(f"Node: {self.output.node}")
-                logger.warning(f"Input port index: {self.input.port_index}")
-
-        # Instrumentation: Stream processed next item
-        get_current_flow_instrument().on_stream_next(self, data)
-
-        return data
+        return await _stream_get(self)
 
 
 @dataclass
 class StalledNodeRequestCommand(Command):
     stalled_input: "FinalizedInputPortRef[object]"
     stalling_node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
+
+
+@dataclass
+class StreamGetCommand(Generic[_T], Command):
+    """Command to get the next value from a stream.
+
+    All stream iteration logic should be handled by the event loop/flow,
+    not by the Stream class itself. This command requests the next value
+    and the handler decides whether to:
+    - Return available data
+    - Stall waiting for producer
+    - Raise StopAsyncIteration (stream complete)
+    """
+    stream: "Stream[_T]"
+    consumer_node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
 
 
 @coroutine
@@ -894,6 +843,88 @@ def _node_stalled(
     )
 
     return (yield StalledNodeRequestCommand(stalled_input, stalling_node))
+
+
+@coroutine
+def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | Any, Any, _T]:
+    """Get the next value from a stream.
+
+    This coroutine contains ALL the stream iteration logic that was originally in
+    Stream.__anext__(). It loops until data is ready, checks for stream completion,
+    handles barrier countdown, etc.
+    """
+    from flowno.core.flow.instrumentation import get_current_flow_instrument
+    from flowno.utilities.helpers import cmp_generation, clip_generation, parent_generation, stitched_generation
+
+    # Get state from flow (stored per stream object)
+    from flowno.core.flow.flow import current_flow
+    flow = current_flow()
+    if flow is None:
+        raise RuntimeError("_stream_get called outside of flow context")
+
+    if stream not in flow._stream_consumer_state:
+        from flowno.core.flow.flow import StreamConsumerState
+        flow._stream_consumer_state[stream] = StreamConsumerState()
+    state = flow._stream_consumer_state[stream]
+
+    # Check if cancelled
+    producer_node = stream.output.node
+    if stream in flow._cancelled_streams.get(producer_node, set()):
+        logger.debug(f"Stream {stream} is cancelled, raising StopAsyncIteration")
+        raise StopAsyncIteration("Stream was cancelled")
+
+    def get_clipped_stitched_gen():
+        stitch_0 = stream.input.node._input_ports[stream.input.port_index].stitch_level_0
+        return clip_generation(
+            stitched_generation(stream.output.node.generation, stitch_0), run_level=stream.run_level
+        )
+
+    # Loop until data is ready (original while loop from Stream.__anext__)
+    while cmp_generation(get_clipped_stitched_gen(), state.last_consumed_generation) <= 0:
+        logger.debug(
+            f"{stream.output.node}'s generation, "
+            f"when clipped/stitched {get_clipped_stitched_gen()}, "
+            f"is <= last consumed {state.last_consumed_generation}, requesting new data."
+        )
+        yield from _node_stalled(stream.input, stream.output.node)
+
+    logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
+
+    # Check if parent generation changed (stream complete/restarted)
+    current_parent_gen = parent_generation(stream.output.node.generation)
+    if (state.last_consumed_generation is not None
+        and current_parent_gen != state.last_consumed_parent_generation):
+        logger.debug(
+            f"Parent generation changed from {state.last_consumed_parent_generation} "
+            f"to {current_parent_gen}, stream complete"
+        )
+        logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
+        get_current_flow_instrument().on_stream_end(stream)
+        raise StopAsyncIteration
+
+    # Update state
+    state.last_consumed_generation = get_clipped_stitched_gen()
+    state.last_consumed_parent_generation = current_parent_gen
+
+    # Get the data
+    data_tuple = stream.output.node.get_data(run_level=stream.run_level)
+    assert data_tuple is not None
+    data = cast(_T, data_tuple[stream.output.port_index])
+
+    logger.debug(f"_stream_get returning {repr(data)}")
+    logger.info(f"Stream {stream} consumed data {repr(data)}", extra={"tag": "flow"})
+
+    # Countdown the barrier after consuming data
+    with get_current_flow_instrument().on_barrier_node_read(stream.output.node, 1):
+        try:
+            yield from stream.output.node._barrier1.count_down(exception_if_zero=True)
+        except Exception as e:
+            logger.warning(f"Stream {stream} count_down error: {e}")
+
+    # Instrumentation
+    get_current_flow_instrument().on_stream_next(stream, data)
+
+    return data
 
 
 @dataclass

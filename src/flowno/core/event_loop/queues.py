@@ -385,8 +385,143 @@ class AsyncSetQueue(Generic[_T], AsyncQueue[_T]):
             await self.put(item)
 
 
+_K = TypeVar("_K")
+
+
+class AsyncMapQueue(Generic[_K]):
+    """
+    An async queue that maps keys to lists of causes (reasons).
+
+    This queue maintains unique keys in FIFO order while accumulating
+    multiple causes for each key. When a key is put multiple times,
+    the causes are appended to that key's list rather than duplicating
+    the key in the queue.
+
+    Example:
+        >>> from flowno.core.event_loop.event_loop import EventLoop
+        >>> from flowno.core.event_loop.queues import AsyncMapQueue
+        >>>
+        >>> async def map_queue_example():
+        ...     queue = AsyncMapQueue()
+        ...
+        ...     # Put same key multiple times with different reasons
+        ...     await queue.put(("node1", "completed generation (0,)"))
+        ...     await queue.put(("node2", "barrier released"))
+        ...     await queue.put(("node1", "received stalled request"))
+        ...
+        ...     print(len(queue))  # 2 (unique keys: node1, node2)
+        ...
+        ...     # Get returns (key, [causes])
+        ...     key, causes = await queue.get()
+        ...     print(key, causes)
+        ...     # ('node1', ['completed generation (0,)', 'received stalled request'])
+        ...
+        ...     key, causes = await queue.get()
+        ...     print(key, causes)
+        ...     # ('node2', ['barrier released'])
+        ...
+        ...     return "done"
+        >>>
+        >>> loop = EventLoop()
+        >>> loop.run_until_complete(map_queue_example(), join=True)
+        2
+        node1 ['completed generation (0,)', 'received stalled request']
+        node2 ['barrier released']
+        'done'
+    """
+
+    def __init__(self, maxsize: int | None = None):
+        """
+        Initialize the AsyncMapQueue.
+
+        Args:
+            maxsize: Maximum number of unique keys allowed in the queue.
+                     If None, the queue size is unbounded.
+        """
+        self._queue: AsyncQueue[_K] = AsyncQueue(maxsize=maxsize)
+        self._map: dict[_K, list[str]] = {}
+
+    def __repr__(self) -> str:
+        return f"<AsyncMapQueue keys={list(self._map.keys())} causes={self._map}>"
+
+    async def put(self, item: tuple[_K, str]) -> None:
+        """
+        Put a (key, cause) pair into the queue.
+
+        If the key already exists in the queue, the cause is appended
+        to that key's list. Otherwise, the key is added to the queue
+        with a new list containing the cause.
+
+        Args:
+            item: A tuple of (key, cause) where cause describes why
+                  the key was enqueued
+
+        Raises:
+            QueueClosedError: If the queue is closed
+            ValueError: If item is not a 2-tuple of (key, cause)
+        """
+        if not isinstance(item, tuple) or len(item) != 2:
+            raise ValueError(
+                f"AsyncMapQueue.put() expects a tuple of (key, cause), got {type(item).__name__}: {item!r}"
+            )
+        key, cause = item
+
+        if key in self._map:
+            # Key already exists, append the cause
+            self._map[key].append(cause)
+            get_current_instrument().on_queue_put(queue=self._queue, item=(key, cause), immediate=True)
+        else:
+            # New key, create list and add to queue
+            self._map[key] = [cause]
+            await self._queue.put(key)
+
+    async def get(self) -> tuple[_K, list[str]]:
+        """
+        Get the next (key, causes) pair from the queue.
+
+        Returns the key and all accumulated causes for that key,
+        then removes the key from the queue and map.
+
+        Returns:
+            A tuple of (key, list of causes)
+
+        Raises:
+            QueueClosedError: If the queue is closed and empty
+        """
+        key = await self._queue.get()
+        causes = self._map.pop(key)
+        return (key, causes)
+
+    async def peek(self) -> tuple[_K, list[str]]:
+        """
+        Peek at the next (key, causes) pair without removing it.
+
+        Returns:
+            A tuple of (key, list of causes)
+
+        Raises:
+            QueueClosedError: If the queue is closed and empty
+        """
+        key = await self._queue.peek()
+        causes = self._map[key]
+        return (key, causes)
+
+    async def close(self) -> None:
+        """Close the queue, preventing further put operations."""
+        await self._queue.close()
+
+    def is_closed(self) -> bool:
+        """Check if the queue is closed."""
+        return self._queue.is_closed()
+
+    def __len__(self) -> int:
+        """Get the number of unique keys in the queue."""
+        return len(self._queue)
+
+
 __all__ = [
     "AsyncQueue",
     "AsyncSetQueue",
+    "AsyncMapQueue",
     "QueueClosedError",
 ]
