@@ -1,0 +1,845 @@
+   Building flowno @ file:///home/user/flowno
+      Built flowno @ file:///home/user/flowno
+Uninstalled 1 package in 3ms
+Installed 1 package in 7ms
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.4.2, pluggy-1.6.0 -- /home/user/flowno/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/user/flowno
+configfile: pytest.ini
+testpaths: tests
+plugins: timeout-2.4.0
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+collecting ... collected 282 items / 8 deselected / 274 selected
+
+tests/test_anonymous_nodes.py::test_orphaned_anonymous_node PASSED       [  0%]
+tests/test_anonymous_nodes.py::test_mixed_anonymous_named_cycle PASSED   [  0%]
+tests/test_anonymous_nodes.py::test_anonymous_multiple_outputs PASSED    [  1%]
+tests/test_anonymous_nodes.py::test_anonymous_streaming PASSED           [  1%]
+tests/test_anonymous_nodes.py::test_deep_anonymous_chain PASSED          [  1%]
+tests/test_anonymous_nodes.py::test_anonymous_multiple_paths PASSED      [  2%]
+tests/test_anonymous_nodes.py::test_anonymous_default_values PASSED      [  2%]
+tests/test_anonymous_nodes.py::test_anonymous_error_propagation PASSED   [  2%]
+tests/test_create_task.py::test_put_item_from_outside PASSED             [  3%]
+tests/test_create_task.py::test_create_task_runs1 PASSED                 [  3%]
+tests/test_create_task.py::test_create_task_runs2 PASSED                 [  4%]
+tests/test_cycles.py::test_simple_cycle_1 PASSED                         [  4%]
+tests/test_cycles.py::test_simple_cycle_2 PASSED                         [  4%]
+tests/test_cycles.py::test_simple_cycle_3 PASSED                         [  5%]
+tests/test_cycles.py::test_simple_toggle_cycle_1 PASSED                  [  5%]
+tests/test_cycles.py::test_simple_toggle_cycle_2 PASSED                  [  5%]
+tests/test_cycles.py::test_simple_toggle_cycle_3 PASSED                  [  6%]
+tests/test_cycles.py::test_simple_toggle_false_cycle_1 PASSED            [  6%]
+tests/test_cycles.py::test_simple_toggle_false_cycle_2 PASSED            [  6%]
+tests/test_cycles.py::test_simple_toggle_false_cycle_3 PASSED            [  7%]
+tests/test_cycles.py::test_multi_input_1 PASSED                          [  7%]
+tests/test_cycles.py::test_multi_input_2 PASSED                          [  8%]
+tests/test_cycles.py::test_multi_input_3 PASSED                          [  8%]
+tests/test_cycles.py::test_simple_swapper_cycle_with_ident PASSED        [  8%]
+tests/test_cycles.py::test_reused_classvars1 PASSED                      [  9%]
+tests/test_cycles.py::test_simple_swapper_cycle_1 PASSED                 [  9%]
+tests/test_cycles.py::test_simple_swapper_cycle_2 PASSED                 [  9%]
+tests/test_cycles.py::test_simple_swapper_cycle_3 PASSED                 [ 10%]
+tests/test_cycles.py::test_stateful_cycle0 PASSED                        [ 10%]
+tests/test_cycles.py::test_stateful_cycle1 PASSED                        [ 10%]
+tests/test_cycles.py::test_stateful_cycle2 PASSED                        [ 11%]
+tests/test_encoding_cross_platform.py::test_headers_with_utf8_characters PASSED [ 11%]
+tests/test_encoding_cross_platform.py::test_response_decode_json_uses_utf8 PASSED [ 12%]
+tests/test_encoding_cross_platform.py::test_err_streaming_response_decode_json_uses_utf8 PASSED [ 12%]
+tests/test_encoding_cross_platform.py::test_header_parsing_with_special_chars PASSED [ 12%]
+tests/test_encoding_cross_platform.py::test_sse_event_parsing_with_utf8 PASSED [ 13%]
+tests/test_event_loop.py::test_braindead PASSED                          [ 13%]
+tests/test_event_loop.py::test_sleep PASSED                              [ 13%]
+tests/test_event_loop.py::test_spawn PASSED                              [ 14%]
+tests/test_event_loop.py::test_should_fail PASSED                        [ 14%]
+tests/test_event_loop.py::test_queue PASSED                              [ 14%]
+tests/test_event_loop.py::test_queue_spsc PASSED                         [ 15%]
+tests/test_event_loop.py::test_queue_mpsc PASSED                         [ 15%]
+tests/test_event_loop.py::test_queue_mpmc PASSED                         [ 16%]
+tests/test_event_loop.py::test_httpclient_200 PASSED                     [ 16%]
+tests/test_event_loop.py::test_countdown_latch PASSED                    [ 16%]
+tests/test_event_loop.py::test_countdown_latch_spawn PASSED              [ 17%]
+tests/test_event_loop.py::test_azip PASSED                               [ 17%]
+tests/test_event_loop_exit.py::test_exit_simple PASSED                   [ 17%]
+tests/test_event_loop_exit.py::test_exit_with_value PASSED               [ 18%]
+tests/test_event_loop_exit.py::test_exit_with_exception PASSED           [ 18%]
+tests/test_event_loop_exit.py::test_exit_with_multiple_tasks PASSED      [ 18%]
+tests/test_event_loop_instrumentation.py::test_on_queue_get_instrumentation PASSED [ 19%]
+tests/test_event_loop_instrumentation.py::test_on_queue_put_instrumentation PASSED [ 19%]
+tests/test_event_loop_instrumentation.py::test_simple_queue_put_with_instrumentation PASSED [ 20%]
+tests/test_flow.py::test_create_flow PASSED                              [ 20%]
+tests/test_flow.py::test_add_nodes PASSED                                [ 20%]
+tests/test_flow.py::test_connect_nodes PASSED                            [ 21%]
+tests/test_flow.py::test_run_trivial_flow_explicit PASSED                [ 21%]
+tests/test_flow.py::test_simple_loop PASSED                              [ 21%]
+tests/test_flow.py::test_simple_flow_data_passing PASSED                 [ 22%]
+tests/test_flow.py::test_simple_error_handling PASSED                    [ 22%]
+tests/test_flow.py::test_force_evaluate_linear PASSED                    [ 22%]
+tests/test_flow.py::test_force_evalutate_circular PASSED                 [ 23%]
+tests/test_flow.py::test_condensed_tree_linear PASSED                    [ 23%]
+tests/test_flow.py::test_condensed_tree_circular PASSED                  [ 24%]
+tests/test_flow_event_loop.py::test_braindead PASSED                     [ 24%]
+tests/test_flow_event_loop.py::test_spawn PASSED                         [ 24%]
+tests/test_flow_event_loop.py::test_join PASSED                          [ 25%]
+tests/test_flow_event_loop.py::test_join_return PASSED                   [ 25%]
+tests/test_flow_event_loop.py::test_sleep PASSED                         [ 25%]
+tests/test_flow_event_loop.py::test_socket PASSED                        [ 26%]
+tests/test_flow_event_loop.py::test_read_recv PASSED                     [ 26%]
+tests/test_flow_event_loop.py::test_exception_handling PASSED            [ 27%]
+tests/test_flow_instrumentation.py::test_flow_start_and_end PASSED       [ 27%]
+tests/test_flow_instrumentation.py::test_node_registration PASSED        [ 27%]
+tests/test_flow_instrumentation.py::test_node_emitted_data PASSED        [ 28%]
+tests/test_flow_instrumentation.py::test_node_lifecycle PASSED           [ 28%]
+tests/test_flow_instrumentation.py::test_multiple_nodes PASSED           [ 28%]
+tests/test_flow_instrumentation.py::test_get_current_flow_instrument PASSED [ 29%]
+tests/test_flow_instrumentation.py::test_instrument_context_manager_nesting PASSED [ 29%]
+tests/test_flow_instrumentation.py::test_no_instrumentation_doesnt_break_flow PASSED [ 29%]
+tests/test_flowhdl.py::test_hdl_context_placeholders_outside_context PASSED [ 30%]
+tests/test_flowhdl.py::test_hdl_finalize_trivial PASSED                  [ 30%]
+tests/test_flowhdl.py::test_hdl_finalize_multiple_outputs PASSED         [ 31%]
+tests/test_flowhdl.py::test_hdl_finalize_using_multiple_outputs PASSED   [ 31%]
+tests/test_flowhdl.py::test_simple_cycle PASSED                          [ 31%]
+tests/test_flowhdl.py::test_simple_connection PASSED                     [ 32%]
+tests/test_flowhdl.py::test_out_of_order_definition PASSED               [ 32%]
+tests/test_flowhdl.py::test_criss_cross_cycle PASSED                     [ 32%]
+tests/test_flowhdl.py::test_anonymous_node PASSED                        [ 33%]
+tests/test_flowhdl.py::test_nested_anonymous_node PASSED                 [ 33%]
+tests/test_flowhdl.py::test_node_delay PASSED                            [ 33%]
+tests/test_flowhdl.py::test_placeholders PASSED                          [ 34%]
+tests/test_flowhdl.py::test_flow_with_tuple PASSED                       [ 34%]
+tests/test_flowhdl_view_magic.py::test_set_and_get_simple_attribute PASSED [ 35%]
+tests/test_flowhdl_view_magic.py::test_getattr_returns_placeholder_before_finalize PASSED [ 35%]
+tests/test_flowhdl_view_magic.py::test_connect_two_nodes_out_of_order_and_finalize PASSED [ 35%]
+tests/test_flowhdl_view_magic.py::test_missing_definition_raises_on_finalize PASSED [ 36%]
+tests/test_flowhdl_view_magic.py::test_connect_to_non_draftnode_raises PASSED [ 36%]
+tests/test_flowhdl_view_magic.py::test_unconnected_input_without_default_value_raises PASSED [ 36%]
+tests/test_flowhdl_view_magic.py::test_accessing_nonexistent_node_after_finalize_raises PASSED [ 37%]
+tests/test_group_varieties.py::test_multiple_consumers PASSED            [ 37%]
+tests/test_group_varieties.py::test_nested_groups PASSED                 [ 37%]
+tests/test_group_varieties.py::test_group_multiple_inputs PASSED         [ 38%]
+tests/test_group_varieties.py::test_group_default_parameter PASSED       [ 38%]
+tests/test_group_varieties.py::test_group_reference_before_definition PASSED [ 39%]
+tests/test_group_varieties.py::test_group_used_in_another_group PASSED   [ 39%]
+tests/test_group_varieties.py::test_group_identity_pass_through PASSED   [ 39%]
+tests/test_group_varieties.py::test_group_fanout PASSED                  [ 40%]
+tests/test_group_varieties.py::test_group_result_reused_multiple_times PASSED [ 40%]
+tests/test_http_client.py::test_parse_url PASSED                         [ 40%]
+tests/test_http_client.py::test_err_streaming_response_with_bytes PASSED [ 41%]
+tests/test_http_client.py::test_err_streaming_response_with_async_iterator PASSED [ 41%]
+tests/test_http_client.py::test_err_streaming_response_decode_json_with_bytes PASSED [ 41%]
+tests/test_http_client.py::test_err_streaming_response_decode_json_with_async_iterator PASSED [ 42%]
+tests/test_node.py::test_node PASSED                                     [ 42%]
+tests/test_node.py::test_node_creation PASSED                            [ 43%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a0-gen_b0-deferred] PASSED [ 43%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a1-gen_b1-evaluated] PASSED [ 43%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a2-gen_b2-deferred] PASSED [ 44%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a3-gen_b3-deferred] PASSED [ 44%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a4-gen_b4-deferred] PASSED [ 44%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a5-gen_b5-deferred] PASSED [ 45%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a6-gen_b6-deferred] PASSED [ 45%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a7-gen_b7-deferred] PASSED [ 45%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a8-gen_b8-deferred] PASSED [ 46%]
+tests/test_node.py::test_resolution_logic_with_subgens[False-gen_a9-gen_b9-deferred] PASSED [ 46%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a10-gen_b10-deferred] PASSED [ 47%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a11-gen_b11-evaluated] PASSED [ 47%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a12-gen_b12-deferred] PASSED [ 47%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a13-gen_b13-deferred] PASSED [ 48%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a14-gen_b14-evaluated] PASSED [ 48%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a15-gen_b15-deferred] PASSED [ 48%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a16-gen_b16-deferred] PASSED [ 49%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a17-gen_b17-deferred] PASSED [ 49%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a18-gen_b18-evaluated] PASSED [ 50%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a19-gen_b19-deferred] PASSED [ 50%]
+tests/test_node.py::test_resolution_logic_with_subgens[True-gen_a20-gen_b20-evaluated] PASSED [ 50%]
+tests/test_node.py::test_identity_loop_no_default PASSED                 [ 51%]
+tests/test_node.py::test_cycle_breaking_no_default PASSED                [ 51%]
+tests/test_node.py::test_streamed_data_generation PASSED                 [ 51%]
+tests/test_node.py::test_streamed_data_generation_with_stopping_partial PASSED [ 52%]
+tests/test_node.py::test_streamed_data_generation_with_stopping_partial_before_ever_finishing[stop_at_generation0] PASSED [ 52%]
+tests/test_node.py::test_streamed_data_generation_with_stopping_partial_before_ever_finishing[stop_at_generation1] PASSED [ 52%]
+tests/test_node.py::test_streamed_data_generation_with_stopping_partial_before_ever_finishing[stop_at_generation2] PASSED [ 53%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation0-actual_generation0-last_data0] PASSED [ 53%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation1-actual_generation1-last_data1] PASSED [ 54%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation2-actual_generation2-last_data2] PASSED [ 54%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation3-actual_generation3-last_data3] PASSED [ 54%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation4-actual_generation4-last_data4] PASSED [ 55%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation5-actual_generation5-last_data5] PASSED [ 55%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation6-actual_generation6-last_data6] PASSED [ 55%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation7-actual_generation7-last_data7] PASSED [ 56%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation8-actual_generation8-last_data8] PASSED [ 56%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation9-actual_generation9-last_data9] PASSED [ 56%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation10-actual_generation10-last_data10] PASSED [ 57%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation11-actual_generation11-last_data11] PASSED [ 57%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation12-actual_generation12-last_data12] PASSED [ 58%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation13-actual_generation13-last_data13] PASSED [ 58%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation14-actual_generation14-last_data14] PASSED [ 58%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation15-actual_generation15-last_data15] PASSED [ 59%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation16-actual_generation16-last_data16] PASSED [ 59%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation17-actual_generation17-last_data17] PASSED [ 59%]
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation18-actual_generation18-last_data18] PASSED [ 60%]
+tests/test_node_context.py::test_node_context_factory PASSED             [ 60%]
+tests/test_node_context.py::test_current_node PASSED                     [ 60%]
+tests/test_node_context.py::test_current_context_outside_flow PASSED     [ 61%]
+tests/test_node_context.py::test_current_context_without_factory PASSED  [ 61%]
+tests/test_node_context.py::test_current_context_different_factories PASSED [ 62%]
+tests/test_node_context.py::test_current_context_factory_returns_node PASSED [ 62%]
+tests/test_node_context.py::test_current_context_in_group PASSED         [ 62%]
+tests/test_node_context.py::test_current_node_in_group PASSED            [ 63%]
+tests/test_node_context.py::test_current_node_outside PASSED             [ 63%]
+tests/test_node_context.py::test_concurrent_nodes_with_sleep PASSED      [ 63%]
+tests/test_node_context.py::test_concurrent_nodes_different_sleep_times PASSED [ 64%]
+tests/test_node_context.py::test_concurrent_nodes_no_sleep PASSED        [ 64%]
+tests/test_node_generation.py::test_case_1 PASSED                        [ 64%]
+tests/test_node_generation.py::test_case_2 PASSED                        [ 65%]
+tests/test_node_generation.py::test_case_3 PASSED                        [ 65%]
+tests/test_node_generation.py::test_case_4 PASSED                        [ 66%]
+tests/test_proposed_group_syntax.py::test_triple_product_group_node PASSED [ 66%]
+tests/test_proposed_group_syntax.py::test_increment_group_node PASSED    [ 66%]
+tests/test_reuse_nodes.py::test_simple_swapper_cycle_with_ident PASSED   [ 67%]
+tests/test_simple_group.py::test_group_expansion PASSED                  [ 67%]
+tests/test_stateful_nodes.py::test_basic_stateful PASSED                 [ 67%]
+tests/test_stateful_nodes.py::test_stateful_with_input PASSED            [ 68%]
+tests/test_stateful_nodes.py::test_stateful_cycle0 PASSED                [ 68%]
+tests/test_stateful_nodes.py::test_stateful_cycle1 PASSED                [ 68%]
+tests/test_stateful_nodes.py::test_stateful_cycle2 PASSED                [ 69%]
+tests/test_stateful_nodes.py::test_stateful_cycle3 PASSED                [ 69%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_cancel_after_first_item PASSED [ 70%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_cancellation_with_mono_consumer PASSED [ 70%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_completes_naturally PASSED [ 70%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_multiple_stream_consumers PASSED [ 71%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_cancellation_exception_handling PASSED [ 71%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_with_explicit_return_value PASSED [ 71%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_barrier_protection_mono_consumer PASSED [ 72%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_cancellation_with_multiple_yields PASSED [ 72%]
+tests/test_stream_cancellation.py::TestStreamCancellation::test_stream_no_cancellation_after_completion PASSED [ 72%]
+tests/test_stream_cancellation.py::TestStreamBarriers::test_barrier0_with_streaming_and_mono_consumers PASSED [ 73%]
+tests/test_stream_cancellation.py::TestStreamBarriers::test_streaming_consumer_skips_barrier0_countdown PASSED [ 73%]
+tests/test_stream_cancellation.py::TestStreamBarriers::test_multiple_generations_with_streaming PASSED [ 74%]
+tests/test_streaming.py::test_braindead PASSED                           [ 74%]
+tests/test_streaming.py::test_stream_out_simple PASSED                   [ 74%]
+tests/test_streaming.py::test_no_stream PASSED                           [ 75%]
+tests/test_streaming.py::test_minimum_run_levels PASSED                  [ 75%]
+tests/test_streaming.py::test_streaming PASSED                           [ 75%]
+tests/test_streaming.py::test_stream_ignored PASSED                      [ 76%]
+tests/test_streaming.py::test_simple_stream_in_out SKIPPED (Rerunnin...) [ 76%]
+tests/test_streaming.py::test_stream_one_full_generation PASSED          [ 77%]
+tests/test_streaming.py::test_immediate_terminate PASSED                 [ 77%]
+tests/test_streaming.py::test_short_stream PASSED                        [ 77%]
+tests/test_streaming.py::test_short_stream_one_full_generation PASSED    [ 78%]
+tests/test_streaming.py::test_streaming_in_and_out PASSED                [ 78%]
+tests/test_streaming.py::test_streaming_cycle FAILED                     [ 78%]
+
+=================================== FAILURES ===================================
+_____________________________ test_streaming_cycle _____________________________
+
+    def test_streaming_cycle():
+        with FlowHDL() as f:
+            f.words = Words(f.listify)
+            f.upcase = Upcase(f.words)
+            f.reverse = ReverseSentence(f.upcase)
+            f.listify = Listify(f.reverse)
+    
+        with raises(TerminateLimitReached):
+            # run two complete cycles
+>           f.run_until_complete(
+                terminate_on_node_error=True, stop_at_node_generation={f.reverse: (1,)}, _debug_max_wait_time=10
+            )
+
+tests/test_streaming.py:356: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/flowno/core/flow_hdl.py:125: in run_until_complete
+    self._flow.run_until_complete(
+src/flowno/core/flow/flow.py:789: in run_until_complete
+    self.event_loop.run_until_complete(
+src/flowno/core/event_loop/event_loop.py:622: in run_until_complete
+    return_value = self._run_event_loop_core(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <flowno.core.flow.flow.FlowEventLoop object at 0x7eaabb4133d0>
+root_task = CoroutineWrapper(_node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True))
+join = True, wait_for_spawned_tasks = True, _debug_max_wait_time = 10
+
+    def _run_event_loop_core(
+        self,
+        root_task: RawTask[Command, Any, _ReturnT],
+        join: bool = False,
+        wait_for_spawned_tasks: bool = True,
+        _debug_max_wait_time: float | None = None,
+    ):
+        global _current_event_loop
+        _current_event_loop = self
+    
+        try:
+            self._debug_max_wait_time = _debug_max_wait_time
+            self._loop_thread = threading.current_thread()
+            self._exit_requested = (False, None, None)  # Reset exit flag
+            self.tasks.append((root_task, None, None))
+    
+            # Register wakeup socket with selector
+            # Blank metadata for wakeup socket. Never used.
+            metadata = InstrumentationMetadata(
+                _task=None, _command=None, socket_handle=None
+            )
+            sel.register(self._wakeup_reader, selectors.EVENT_READ, metadata)
+    
+            while self.has_living_tasks():
+                # Check if exit was requested
+                exit_requested, exit_value, exit_exception = self._exit_requested
+                if exit_requested:
+                    # Handle any requested exit
+                    if exit_exception is not None:
+                        raise exit_exception
+                    elif join:
+                        return cast(_ReturnT, exit_value)
+                    else:
+                        return None
+    
+                # Determine the timeout for selector based on tasks and sleeping tasks.
+                if self.tasks:
+                    timeout = 0
+                elif self.sleeping:
+                    timeout = self.sleeping[0][0] - timer()
+                    if (
+                        self._debug_max_wait_time is not None
+                        and timeout > self._debug_max_wait_time
+                    ):
+                        logger.error(
+                            f"Sleeping task timeout {timeout} exceeds max wait time {_debug_max_wait_time}."
+                        )
+                        timeout = self._debug_max_wait_time
+                else:
+                    timeout = self._debug_max_wait_time
+    
+                for key, _mask in sel.select(timeout):
+                    data = cast(InstrumentationMetadata, key.data)
+                    if key.fileobj == self._wakeup_reader:
+                        # Clear wakeup signal
+                        try:
+                            self._wakeup_reader.recv(1024)
+                        except (BlockingIOError, socket.error):
+                            pass
+                        continue  # Skip further processing for wakeup socket
+    
+                    # Handle regular socket commands
+                    if data._command is None:
+                        # Skip processing if no command (shouldn't happen for regular sockets)
+>                       continue
+E                       Failed: Timeout (>10.0s) from pytest-timeout.
+
+src/flowno/core/event_loop/event_loop.py:698: Failed
+----------------------------- Captured stdout call -----------------------------
+Words: input is None
+Words: yielding hello
+upcasing
+upcasing hello
+ReversingSentence: Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+ReversingSentence, taken from stream: HELLO
+Words: yielding world
+upcasing world
+ReversingSentence, taken from stream: WORLD
+ReversingSentence: returning WORLD HELLO
+Listify input: WORLD HELLO
+Listify output: ['WORLD', 'HELLO']
+Words: input is ['WORLD', 'HELLO']
+Words: yielding WORLD
+upcasing
+------------------------------ Captured log call -------------------------------
+DEBUG    flowno.core.node_base:node_base.py:194 Initializing Words#1 with args (NodePlaceholder(name='listify'),)
+DEBUG    flowno.core.node_base:node_base.py:224 Initializing Words#1.input(0) with arg NodePlaceholder(name='listify') (type=NodePlaceholder)
+DEBUG    flowno.core.node_base:node_base.py:273 Words has _default_values: {0: None}
+DEBUG    flowno.core.node_base:node_base.py:275 Setting default, None, for Words#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:297 Initialized Words#1.input(0) with connected_output=NodePlaceholder(name='listify').output(0), minimum_run_level=0, default_value=None
+DEBUG    flowno.core.node_base:node_base.py:194 Initializing Upcase#1 with args (Words#1,)
+DEBUG    flowno.core.node_base:node_base.py:224 Initializing Upcase#1.input(0) with arg Words#1 (type=Words)
+INFO     flowno.core.node_base:node_base.py:998 Connecting Words#1.output(0) -> Upcase#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:280 Upcase has no _default_values, extracting from call method signature
+DEBUG    flowno.core.node_base:node_base.py:286 Checking Upcase#1 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+DEBUG    flowno.core.node_base:node_base.py:297 Initialized Upcase#1.input(0) with connected_output=Words#1.output(0), minimum_run_level=1, default_value=<class 'inspect._empty'>
+DEBUG    flowno.core.node_base:node_base.py:194 Initializing ReverseSentence#1 with args (Upcase#1,)
+DEBUG    flowno.core.node_base:node_base.py:224 Initializing ReverseSentence#1.input(0) with arg Upcase#1 (type=Upcase)
+INFO     flowno.core.node_base:node_base.py:998 Connecting Upcase#1.output(0) -> ReverseSentence#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:280 ReverseSentence has no _default_values, extracting from call method signature
+DEBUG    flowno.core.node_base:node_base.py:286 Checking ReverseSentence#1 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+DEBUG    flowno.core.node_base:node_base.py:297 Initialized ReverseSentence#1.input(0) with connected_output=Upcase#1.output(0), minimum_run_level=1, default_value=<class 'inspect._empty'>
+DEBUG    flowno.core.node_base:node_base.py:194 Initializing Listify#0 with args (ReverseSentence#1,)
+DEBUG    flowno.core.node_base:node_base.py:224 Initializing Listify#0.input(0) with arg ReverseSentence#1 (type=ReverseSentence)
+INFO     flowno.core.node_base:node_base.py:998 Connecting ReverseSentence#1.output(0) -> Listify#0.input(0)
+DEBUG    flowno.core.node_base:node_base.py:280 Listify has no _default_values, extracting from call method signature
+DEBUG    flowno.core.node_base:node_base.py:286 Checking Listify#0 parameter *args: typing_extensions.Unpack[Ts_inner] for default value
+DEBUG    flowno.core.node_base:node_base.py:297 Initialized Listify#0.input(0) with connected_output=ReverseSentence#1.output(0), minimum_run_level=0, default_value=<class 'inspect._empty'>
+INFO     flowno.core.flow_hdl_view:flow_hdl_view.py:144 Finalizing FlowHDL
+DEBUG    flowno.core.flow_hdl_view:flow_hdl_view.py:280 Connecting Listify#0 to DraftInputPort(connected_output=NodePlaceholder(name='listify').output(0), minimum_run_level=0, default_value=None)
+INFO     flowno.core.node_base:node_base.py:998 Connecting Listify#0.output(0) -> Words#1.input(0)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: evaluate_node(<Flow#172>, Words#1)
+DEBUG    flowno.utilities.logging:logging.py:166 evaluate_node(<Flow#172>, Words#1) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded WaitForStartNextGenerationCommand(node=Words#1, run_level=0)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: evaluate_node(<Flow#172>, Upcase#1)
+DEBUG    flowno.utilities.logging:logging.py:166 evaluate_node(<Flow#172>, Upcase#1) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded WaitForStartNextGenerationCommand(node=Upcase#1, run_level=0)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: evaluate_node(<Flow#172>, ReverseSentence#1)
+DEBUG    flowno.utilities.logging:logging.py:166 evaluate_node(<Flow#172>, ReverseSentence#1) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) yielded WaitForStartNextGenerationCommand(node=ReverseSentence#1, run_level=0)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: evaluate_node(<Flow#172>, Listify#0)
+DEBUG    flowno.utilities.logging:logging.py:166 evaluate_node(<Flow#172>, Listify#0) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Listify#0) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Listify#0) yielded WaitForStartNextGenerationCommand(node=Listify#0, run_level=0)
+DEBUG    flowno.core.flow_hdl_view:flow_hdl_view.py:324 Finished Finalizing FlowHDL into Flow
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True)
+DEBUG    flowno.utilities.logging:logging.py:166 _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) is a coroutine
+DEBUG    flowno.core.event_loop.event_loop:event_loop.py:230 Signal handlers installed for event loop debugging
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Words#1
+DEBUG    flowno.core.node_base:node_base.py:521 Upcase#1 input port 0 does NOT have a default value
+DEBUG    flowno.core.node_base:node_base.py:519 Words#1 input port 0 has a default value: None
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: evaluate_node(<Flow#172>, Words#1)
+DEBUG    flowno.utilities.logging:logging.py:166 evaluate_node(<Flow#172>, Words#1) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded WaitForStartNextGenerationCommand(node=Words#1, run_level=0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Words#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for Words#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:519 Words#1 input port 0 has a default value: None
+INFO     flowno.core.node_base:node_base.py:705 While gathering input data for Words#1.input(0), using default value None
+DEBUG    flowno.core.node_base:node_base.py:725 Input data for Words#1.input(0): None
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Words#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Words#1, ('hello',), run_level=1)
+INFO     flowno.core.node_base:node_base.py:571 Words#1 advanced to generation (0, 0) with data=('hello',)
+DEBUG    flowno.core.node_base:node_base.py:576 Words#1.data[(0, 0)] = ('hello',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Upcase#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for Upcase#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:725 Input data for Upcase#1.input(0): Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Upcase#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:901 Words#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:926 _stream_get returning 'hello'
+INFO     flowno.core.node_base:node_base.py:927 Stream Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'hello'
+DEBUG    flowno.core.event_loop.synchronization:synchronization.py:159 counting down latch: CountdownLatch(original_count=1, remaining_counts=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded WaitForStartNextGenerationCommand(node=Words#1, run_level=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Upcase#1, ('HELLO',), run_level=1)
+INFO     flowno.core.node_base:node_base.py:571 Upcase#1 advanced to generation (0, 0) with data=('HELLO',)
+DEBUG    flowno.core.node_base:node_base.py:576 Upcase#1.data[(0, 0)] = ('HELLO',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(ReverseSentence#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ReverseSentence#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=ReverseSentence#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for ReverseSentence#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:725 Input data for ReverseSentence#1.input(0): Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:901 Upcase#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:926 _stream_get returning 'HELLO'
+INFO     flowno.core.node_base:node_base.py:927 Stream Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'HELLO'
+DEBUG    flowno.core.event_loop.synchronization:synchronization.py:159 counting down latch: CountdownLatch(original_count=1, remaining_counts=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded WaitForStartNextGenerationCommand(node=Upcase#1, run_level=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    test_streaming:test_streaming.py:323 ReverseSentence accumulator: HELLO 
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:894 Upcase#1's generation, when clipped/stitched (0, 0), is <= last consumed (0, 0), requesting new data.
+INFO     flowno.core.node_base:node_base.py:850 ReverseSentence#1.input(0) is stalled. Requesting new data from Upcase#1.
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) yielded StalledNodeRequestCommand(stalled_input=ReverseSentence#1.input(0), stalling_node=Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Upcase#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Words#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Words#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Words#1, ('world',), run_level=1)
+INFO     flowno.core.node_base:node_base.py:571 Words#1 advanced to generation (0, 1) with data=('world',)
+DEBUG    flowno.core.node_base:node_base.py:576 Words#1.data[(0, 1)] = ('world',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Upcase#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Upcase#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:901 Words#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:926 _stream_get returning 'world'
+INFO     flowno.core.node_base:node_base.py:927 Stream Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'world'
+DEBUG    flowno.core.event_loop.synchronization:synchronization.py:159 counting down latch: CountdownLatch(original_count=1, remaining_counts=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded WaitForStartNextGenerationCommand(node=Words#1, run_level=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Upcase#1, ('WORLD',), run_level=1)
+INFO     flowno.core.node_base:node_base.py:571 Upcase#1 advanced to generation (0, 1) with data=('WORLD',)
+DEBUG    flowno.core.node_base:node_base.py:576 Upcase#1.data[(0, 1)] = ('WORLD',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(ReverseSentence#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ReverseSentence#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=ReverseSentence#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:901 Upcase#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:926 _stream_get returning 'WORLD'
+INFO     flowno.core.node_base:node_base.py:927 Stream Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) consumed data 'WORLD'
+DEBUG    flowno.core.event_loop.synchronization:synchronization.py:159 counting down latch: CountdownLatch(original_count=1, remaining_counts=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) yielded QueueNotifyGettersCommand(queue=<AsyncQueue maxsize=None items=deque([None]) num_tasks_blocked_on_get=1 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded WaitForStartNextGenerationCommand(node=Upcase#1, run_level=1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    test_streaming:test_streaming.py:323 ReverseSentence accumulator: WORLD HELLO 
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:894 Upcase#1's generation, when clipped/stitched (0, 1), is <= last consumed (0, 1), requesting new data.
+INFO     flowno.core.node_base:node_base.py:850 ReverseSentence#1.input(0) is stalled. Requesting new data from Upcase#1.
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) yielded StalledNodeRequestCommand(stalled_input=ReverseSentence#1.input(0), stalling_node=Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Upcase#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Words#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Words#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Words#1, ('helloworld',), run_level=0)
+INFO     flowno.core.node_base:node_base.py:571 Words#1 advanced to generation (0,) with data=('helloworld',)
+DEBUG    flowno.core.node_base:node_base.py:576 Words#1.data[(0,)] = ('helloworld',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded WaitForStartNextGenerationCommand(node=Words#1, run_level=0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Upcase#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Upcase#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:901 Words#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:909 Parent generation changed from (0,) to (), stream complete
+INFO     flowno.core.node_base:node_base.py:913 Stream Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) is complete or restarted.
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Upcase#1, ('HELLOWORLD',), run_level=0)
+INFO     flowno.core.node_base:node_base.py:571 Upcase#1 advanced to generation (0,) with data=('HELLOWORLD',)
+DEBUG    flowno.core.node_base:node_base.py:576 Upcase#1.data[(0,)] = ('HELLOWORLD',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded WaitForStartNextGenerationCommand(node=Upcase#1, run_level=0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ReverseSentence#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=ReverseSentence#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:901 Upcase#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:909 Parent generation changed from (0,) to (), stream complete
+INFO     flowno.core.node_base:node_base.py:913 Stream Stream(Upcase#1.output(0)->ReverseSentence#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) is complete or restarted.
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(ReverseSentence#1, ('WORLD HELLO',), run_level=0)
+INFO     flowno.core.node_base:node_base.py:571 ReverseSentence#1 advanced to generation (0,) with data=('WORLD HELLO',)
+DEBUG    flowno.core.node_base:node_base.py:576 ReverseSentence#1.data[(0,)] = ('WORLD HELLO',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) yielded WaitForStartNextGenerationCommand(node=ReverseSentence#1, run_level=0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Listify#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Listify#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Listify#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Listify#0]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Listify#0
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Listify#0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Listify#0) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for Listify#0.input(0)
+DEBUG    flowno.core.node_base:node_base.py:725 Input data for Listify#0.input(0): WORLD HELLO
+DEBUG    flowno.core.event_loop.synchronization:synchronization.py:159 counting down latch: CountdownLatch(original_count=1, remaining_counts=0)
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Listify#0, (['WORLD', 'HELLO'],), run_level=0)
+INFO     flowno.core.node_base:node_base.py:571 Listify#0 advanced to generation (0,) with data=(['WORLD', 'HELLO'],)
+DEBUG    flowno.core.node_base:node_base.py:576 Listify#0.data[(0,)] = (['WORLD', 'HELLO'],)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Listify#0) yielded WaitForStartNextGenerationCommand(node=Listify#0, run_level=0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Words#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Words#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Words#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Words#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for Words#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:725 Input data for Words#1.input(0): ['WORLD', 'HELLO']
+DEBUG    flowno.core.event_loop.synchronization:synchronization.py:159 counting down latch: CountdownLatch(original_count=1, remaining_counts=0)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Words#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Words#1, ('WORLD',), run_level=1)
+INFO     flowno.core.node_base:node_base.py:571 Words#1 advanced to generation (1, 0) with data=('WORLD',)
+DEBUG    flowno.core.node_base:node_base.py:576 Words#1.data[(1, 0)] = ('WORLD',)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Words#1) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([Upcase#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result Upcase#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=Upcase#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, Upcase#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for Upcase#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:725 Input data for Upcase#1.input(0): Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1)
+DEBUG    flowno.core.flow.flow:flow.py:471 _node_gen_lifecycle loop start for Upcase#1, cancelled_streams=set()
+DEBUG    flowno.core.node_base:node_base.py:819 calling __anext__(Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1))
+DEBUG    flowno.core.node_base:node_base.py:901 Words#1's generation is greater than last consumed, continuing
+DEBUG    flowno.core.node_base:node_base.py:909 Parent generation changed from (0,) to (1,), stream complete
+INFO     flowno.core.node_base:node_base.py:913 Stream Stream(Words#1.output(0)->Upcase#1.input(0), last_consumed=None, last_consumed_parent=None, run_level=1) is complete or restarted.
+DEBUG    flowno.core.node_base:node_base.py:569 push_data(Upcase#1, None, run_level=0)
+INFO     flowno.core.node_base:node_base.py:571 Upcase#1 advanced to generation (1,) with data=None
+DEBUG    flowno.core.node_base:node_base.py:576 Upcase#1.data[(1,)] = None
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine evaluate_node(<Flow#172>, Upcase#1) yielded WaitForStartNextGenerationCommand(node=Upcase#1, run_level=0)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:119 Coroutine __anext__(<AsyncQueue maxsize=None items=deque([ReverseSentence#1]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) completed via __await__ with result ReverseSentence#1
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded ResumeNodeCommand(node=ReverseSentence#1)
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: evaluate_node(<Flow#172>, ReverseSentence#1) with send(None)
+DEBUG    flowno.core.node_base:node_base.py:679 Gathering input data for ReverseSentence#1.input(0)
+DEBUG    flowno.core.node_base:node_base.py:521 ReverseSentence#1 input port 0 does NOT have a default value
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:64 Coroutine evaluate_node(<Flow#172>, ReverseSentence#1) raised exception MissingDefaultError('  ReverseSentence#1 must have defaults for EACH/ALL the underlined parameters:\n  Defined at /home/user/flowno/tests/test_streaming.py:316\n  Full Signature:\n  async def ReverseSentence(words: flowno.core.node_base.Stream[str])\n                            ---------------------------------------- ')
+ERROR    flowno.core.event_loop.event_loop:event_loop.py:763 Task CoroutineWrapper(evaluate_node(<Flow#172>, ReverseSentence#1)) raised an exception:   ReverseSentence#1 must have defaults for EACH/ALL the underlined parameters:
+  Defined at /home/user/flowno/tests/test_streaming.py:316
+  Full Signature:
+  async def ReverseSentence(words: flowno.core.node_base.Stream[str])
+                            ---------------------------------------- 
+Traceback (most recent call last):
+  File "/home/user/flowno/src/flowno/core/event_loop/event_loop.py", line 742, in _run_event_loop_core
+    command = task_packet[0].send(task_packet[1])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/flowno/src/flowno/utilities/coroutine_wrapper.py", line 53, in send
+    result = self._coro.send(value)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/flowno/src/flowno/core/flow/flow.py", line 612, in evaluate_node
+    positional_arg_values, defaulted_inputs = node.gather_inputs()
+                                              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/flowno/src/flowno/core/node_base.py", line 710, in gather_inputs
+    raise MissingDefaultError(self, input_port_index)
+flowno.core.node_base.MissingDefaultError:   ReverseSentence#1 must have defaults for EACH/ALL the underlined parameters:
+  Defined at /home/user/flowno/tests/test_streaming.py:316
+  Full Signature:
+  async def ReverseSentence(words: flowno.core.node_base.Stream[str])
+                            ---------------------------------------- 
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:52 Resuming coroutine: _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) with send(None)
+DEBUG    flowno.utilities.logging:logging.py:161 Calling function: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>)
+DEBUG    flowno.utilities.logging:logging.py:166 __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) is a coroutine
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:116 Starting coroutine: __anext__(<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>) via __await__
+DEBUG    flowno.utilities.coroutine_wrapper:coroutine_wrapper.py:54 Coroutine _node_resolve_loop(<Flow#172>, {ReverseSentence#1: (1,)}, True) yielded QueueGetCommand(queue=<AsyncQueue maxsize=None items=deque([]) num_tasks_blocked_on_get=0 num_tasks_blocked_on_put=0>, peek=False)
+DEBUG    flowno.core.event_loop.event_loop:event_loop.py:246 Signal handlers uninstalled
+=============================== warnings summary ===============================
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation0-actual_generation0-last_data0]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde7340>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/event_loop/queues.py", line 123, in __init__
+      self._put_waiting: deque[TaskWaitingOnQueuePut[object]] = deque()
+                                                                ^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation0-actual_generation0-last_data0]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde48c0>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/event_loop/queues.py", line 123, in __init__
+      self._put_waiting: deque[TaskWaitingOnQueuePut[object]] = deque()
+                                                                ^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation3-actual_generation3-last_data3]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde58b0>
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.11/logging/__init__.py", line 1094, in flush
+      self.stream.flush()
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation3-actual_generation3-last_data3]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde6240>
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.11/logging/__init__.py", line 1094, in flush
+      self.stream.flush()
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation6-actual_generation6-last_data6]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbf43ab0>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/node_base.py", line 615, in get_inputs_with_le_generation_clipped_to_minimum_run_level
+      for my_input_port_index, input_port in self._input_ports.items():
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation10-actual_generation10-last_data10]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde4d00>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/flow/flow.py", line 1035, in _condensed_tree
+      tarjan_dfs(head)
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation12-actual_generation12-last_data12]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbcf48c0>
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.11/logging/__init__.py", line 1094, in flush
+      self.stream.flush()
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation14-actual_generation14-last_data14]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbcf4260>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/flow/flow.py", line 998, in tarjan_dfs
+      for v_input_ports in get_subgraph_edges(v):
+                           ^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation14-actual_generation14-last_data14]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbf43670>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/flow/flow.py", line 998, in tarjan_dfs
+      for v_input_ports in get_subgraph_edges(v):
+                           ^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation14-actual_generation14-last_data14]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde5360>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/flow/flow.py", line 998, in tarjan_dfs
+      for v_input_ports in get_subgraph_edges(v):
+                           ^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation14-actual_generation14-last_data14]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde4480>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/flow/flow.py", line 998, in tarjan_dfs
+      for v_input_ports in get_subgraph_edges(v):
+                           ^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_node.py::test_streamed_data_generation_all[stop_at_generation14-actual_generation14-last_data14]
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde4bf0>
+  
+  Traceback (most recent call last):
+    File "/home/user/flowno/src/flowno/core/flow/flow.py", line 998, in tarjan_dfs
+      for v_input_ports in get_subgraph_edges(v):
+                           ^^^^^^^^^^^^^^^^^^^^^
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_simple_group.py::test_group_expansion
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbde7890>
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.11/logging/__init__.py", line 1094, in flush
+      self.stream.flush()
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_simple_group.py::test_group_expansion
+  /home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabc007780>
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.11/logging/__init__.py", line 1094, in flush
+      self.stream.flush()
+  RuntimeError: coroutine ignored GeneratorExit
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_streaming.py::test_streaming_cycle - Failed: Timeout (>10.0...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+===== 1 failed, 214 passed, 1 skipped, 8 deselected, 14 warnings in 21.12s =====
+/home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Flow.evaluate_node at 0x7eaabbcf5140>
+
+Traceback (most recent call last):
+  File "/home/user/flowno/.venv/lib/python3.11/site-packages/_pytest/unraisableexception.py", line 33, in gc_collect_harder
+    gc.collect()
+RuntimeError: coroutine ignored GeneratorExit
+
+Enable tracemalloc to get traceback where the object was allocated.
+See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+  warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))

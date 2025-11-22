@@ -714,8 +714,11 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
 
             if input_port.minimum_run_level > 0 and not this_port_defaulted:
                 # Reuse cached Stream objects to preserve state across evaluations
-                # Use a hashable cache key: (input_port_index, output_node_id, output_port_index)
-                cache_key = (input_port_index, id(input_port.connected_output.node), input_port.connected_output.port_index)
+                # Include parent generation in cache key so each cycle gets a fresh Stream
+                source_node = input_port.connected_output.node
+                source_gen = source_node.generation if source_node.generation is not None else ()
+                source_parent_gen = parent_generation(source_gen)
+                cache_key = (input_port_index, id(source_node), input_port.connected_output.port_index, source_parent_gen)
                 if cache_key not in self._stream_cache:
                     self._stream_cache[cache_key] = Stream(self.input(input_port_index), input_port.connected_output)
                 inputs[input_port_index] = self._stream_cache[cache_key]
