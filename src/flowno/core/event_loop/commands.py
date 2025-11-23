@@ -16,7 +16,7 @@ I/O operations, and synchronization.
 """
 
 from abc import ABC
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from types import coroutine
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
@@ -223,3 +223,45 @@ class StreamCancelCommand(Command):
     stream: "Stream[Any]"
     producer_node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
     consumer_input: "FinalizedInputPortRef[Any]"
+
+
+# Threading support types
+
+@dataclass
+class ThreadResult(Generic[_T]):
+    """
+    Wrapper for successful thread result.
+
+    Used internally to distinguish between successful results and exceptions
+    when communicating thread results back to the main event loop.
+    """
+    value: _T
+
+
+@dataclass
+class ThreadException:
+    """
+    Wrapper for thread exception.
+
+    Used internally to propagate exceptions from worker threads back to
+    the main event loop.
+    """
+    exception: Exception
+
+
+@dataclass
+class SpawnInThreadCommand(Command):
+    """
+    Internal command to spawn a blocking function in a separate thread.
+
+    :param func: The blocking function to execute in the thread
+    :param args: Positional arguments to pass to func
+    :param kwargs: Keyword arguments to pass to func
+
+    .. note::
+       Users should use the public :func:`spawn_in_thread` primitive instead
+       of yielding a SpawnInThreadCommand directly.
+    """
+    func: Callable[..., Any]
+    args: tuple[Any, ...]
+    kwargs: dict[str, Any]

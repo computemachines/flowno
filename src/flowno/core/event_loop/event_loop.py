@@ -39,6 +39,9 @@ from flowno.core.event_loop.commands import (
     SocketRecvCommand,
     SocketSendCommand,
     SpawnCommand,
+    SpawnInThreadCommand,
+    ThreadException,
+    ThreadResult,
 )
 from flowno.core.event_loop.instrumentation import (
     InstrumentationMetadata,
@@ -52,7 +55,7 @@ from flowno.core.event_loop.queues import (
     TaskWaitingOnQueuePut,
 )
 from flowno.core.event_loop.selectors import sel
-from flowno.core.event_loop.tasks import TaskCancelled, TaskHandle
+from flowno.core.event_loop.tasks import TaskCancelled, TaskHandle, ThreadHandle
 from flowno.core.event_loop.types import (
     DeltaTime,
     RawTask,
@@ -506,6 +509,35 @@ class EventLoop:
             queue = command.queue
             self.handle_queue_close(queue)
             self.tasks.append((current_task_packet[0], None, None))
+        elif isinstance(command, SpawnInThreadCommand):
+            command = cast(SpawnInThreadCommand, command)
+            current_task_packet = cast(
+                TaskHandlePacket[SpawnInThreadCommand, Any, Any, Exception],
+                current_task_packet,
+            )
+
+            # Create result queue for thread to send result back
+            result_queue: AsyncQueue[ThreadResult[Any] | ThreadException] = AsyncQueue()
+
+            # Thread wrapper function
+            def thread_wrapper() -> None:
+                try:
+                    result = command.func(*command.args, **command.kwargs)
+                    wrapped_result = ThreadResult(result)
+                except Exception as e:
+                    wrapped_result = ThreadException(e)
+
+                # Push result back to main loop
+                self.create_task(result_queue.put(wrapped_result))
+
+            # Create and start thread
+            thread = threading.Thread(target=thread_wrapper)
+            thread.start()
+
+            # Create handle and resume task
+            handle = ThreadHandle(thread, result_queue)
+            self.tasks.append((current_task_packet[0], handle, None))
+
         elif isinstance(command, ExitCommand):
             # Handle the exit command
 

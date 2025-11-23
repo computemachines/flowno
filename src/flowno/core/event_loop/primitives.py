@@ -57,16 +57,16 @@ Examples:
 import logging
 import socket as _socket
 import ssl
-from collections.abc import AsyncGenerator, AsyncIterator, Generator
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Generator
 from timeit import default_timer as timer
 from types import coroutine
 from typing import Any, TypeVar, cast, overload
 
 from typing_extensions import Unpack
 
-from .commands import SleepCommand, SpawnCommand, ExitCommand
+from .commands import SleepCommand, SpawnCommand, ExitCommand, SpawnInThreadCommand
 from .selectors import SocketHandle, TLSSocketHandle
-from .tasks import TaskHandle
+from .tasks import TaskHandle, ThreadHandle
 from .types import DeltaTime, RawTask
 
 logger = logging.getLogger(__name__)
@@ -247,7 +247,10 @@ async def azip(*args: Unpack[tuple[AsyncIterator[object], ...]]) -> AsyncGenerat
         yield tuple(ret)
 
 
-async def spawn_in_thread(func, *args, **kwargs):
+@coroutine
+def spawn_in_thread(
+    func: Callable[..., _T_co], *args: Any, **kwargs: Any
+) -> Generator[SpawnInThreadCommand, Any, ThreadHandle[_T_co]]:
     """
     Execute a blocking function in a separate thread.
 
@@ -261,10 +264,10 @@ async def spawn_in_thread(func, *args, **kwargs):
         **kwargs: Keyword arguments to pass to func
 
     Returns:
-        The return value of func
+        A ThreadHandle that can be used to wait for the thread to complete
 
     Raises:
-        Any exception raised by func
+        Any exception raised by func (when joining the handle)
 
     Example:
         >>> import time
@@ -273,7 +276,10 @@ async def spawn_in_thread(func, *args, **kwargs):
         ...     return x * 2
         >>>
         >>> async def main():
-        ...     result = await spawn_in_thread(blocking_work, 21)
+        ...     handle = await spawn_in_thread(blocking_work, 21)
+        ...     result = await handle.join()
         ...     print(result)  # 42
     """
-    raise NotImplementedError("spawn_in_thread is not yet implemented")
+    handle = yield SpawnInThreadCommand(func=func, args=args, kwargs=kwargs)
+    assert isinstance(handle, ThreadHandle), "Expected a ThreadHandle"
+    return cast(ThreadHandle[_T_co], handle)

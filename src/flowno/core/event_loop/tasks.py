@@ -37,6 +37,7 @@ Examples:
 
 from collections.abc import Generator
 from dataclasses import dataclass
+from threading import Thread
 from types import coroutine
 from typing import TYPE_CHECKING, Generic, TypeVar, cast, final
 
@@ -44,8 +45,9 @@ from .types import RawTask
 
 if TYPE_CHECKING:
     from .event_loop import EventLoop  # Only import during type checking
+    from .queues import AsyncQueue
 
-from .commands import Command, JoinCommand
+from .commands import Command, JoinCommand, ThreadException, ThreadResult
 
 _T_co = TypeVar("_T_co", covariant=True)
 
@@ -139,17 +141,71 @@ class TaskHandle(Generic[_T_co]):
 class TaskCancelled(Exception):
     """
     Exception raised when a task is cancelled.
-    
+
     This exception is raised when attempting to join a task that
     has been cancelled.
     """
     by: TaskHandle[object]
-    
+
     def __str__(self) -> str:
         return f"Task was cancelled"
 
 
+@final
+class ThreadHandle(Generic[_T_co]):
+    """
+    A handle to a spawned thread that allows joining.
+
+    ThreadHandle objects are returned by the spawn_in_thread primitive and
+    represent blocking functions running in separate OS threads. They can be
+    used to wait for the thread to complete and retrieve its result.
+    """
+
+    def __init__(self, thread: Thread, result_queue: "AsyncQueue[ThreadResult[_T_co] | ThreadException]"):
+        """
+        Initialize a ThreadHandle.
+
+        Args:
+            thread: The Thread object executing the blocking function
+            result_queue: AsyncQueue to receive the result from the thread
+        """
+        self._thread = thread
+        self._result_queue = result_queue
+
+    @property
+    def is_alive(self) -> bool:
+        """
+        Check if the thread is still running.
+
+        Returns:
+            True if the thread is still executing.
+        """
+        return self._thread.is_alive()
+
+    @coroutine
+    def join(self) -> Generator[object, object, _T_co]:
+        """
+        Wait for this thread to complete and get its result.
+
+        This is a coroutine that waits on the result queue for the thread
+        to push its result or exception.
+
+        Returns:
+            The value returned by the blocking function.
+
+        Raises:
+            Exception: Any exception that was raised by the blocking function.
+        """
+        result_wrapper = yield from self._result_queue.get()
+
+        if isinstance(result_wrapper, ThreadException):
+            raise result_wrapper.exception
+        else:
+            return cast(_T_co, result_wrapper.value)
+
+
 __all__ = [
     "TaskHandle",
+    "ThreadHandle",
     "TaskCancelled",
 ]

@@ -128,14 +128,26 @@ def test_spawn_in_thread_main_loop_continues():
 
     # Verify main loop kept running while thread blocked
     msgs = [msg for _, msg in log]
-    assert msgs == [
-        "Main start",
-        "After spawn",
-        "Thread started",
-        "After sleep 1",
-        "After sleep 2",
-        "Thread done",
-        "Got result: result",
+    # Thread can start before or after "After spawn" due to OS thread scheduling
+    assert msgs in [
+        [
+            "Main start",
+            "After spawn",
+            "Thread started",
+            "After sleep 1",
+            "After sleep 2",
+            "Thread done",
+            "Got result: result",
+        ],
+        [
+            "Main start",
+            "Thread started",
+            "After spawn",
+            "After sleep 1",
+            "After sleep 2",
+            "Thread done",
+            "Got result: result",
+        ],
     ]
 
 
