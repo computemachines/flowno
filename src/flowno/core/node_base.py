@@ -881,6 +881,19 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
 
     # Loop until data is ready (original while loop from Stream.__anext__)
     while cmp_generation(get_clipped_stitched_gen(), state.last_consumed_generation) <= 0:
+        # Check if parent generation changed (stream complete/restarted) BEFORE stalling
+        # This prevents stalling when the stream has already completed
+        current_parent_gen = parent_generation(stream.output.node.generation)
+        if (state.last_consumed_generation is not None
+            and current_parent_gen != state.last_consumed_parent_generation):
+            logger.debug(
+                f"Parent generation changed from {state.last_consumed_parent_generation} "
+                f"to {current_parent_gen}, stream complete"
+            )
+            logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
+            get_current_flow_instrument().on_stream_end(stream)
+            raise StopAsyncIteration
+
         logger.debug(
             f"{stream.output.node}'s generation, "
             f"when clipped/stitched {get_clipped_stitched_gen()}, "
@@ -891,6 +904,7 @@ def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | A
     logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
 
     # Check if parent generation changed (stream complete/restarted)
+    # This check also happens here for the case where data IS ready but parent changed
     current_parent_gen = parent_generation(stream.output.node.generation)
     if (state.last_consumed_generation is not None
         and current_parent_gen != state.last_consumed_parent_generation):
