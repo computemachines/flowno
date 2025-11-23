@@ -245,3 +245,35 @@ async def azip(*args: Unpack[tuple[AsyncIterator[object], ...]]) -> AsyncGenerat
             except StopAsyncIteration:
                 return
         yield tuple(ret)
+
+
+async def spawn_in_thread(func, *args, **kwargs):
+    """
+    Execute a blocking function in a separate thread.
+
+    This allows blocking operations (like time.sleep, synchronous I/O, or CPU-intensive
+    work) to run without blocking the event loop. The function runs in a separate OS thread
+    and the result is awaited from the main event loop.
+
+    Args:
+        func: A callable (regular function, not a coroutine) to execute in the thread
+        *args: Positional arguments to pass to func
+        **kwargs: Keyword arguments to pass to func
+
+    Returns:
+        The return value of func
+
+    Raises:
+        Any exception raised by func
+
+    Example:
+        >>> import time
+        >>> def blocking_work(x):
+        ...     time.sleep(1)  # This won't block the event loop
+        ...     return x * 2
+        >>>
+        >>> async def main():
+        ...     result = await spawn_in_thread(blocking_work, 21)
+        ...     print(result)  # 42
+    """
+    raise NotImplementedError("spawn_in_thread is not yet implemented")
