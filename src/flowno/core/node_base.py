@@ -324,6 +324,32 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
             InputPortIndex(port_index),
         )
 
+    def if_(
+        self, condition: "DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]] | DraftOutputPortRef[object]"
+    ) -> "DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]":
+        """Conditionally propagate this node's output based on a boolean condition.
+
+        This is a convenience method that creates a PropagateIf node wrapping this node.
+        When the condition is True, this node's value is propagated. When False, downstream
+        nodes skip execution.
+
+        Args:
+            condition: A node or node output that produces a boolean value
+
+        Returns:
+            A PropagateIf node that conditionally propagates this node's output
+
+        Example:
+            >>> with FlowHDL() as f:
+            ...     f.enabled = BooleanSource(True)
+            ...     f.value = IntSource(42)
+            ...     f.result = f.value.if_(f.enabled)  # Equivalent to PropagateIf(f.enabled, f.value)
+        """
+        # Import here to avoid circular dependency
+        from flowno.conditional import PropagateIf
+
+        return PropagateIf(condition, self)
+
     @abstractmethod
     def call(
         self, *args: Unpack[_Ts]
@@ -426,6 +452,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         self._barrier1 = CountdownLatch(0)
 
         self._data = dict()
+        self._skipped_generations: set[DataGeneration] = set()
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -570,6 +597,26 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
 
         logger.debug(f"{self}.data[{new_generation}] = {repr(data)}")
         self._data[tuple(new_generation)] = data
+
+    def mark_skipped(self, generation: DataGeneration) -> None:
+        """Mark a specific generation as skipped due to conditional execution.
+
+        Args:
+            generation: The generation to mark as skipped
+        """
+        self._skipped_generations.add(generation)
+        logger.debug(f"{self} marked generation {generation} as skipped")
+
+    def is_skipped(self, generation: DataGeneration) -> bool:
+        """Check if a specific generation was skipped.
+
+        Args:
+            generation: The generation to check
+
+        Returns:
+            True if the generation was skipped, False otherwise
+        """
+        return generation in self._skipped_generations
 
     def _get_maximum_input_generation(self) -> Generation:
         """Return the highest generation of the connected inputs using
