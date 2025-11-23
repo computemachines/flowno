@@ -16,7 +16,8 @@ def test_spawn_in_thread_basic():
         return x * 2
 
     async def main():
-        result = await spawn_in_thread(blocking_work, 21)
+        handle = await spawn_in_thread(blocking_work, 21)
+        result = await handle.join()
         assert result == 42
 
     actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
@@ -59,8 +60,9 @@ def test_spawn_in_thread_with_exception():
         raise ValueError("Thread error!")
 
     async def main():
+        handle = await spawn_in_thread(failing_work)
         try:
-            await spawn_in_thread(failing_work)
+            result = await handle.join()
             assert False, "Should have raised ValueError"
         except ValueError as e:
             assert str(e) == "Thread error!"
@@ -77,7 +79,8 @@ def test_spawn_in_thread_with_kwargs():
         return a + b + c + d
 
     async def main():
-        result = await spawn_in_thread(work_with_kwargs, 1, 2, c=3, d=4)
+        handle = await spawn_in_thread(work_with_kwargs, 1, 2, c=3, d=4)
+        result = await handle.join()
         assert result == 10
 
     actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
@@ -180,7 +183,8 @@ def test_spawn_in_thread_no_args():
         return 42
 
     async def main():
-        result = await spawn_in_thread(simple_work)
+        handle = await spawn_in_thread(simple_work)
+        result = await handle.join()
         assert result == 42
 
     actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
@@ -198,7 +202,8 @@ def test_spawn_in_thread_return_none():
         time.sleep(0.05)
 
     async def main():
-        result = await spawn_in_thread(work_no_return)
+        handle = await spawn_in_thread(work_no_return)
+        result = await handle.join()
         assert result is None
         assert executed == [True]
 
