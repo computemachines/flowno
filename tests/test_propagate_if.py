@@ -1,7 +1,9 @@
-"""Tests for conditional execution with PropagateIf node."""
+"""Tests for conditional execution with PropagateIf and PropagateStreamIf nodes."""
+
+from collections.abc import AsyncGenerator
 
 import pytest
-from flowno import FlowHDL, node, PropagateIf, SKIP, TerminateLimitReached
+from flowno import FlowHDL, node, PropagateIf, PropagateStreamIf, SKIP, Stream, TerminateLimitReached
 
 
 @node
@@ -347,6 +349,151 @@ def test_if_method_syntax_equivalence():
     # Both should produce the same result
     assert result1 == result2, f".if_() method should be equivalent to PropagateIf()"
     assert result1 == (123,), f"Expected (123,), got {result1}"
+
+
+# PropagateStreamIf Tests
+
+
+@node
+async def StreamNumbers() -> AsyncGenerator[int, None]:
+    """Stream numbers 0-4 and return their sum."""
+    for i in range(5):
+        yield i
+    raise StopAsyncIteration(sum(range(5)))
+
+
+@node(stream_in=["numbers"])
+async def CollectNumbers(numbers: Stream[int]) -> list[int]:
+    """Collect all streamed numbers into a list."""
+    result = []
+    async for num in numbers:
+        result.append(num)
+    return result
+
+
+@node(stream_in=["numbers"])
+async def SumNumbers(numbers: Stream[int]) -> int:
+    """Sum all streamed numbers."""
+    total = 0
+    async for num in numbers:
+        total += num
+    return total
+
+
+def test_propagate_stream_if_true():
+    """Test PropagateStreamIf with condition=True propagates the stream."""
+    with FlowHDL() as f:
+        f.condition = BooleanSource(True)
+        f.stream = StreamNumbers()
+        f.gated = PropagateStreamIf(f.condition, f.stream)
+        f.collected = CollectNumbers(f.gated)
+
+    f.run_until_complete()
+
+    # Stream should be propagated
+    result = f.collected.get_data()
+    assert result == ([0, 1, 2, 3, 4],), f"Expected ([0, 1, 2, 3, 4],), got {result}"
+
+
+def test_propagate_stream_if_false():
+    """Test PropagateStreamIf with condition=False yields SKIP for all items."""
+    with FlowHDL() as f:
+        f.condition = BooleanSource(False)
+        f.stream = StreamNumbers()
+        f.gated = PropagateStreamIf(f.condition, f.stream)
+        f.collected = CollectNumbers(f.gated)
+
+    f.run_until_complete()
+
+    # Should collect SKIP for each item
+    result = f.collected.get_data()
+    assert result == ([SKIP, SKIP, SKIP, SKIP, SKIP],), f"Expected list of SKIPs, got {result}"
+
+
+def test_propagate_stream_if_false_final_value():
+    """Test PropagateStreamIf returns SKIP as final value when condition is False."""
+
+    @node
+    async def ConsumeFinal(value: int) -> int:
+        """Consume the final value from a stream."""
+        return value
+
+    with FlowHDL() as f:
+        f.condition = BooleanSource(False)
+        f.stream = StreamNumbers()
+        f.gated = PropagateStreamIf(f.condition, f.stream)
+        f.final = ConsumeFinal(f.gated)  # Consumer reads run_level 0 data
+
+    f.run_until_complete()
+
+    # Final value (run_level=0) should be SKIP
+    final_value = f.final.get_data()
+    assert final_value == (SKIP,), f"Expected (SKIP,), got {final_value}"
+    assert f.final.is_skipped((0,)), "Final consumer should be marked as skipped"
+
+
+def test_propagate_stream_if_downstream_skip():
+    """Test that downstream streaming nodes skip when receiving SKIP stream."""
+    call_count = [0]
+
+    @node(stream_in=["numbers"])
+    async def TrackingSumNumbers(numbers: Stream[int]) -> int:
+        """Sum numbers and track if called."""
+        call_count[0] += 1
+        total = 0
+        async for num in numbers:
+            if num is not SKIP:
+                total += num
+        return total
+
+    with FlowHDL() as f:
+        f.condition = BooleanSource(False)
+        f.stream = StreamNumbers()
+        f.gated = PropagateStreamIf(f.condition, f.stream)
+        f.sum = TrackingSumNumbers(f.gated)
+
+    f.run_until_complete()
+
+    # TrackingSumNumbers should still be called (it processes the SKIP stream)
+    # but it should receive SKIPs
+    assert call_count[0] == 1, "Downstream node should be called once"
+
+    # The sum should be 0 since all items were SKIP
+    result = f.sum.get_data()
+    assert result == (0,), f"Expected (0,), got {result}"
+
+
+def test_propagate_stream_if_true_preserves_values():
+    """Test PropagateStreamIf preserves stream values when condition is True."""
+    with FlowHDL() as f:
+        f.condition = BooleanSource(True)
+        f.stream = StreamNumbers()
+        f.gated = PropagateStreamIf(f.condition, f.stream)
+        f.sum = SumNumbers(f.gated)
+
+    f.run_until_complete()
+
+    # Sum should be 0+1+2+3+4 = 10
+    result = f.sum.get_data()
+    assert result == (10,), f"Expected (10,), got {result}"
+
+
+def test_propagate_stream_if_multiple_conditions():
+    """Test cascading PropagateStreamIf nodes."""
+    with FlowHDL() as f:
+        f.cond1 = BooleanSource(True)
+        f.cond2 = BooleanSource(False)
+        f.stream = StreamNumbers()
+        f.gate1 = PropagateStreamIf(f.cond1, f.stream)
+        f.gate2 = PropagateStreamIf(f.cond2, f.gate1)
+        f.collected = CollectNumbers(f.gate2)
+
+    f.run_until_complete()
+
+    # gate1 should pass through [0,1,2,3,4]
+    # gate2 should convert to [SKIP, SKIP, SKIP, SKIP, SKIP]
+    result = f.collected.get_data()
+    assert result == ([SKIP, SKIP, SKIP, SKIP, SKIP],), f"Expected list of SKIPs, got {result}"
 
 
 if __name__ == "__main__":

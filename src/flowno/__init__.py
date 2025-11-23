@@ -35,7 +35,7 @@ from .core.node_base import DraftNode, Stream, StreamCancelled
 from .core.group_node import DraftGroupNode
 from .core.types import SKIP
 from .decorators import node
-from .conditional import PropagateIf
+from .conditional import PropagateIf, PropagateStreamIf
 
 try:
     __version__ = version("flowno")
@@ -145,4 +145,5 @@ __all__ = [
     "current_context",
     "SKIP",
     "PropagateIf",
+    "PropagateStreamIf",
 ]
