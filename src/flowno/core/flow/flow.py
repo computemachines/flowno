@@ -708,13 +708,37 @@ class Flow:
         Args:
             out_node: The node whose dependents should be enqueued
         """
-        output_nodes = out_node.get_output_nodes()
-
         if not self.resolution_queue.closed:
-            for out_node in output_nodes:
-                get_current_flow_instrument().on_resolution_queue_put(self, out_node)
+            nodes_to_enqueue = []
+            all_output_nodes = out_node.get_output_nodes()
 
-            await self.resolution_queue.putAll(output_nodes)
+            for output_node in all_output_nodes:
+                # Check if this output node has a streaming connection (minimum_run_level=1) to out_node
+                is_streaming_consumer = False
+                for input_port in output_node._input_ports.values():
+                    if (input_port.connected_output is not None and
+                        input_port.connected_output.node is out_node and
+                        input_port.minimum_run_level == 1):
+                        is_streaming_consumer = True
+                        break
+
+                # For streaming consumers: skip if they're in Ready status and at same/higher generation
+                # This prevents restarting completed streaming consumers when source completes
+                if is_streaming_consumer and output_node in self.node_tasks:
+                    status = self.node_tasks[output_node].status
+                    if isinstance(status, NodeTaskStatus.Ready):
+                        if (output_node.generation is not None and
+                            out_node.generation is not None and
+                            len(output_node.generation) == len(out_node.generation)):
+                            from ..node_base import cmp_generation
+                            if cmp_generation(output_node.generation, out_node.generation) >= 0:
+                                logger.debug(f"Skipping enqueue of streaming consumer {output_node} (gen={output_node.generation}) - at same/higher generation as {out_node} (gen={out_node.generation})")
+                                continue
+
+                nodes_to_enqueue.append(output_node)
+                get_current_flow_instrument().on_resolution_queue_put(self, output_node)
+
+            await self.resolution_queue.putAll(nodes_to_enqueue)
 
     async def _enqueue_node(
         self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
@@ -872,7 +896,8 @@ class Flow:
             FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
         ] = []
         for supernode in self._find_leaf_supernodes(supernode_root):
-            nodes_to_force_evaluate.append(self._pick_node_to_force_evaluate(supernode))
+            selected_node = self._pick_node_to_force_evaluate(supernode)
+            nodes_to_force_evaluate.append(selected_node)
 
         return nodes_to_force_evaluate
 
