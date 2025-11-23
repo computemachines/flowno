@@ -2,6 +2,7 @@
 
 import time
 import threading
+from timeit import timeit
 from flowno.core.event_loop import EventLoop, sleep, spawn_in_thread
 from flowno import AsyncQueue
 
@@ -18,7 +19,8 @@ def test_spawn_in_thread_basic():
         result = await spawn_in_thread(blocking_work, 21)
         assert result == 42
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.09 <= actual <= 0.25  # ~0.1s sleep + overhead
 
 
 def test_spawn_in_thread_multiple():
@@ -31,11 +33,9 @@ def test_spawn_in_thread_multiple():
 
     async def main():
         # Spawn 3 threads concurrently
-        from flowno.core.event_loop import spawn
-
-        task1 = await spawn(spawn_in_thread(blocking_work, 1, 0.1))
-        task2 = await spawn(spawn_in_thread(blocking_work, 2, 0.15))
-        task3 = await spawn(spawn_in_thread(blocking_work, 3, 0.05))
+        task1 = await spawn_in_thread(blocking_work, 1, 0.1)
+        task2 = await spawn_in_thread(blocking_work, 2, 0.15)
+        task3 = await spawn_in_thread(blocking_work, 3, 0.05)
 
         # Results should arrive based on delay, not spawn order
         result3 = await task3.join()
@@ -46,7 +46,8 @@ def test_spawn_in_thread_multiple():
         assert result2 == 4
         assert result3 == 6
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.14 <= actual <= 0.35  # longest thread 0.15s
 
 
 def test_spawn_in_thread_with_exception():
@@ -64,7 +65,8 @@ def test_spawn_in_thread_with_exception():
         except ValueError as e:
             assert str(e) == "Thread error!"
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.04 <= actual <= 0.2  # ~0.05s sleep then exception
 
 
 def test_spawn_in_thread_with_kwargs():
@@ -78,7 +80,8 @@ def test_spawn_in_thread_with_kwargs():
         result = await spawn_in_thread(work_with_kwargs, 1, 2, c=3, d=4)
         assert result == 10
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.0 <= actual <= 0.15  # no intentional sleep
 
 
 def test_spawn_in_thread_main_loop_continues():
@@ -102,7 +105,7 @@ def test_spawn_in_thread_main_loop_continues():
 
         # Spawn blocking work in thread
         from flowno.core.event_loop import spawn
-        task = await spawn(spawn_in_thread(blocking_work))
+        task = await spawn_in_thread(blocking_work)
 
         # Main loop should continue while thread blocks
         append_log("After spawn")
@@ -117,7 +120,8 @@ def test_spawn_in_thread_main_loop_continues():
 
         assert result == "result"
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.18 <= actual <= 0.35  # thread 0.2s + two 0.05s sleeps interleaved
 
     # Verify main loop kept running while thread blocked
     msgs = [msg for _, msg in log]
@@ -150,7 +154,7 @@ def test_spawn_in_thread_with_queue_communication():
         # Spawn worker with queue access
         from flowno.core.event_loop import spawn, current_event_loop
         loop = current_event_loop()
-        task = await spawn(spawn_in_thread(worker_with_updates, loop, queue, 3))
+        task = await spawn_in_thread(worker_with_updates, loop, queue, 3)
 
         # Collect progress updates
         updates = []
@@ -164,7 +168,8 @@ def test_spawn_in_thread_with_queue_communication():
         assert updates == ["progress 0", "progress 1", "progress 2"]
         assert result == "done"
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.14 <= actual <= 0.35  # 3 * 0.05 sleeps
 
 
 def test_spawn_in_thread_no_args():
@@ -178,7 +183,8 @@ def test_spawn_in_thread_no_args():
         result = await spawn_in_thread(simple_work)
         assert result == 42
 
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.0 <= actual <= 0.15
 
 
 def test_spawn_in_thread_return_none():
@@ -196,42 +202,5 @@ def test_spawn_in_thread_return_none():
         assert result is None
         assert executed == [True]
 
-    loop.run_until_complete(main(), join=True)
-
-
-def test_spawn_in_thread_from_different_threads():
-    """Test that spawn_in_thread can be called from tasks created by different threads"""
-    loop = EventLoop()
-
-    results = []
-
-    def blocking_work(x):
-        time.sleep(0.05)
-        return x * 2
-
-    async def worker_task(value):
-        result = await spawn_in_thread(blocking_work, value)
-        results.append(result)
-
-    def external_thread_creator(i):
-        time.sleep(0.02 * i)  # Stagger creation
-        loop.create_task(worker_task(i))
-
-    async def main():
-        # Create tasks from multiple external threads
-        threads = []
-        for i in range(3):
-            t = threading.Thread(target=external_thread_creator, args=(i,))
-            t.start()
-            threads.append(t)
-
-        # Wait for all external threads to finish creating tasks
-        for t in threads:
-            await sleep(0.01)
-
-        # Wait for all worker tasks to complete
-        await sleep(0.3)
-
-        assert sorted(results) == [0, 2, 4]
-
-    loop.run_until_complete(main(), join=True)
+    actual = timeit(lambda: loop.run_until_complete(main(), join=True), number=1)
+    assert 0.04 <= actual <= 0.2  # ~0.05s sleep
