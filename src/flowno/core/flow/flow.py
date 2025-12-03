@@ -31,7 +31,6 @@ from flowno.core.node_base import (
     FinalizedNode,
     MissingDefaultError,
     NodeContextFactoryProtocol,
-    StalledNodeRequestCommand,
     Stream,
     StreamGetCommand,
     SuperNode,
@@ -1132,17 +1131,6 @@ class FlowEventLoop(EventLoop):
                 # just schedule the current task again
                 self.tasks.append((current_task, None, None))
 
-        elif isinstance(command, StalledNodeRequestCommand):
-            stalled_input = command.stalled_input
-            stalling_node = command.stalling_node
-            self.flow.set_node_status(
-                stalled_input.node, NodeTaskStatus.Stalled(stalled_input)
-            )
-            get_current_flow_instrument().on_node_stalled(
-                self.flow, stalling_node, stalled_input
-            )
-            self.tasks.insert(0, (self.flow._enqueue_node(stalling_node), None, None))
-
         elif isinstance(command, StreamGetCommand):
             logger.debug(f"StreamGetCommand handler ENTERED for stream {command.stream}")
             stream = command.stream
@@ -1218,11 +1206,14 @@ class FlowEventLoop(EventLoop):
             logger.debug(f"Stream {stream} returning {repr(data)}")
             logger.info(f"Stream {stream} consumed data {repr(data)}", extra={"tag": "flow"})
 
+            # Count down the barrier after consuming data (allows producer to continue)
+            with get_current_flow_instrument().on_barrier_node_read(producer_node, 1):
+                self.tasks.insert(0, (producer_node._barrier1.count_down(exception_if_zero=True), None, None))
+
             # Instrumentation
             get_current_flow_instrument().on_stream_next(stream, data)
 
             # Resume consumer task with the data
-            # Note: The consumer (_stream_get) will handle barrier countdown after receiving data
             logger.debug(f"StreamGetCommand handler: resuming consumer with data={data!r}")
             self.tasks.append((current_task, data, None))
             return True
