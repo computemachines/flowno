@@ -103,7 +103,7 @@ def inc_generation(gen: tuple[int, ...] | None, run_level: int = 0) -> tuple[int
         >>> inc_generation((0,), 0)
         (1,)        # Increment run level 0
         >>> inc_generation((1,), 1)
-        (1, 0)      # First generation at run level 1
+        (2, 0)      # Must increment main gen since (1, 0) < (1,)
         >>> inc_generation((1, 0), 1)
         (1, 1)      # Increment run level 1
         >>> inc_generation((0, 0), 2)
