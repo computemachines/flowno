@@ -512,84 +512,125 @@ async def __anext__(self):
     return await self._stream_get()
 ```
 
-### 4e. Stream._stream_get() execution
+### 4e. Stream._stream_get() execution (SIMPLIFIED IN CURRENT CODE)
+
+**NOTE**: The old implementation (pre-simplification) had all stream logic inside `_stream_get()`.
+That implementation included: state tracking, generation comparisons, stalling logic, barrier countdown,
+and stream completion detection. **This was deemed too complex and has been removed.**
+
+**Current (Simplified) Implementation**:
 
 ```python
-# From node_base.py:849-941
-async def _stream_get(self):
-    stream = self  # Stream(B.input(0), A.output(0))
+# From node_base.py:827-832 (CURRENT - SIMPLIFIED)
+@coroutine
+def _stream_get(stream: "Stream[_T]") -> Generator[StreamGetCommand[_T], _T | None, _T]:
+    """Get the next value from a stream by deferring to the event loop."""
 
-    # Get or create consumer state
-    state_key = (stream.input.node, stream.input.port_index)
-    state = flow._stream_consumer_state.get(state_key)
-    if state is None:
-        state = StreamConsumerState(
-            last_consumed_generation=None,
-            last_consumed_parent_generation=None,
-            cancelled=False
-        )
-        flow._stream_consumer_state[state_key] = state
+    logger.debug(f"_stream_get({stream}) called", extra={"tag": "flow"})
+    return (yield StreamGetCommand(stream=stream, consumer_node=stream.input.node))
+```
+
+When B calls `await input_stream.__anext__()`, it eventually calls `_stream_get()` which:
+1. Creates a `StreamGetCommand`
+2. **Yields it to the event loop** (delegates everything to FlowEventLoop)
+3. Waits to be resumed with data
+
+The event loop receives this command and handles it in `FlowEventLoop._handle_command()`:
+
+```python
+# From flow.py:1134-1219 (StreamGetCommand handler)
+elif isinstance(command, StreamGetCommand):
+    stream = command.stream  # Stream(B.input(0), A.output(0))
+    consumer_node = command.consumer_node  # B
+    current_task = current_task_packet[0]  # B's task
+```
+
+#### Get or create stream consumer state
+
+```python
+# From flow.py:1141-1144
+if stream not in self.flow._stream_consumer_state:
+    self.flow._stream_consumer_state[stream] = StreamConsumerState()
+
+state = self.flow._stream_consumer_state[stream]
 ```
 
 **STATE**:
 ```python
 state.last_consumed_generation = None
 state.last_consumed_parent_generation = None
+state.cancelled = False
 ```
 
-Check if data is ready:
+**Key difference from old code**: State is now keyed by Stream object directly, not (node, port_index) tuple.
+
+#### Check if stream is cancelled
 
 ```python
-# From node_base.py:876-880
-def get_clipped_stitched_gen():
-    stitch_0 = stream.input.node._input_ports[stream.input.port_index].stitch_level_0
-    # B._input_ports[0].stitch_level_0 = 0
+# From flow.py:1147-1151
+producer_node = stream.output.node  # A
+if stream in self.flow._cancelled_streams.get(producer_node, set()):
+    # Not cancelled in this case
+    pass
+```
 
-    return clip_generation(
-        stitched_generation(stream.output.node.generation, stitch_0),
-        run_level=stream.run_level
-    )
-    # stitched_generation(A.generation=(0,0), stitch=0) = (0, 0)
-    # clip_generation((0, 0), run_level=1) = (0, 0)
+#### Calculate clipped stitched generation
+
+```python
+# From flow.py:1154-1158
+stitch_0 = stream.input.node._input_ports[stream.input.port_index].stitch_level_0
+# B._input_ports[0].stitch_level_0 = 0
+
+clipped_stitched_gen = clip_generation(
+    stitched_generation(stream.output.node.generation, stitch_0),
+    run_level=stream.run_level
+)
+# stitched_generation(A.generation=(0,0), stitch=0) = (0, 0)
+# clip_generation((0, 0), run_level=1) = (0, 0)
 ```
 
 **Result**: clipped_stitched_gen = (0, 0)
 
-Check against last consumed:
+#### Check if data is ready
 
 ```python
-# From node_base.py:883-900
-while cmp_generation(get_clipped_stitched_gen(), state.last_consumed_generation) <= 0:
+# From flow.py:1162-1178
+if cmp_generation(clipped_stitched_gen, state.last_consumed_generation) <= 0:
     # cmp_generation((0, 0), None) = 1 (greater than None)
-    # 1 <= 0 is FALSE
-    # SKIP THE WHILE LOOP
+    # 1 <= 0 is FALSE - data IS ready!
+    # SKIP THIS BLOCK
 ```
 
-Data IS ready! Continue:
+**Old implementation note**: The old code had a `while` loop here that would stall and yield `StalledNodeRequestCommand`.
+**This has been removed** - now it's a single `if` check that either stalls immediately or continues.
+
+Data IS ready, so we skip the stalling block and continue:
+
+#### Check if parent generation changed (stream complete)
 
 ```python
-# From node_base.py:902-923
-# Check if stream completed
+# From flow.py:1182-1195
 current_parent_gen = parent_generation(stream.output.node.generation)
-# parent_generation((0, 0)) = (0,)  # From helpers.py:211-221
+# parent_generation((0, 0)) = (0,)
 
 if (state.last_consumed_generation is not None and
     current_parent_gen != state.last_consumed_parent_generation):
     # state.last_consumed_generation = None, so condition FALSE
-    # Stream not complete yet
+    # Stream not complete yet - continue
 ```
 
-Read the data:
+#### Update state and read data
 
 ```python
-# From node_base.py:924-929
-# Update state
-state.last_consumed_generation = get_clipped_stitched_gen()  # (0, 0)
+# From flow.py:1197-1204
+state.last_consumed_generation = clipped_stitched_gen  # (0, 0)
 state.last_consumed_parent_generation = current_parent_gen  # (0,)
 
-# Extract data
-input_port_index = stream.input.port_index  # 0
-data = stream.output.node._data.get((0, 0))  # ("value_0_0",)
+# Get the data
+data_tuple = stream.output.node.get_data(run_level=stream.run_level)
+# A._data[(0, 0)] = ("value_0_0",)
+assert data_tuple is not None
+data = data_tuple[stream.output.port_index]  # "value_0_0"
 ```
 
 **STATE UPDATE**:
@@ -598,25 +639,32 @@ state.last_consumed_generation = (0, 0)
 state.last_consumed_parent_generation = (0,)
 ```
 
-Count down barrier:
+#### Count down barrier (NEW LOCATION)
 
 ```python
-# From node_base.py:931-936
-with get_current_flow_instrument().on_barrier_node_read(stream.output.node, 1):
-    yield from stream.output.node._barrier1.count_down(exception_if_zero=True)
+# From flow.py:1209-1211
+with get_current_flow_instrument().on_barrier_node_read(producer_node, 1):
+    self.tasks.insert(0, (producer_node._barrier1.count_down(exception_if_zero=True), None, None))
 ```
+
+**Key difference from old code**: Barrier countdown is now done **directly by the event loop**, not by yielding
+from the coroutine. The old code had `yield from stream.output.node._barrier1.count_down()`. Now the event
+loop inserts the countdown coroutine as a task.
 
 **This unblocks A!** A was waiting at barrier1.wait(), now count goes 1 → 0, A can continue.
 
-Return data:
+#### Resume consumer with data
 
 ```python
-# From node_base.py:938-940
-logger.info(f"Stream {stream} consumed data {data}")
-yield data[stream.output.port_index]  # Return actual value
+# From flow.py:1216-1218
+# Resume consumer task with the data
+self.tasks.append((current_task, data, None))
+return True
 ```
 
-**Result**: B receives "value_0_0"
+The event loop appends B's task back to the task queue, this time with `data="value_0_0"` to be sent into the coroutine.
+
+**Result**: B's `await input_stream.__anext__()` completes and receives "value_0_0"
 
 ### 4f. B completes and returns
 
@@ -733,26 +781,24 @@ Enqueue output nodes again:
 await self._enqueue_output_nodes(node)  # Add B
 ```
 
-**But wait!** This is where the skip logic matters. Let's check:
+**But wait!** This is where the skip logic used to matter (now simplified). Let's check:
 
 ```python
-# From flow.py:715-742 (with our circular dependency fix)
+# CURRENT SIMPLIFIED CODE (flow.py:702-721)
 for output_node in all_output_nodes:  # [B]
-    # Check if streaming consumer
-    is_streaming_consumer = True  # B consumes A's stream
-
-    # Check circular dependency
-    is_circular = True  # A has B as input
-
-    # Skip logic
-    if is_streaming_consumer and output_node in self.node_tasks and not is_circular:
-        # not is_circular = False, so SKIP THIS BLOCK
-
-    # Enqueue B
-    nodes_to_enqueue.append(B)
+    # TODO: Add skip logic for streaming consumers
+    nodes_to_enqueue.append(output_node)
 ```
 
-**Result**: B gets enqueued (because it's circular)
+**HISTORICAL CONTEXT**: The old implementation had complex skip logic here (lines 725-736 in previous version):
+- Checked if output_node is a streaming consumer
+- Checked generation comparisons: `output_node.generation >= source_node.generation`
+- If conditions met, skipped enqueueing the node
+- This logic was deemed too complex and removed
+
+**CURRENT BEHAVIOR**: All output nodes are always enqueued (simple approach)
+
+**Result**: B gets enqueued
 
 But B is currently in the middle of processing! What happens?
 
@@ -792,29 +838,46 @@ stitched_generation(None, 1) = (0,)  # Special case from helpers.py:253
 
 This makes B look like it has generation (0,) even though it's actually None. This prevents A from re-requesting B immediately.
 
-### The Problem with Current Skip Logic
+### The Simplified Enqueue Logic (Current State)
 
-When checking whether to enqueue B after A produces streaming data:
+**CURRENT IMPLEMENTATION** (flow.py:702-721):
 
 ```python
+for output_node in all_output_nodes:
+    # TODO: Add skip logic for streaming consumers
+    nodes_to_enqueue.append(output_node)
+```
+
+All output nodes are always enqueued. No skip logic.
+
+**HISTORICAL CONTEXT - The Problem with Old Skip Logic**:
+
+The previous implementation checked whether to enqueue B after A produces streaming data:
+
+```python
+# OLD CODE (now removed)
 if cmp_generation(B.generation, A.generation) >= 0:
     skip_enqueue()
 ```
 
-This compares **node generations**, not **consumption state**.
+This compared **node generations**, not **consumption state**.
 
 After A cancels stream and returns new value:
 - A advances to gen=(1,)
 - B completes at gen=(0,)
 - Skip logic sees B.gen=(0,) < A.gen=(1,), so tries to enqueue
-- But then what? Does B need A's new data?
+- But deadlock could occur in certain circular dependency scenarios
 
-The check should be:
+**BETTER APPROACH (for future implementation)**:
+
+Check per-edge consumption state instead of node generations:
 
 ```python
-stream_state = flow._stream_consumer_state.get((B, port_from_A))
-if stream_state.last_consumed_generation >= A.generation:
-    skip_enqueue()  # B has already consumed A's latest
+stream_state = flow._stream_consumer_state.get(stream_object)
+if stream_state.last_consumed_generation >= producer_node.generation:
+    skip_enqueue()  # Consumer has already consumed producer's latest
 ```
 
-This directly checks: "Has B consumed A's current data?" instead of comparing node generations.
+This directly checks: "Has the consumer consumed the producer's current data?" instead of comparing node generations.
+
+Note: The system already tracks per-stream consumption state in `_stream_consumer_state` (keyed by Stream object), which is updated in the `StreamGetCommand` handler (flow.py:1197-1204).
