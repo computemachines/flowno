@@ -722,9 +722,18 @@ class Flow:
                         is_streaming_consumer = True
                         break
 
+                # Check if there's a circular dependency (output_node depends on out_node AND out_node depends on output_node)
+                # We check if out_node has output_node as an input by examining input ports
+                is_circular = False
+                for input_port in out_node._input_ports.values():
+                    if (input_port.connected_output is not None and
+                        input_port.connected_output.node is output_node):
+                        is_circular = True
+                        break
+
                 # For streaming consumers: skip if they're in Ready status and at same/higher generation
-                # This prevents restarting completed streaming consumers when source completes
-                if is_streaming_consumer and output_node in self.node_tasks:
+                # UNLESS there's a circular dependency (which needs continuous re-enqueueing to advance)
+                if is_streaming_consumer and output_node in self.node_tasks and not is_circular:
                     status = self.node_tasks[output_node].status
                     if isinstance(status, NodeTaskStatus.Ready):
                         if (output_node.generation is not None and
@@ -732,7 +741,7 @@ class Flow:
                             len(output_node.generation) == len(out_node.generation)):
                             from ..node_base import cmp_generation
                             if cmp_generation(output_node.generation, out_node.generation) >= 0:
-                                logger.debug(f"Skipping enqueue of streaming consumer {output_node} (gen={output_node.generation}) - at same/higher generation as {out_node} (gen={out_node.generation})")
+                                logger.debug(f"Skipping enqueue of streaming consumer {output_node} (gen={output_node.generation}) - at same/higher generation than {out_node} (gen={out_node.generation})")
                                 continue
 
                 nodes_to_enqueue.append(output_node)
