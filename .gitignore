@@ -12,3 +12,10 @@ dist/
 *.egg-info/
 /docs/generated/
 /docs/source/**/_autosummary/
+*.aux
+*.log
+*.tex
+*_results.txt
+*.out
+*.toc
+states/
