@@ -1,4 +1,4 @@
------------------------- MODULE EventLoopTestWrapper ------------------------
+------------------------ MODULE EventLoopEx ------------------------
 EXTENDS Naturals
 
 CONSTANT MaxTaskId

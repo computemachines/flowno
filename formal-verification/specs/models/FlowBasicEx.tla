@@ -1,4 +1,4 @@
----------------------------- MODULE FlowSpec ----------------------------
+---------------------------- MODULE FlowBasicEx ----------------------------
 EXTENDS Naturals
 
 CONSTANTS Nodes, Edges, BreakEdge
