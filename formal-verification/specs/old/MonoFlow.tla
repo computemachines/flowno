@@ -3,8 +3,8 @@
  * MonoFlow: Dataflow graph execution without streaming.
  * 
  * This spec models a simplified version of Flowno's dataflow execution:
- *   - Nodes are pure functions that read inputs and produce outputs
- *   - Nodes run to completion (no partial results, no stalling)
+ *   - Nodes are pure (async) functions that read inputs and produce outputs
+ *   - Nodes run to completion (no partial results, no stalling on nonready inputs, only on async ops)
  *   - Generations track which output version is current
  *   - Resolution determines which nodes to evaluate when outputs are stale
  * 
