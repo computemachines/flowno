@@ -865,6 +865,8 @@ class Flow:
 
                 for leaf_node in solution_nodes:
                     self._mark_node_as_visited(leaf_node)
+                    if leaf_node in self.resolution_queue:
+                        continue
                     await _resume_node(leaf_node)
 
         # self.event_loop.clean_up()
