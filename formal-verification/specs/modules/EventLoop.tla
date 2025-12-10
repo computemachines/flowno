@@ -7,6 +7,10 @@
  *   AsyncQueue.get()  → YieldGet, blocks if empty, wakes when item available
  *   AsyncQueue.put()  → YieldPut, blocks if full, wakes when space available  
  *   AsyncQueue.close() → CloseQueue, wakes all waiters with exception
+ *
+ * Note: This module is incomplete for direct model checking because MaxQueueSize
+ * is an operator parameter. To run TLC, create a new module that EXTENDS EventLoop
+ * and defines MaxQueueSize(q).
  *   
  * Queue model:
  *   - Queues are identified by natural numbers 0..MaxQueueId
@@ -16,7 +20,7 @@
 EXTENDS EventLoopBasic
 
 CONSTANT MaxQueueId   \* Bounds state space: queues are 0..MaxQueueId
-CONSTANT MaxQueueSize \* Max items per queue (for bounded queues)
+CONSTANT MaxQueueSize(_) \* Max items per queue (for bounded queues)
 
 Queues == 0..MaxQueueId
 
@@ -93,8 +97,8 @@ TypeOKFull ==
         [state: {WaitingGet}, queue: Queues] \cup
         [state: {WaitingPut}, queue: Queues]]
     /\ joinWaiters \in [Tasks -> SUBSET Tasks]
-    /\ queueItems \in [Queues -> 0..MaxQueueSize]
-    /\ queueMaxSize \in [Queues -> 0..MaxQueueSize]  \* 0 = unbounded
+    /\ queueItems \in [Queues -> Nat]
+    /\ queueMaxSize \in [Queues -> Nat]  \* 0 = unbounded
     /\ queueClosed \in [Queues -> BOOLEAN]
     /\ getWaiters \in [Queues -> SUBSET Tasks]
     /\ putWaiters \in [Queues -> SUBSET Tasks]
@@ -104,7 +108,7 @@ TypeOKFull ==
 InitExt ==
     /\ Init  \* Base initial state
     /\ queueItems = [q \in Queues |-> 0]
-    /\ queueMaxSize = [q \in Queues |-> MaxQueueSize]  \* All bounded by default
+    /\ queueMaxSize = [q \in Queues |-> MaxQueueSize(q)]  \* All bounded by default
     /\ queueClosed = [q \in Queues |-> FALSE]
     /\ getWaiters = [q \in Queues |-> {}]
     /\ putWaiters = [q \in Queues |-> {}]
