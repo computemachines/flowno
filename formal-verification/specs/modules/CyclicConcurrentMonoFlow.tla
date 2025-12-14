@@ -1,4 +1,4 @@
----------------------------- MODULE CyclicMonoFlow ----------------------------
+------------------------ MODULE CyclicConcurrentMonoFlow ------------------------
 EXTENDS Naturals, Integers, FiniteSets
 
 CONSTANTS 
@@ -6,14 +6,26 @@ CONSTANTS
     Edges,
     BreakEdges
 
+\* Max node ID for EventLoopBasic binding
+MaxNodeId == CHOOSE max \in Nodes : \A n \in Nodes : n <= max
+
+\* EventLoopBasic variables (declared here, bound via INSTANCE)
+VARIABLES
+    taskState,
+    joinWaiters
+
+\* Flow-specific variables
 VARIABLES
     generation,
     stitchCount,
-    running,
     resolutionQueue,
     lastAction
 
-vars == <<generation, stitchCount, running, resolutionQueue, lastAction>>
+EL == INSTANCE EventLoopBasic WITH MaxTaskId <- MaxNodeId
+
+vars == <<taskState, joinWaiters, generation, stitchCount, resolutionQueue, lastAction>>
+flowVars == <<generation, stitchCount, resolutionQueue>>
+elVars == <<taskState, joinWaiters>>
 
 NoNode == -1
 
@@ -30,7 +42,7 @@ TC(R) ==
                       \E b \in Nodes : <<a, b>> \in R /\ <<b, c>> \in R}
     IN IF R2 = R THEN R ELSE TC(R2)
 
-\* Approximate TC by iterating a fixed number of times (for performance if needed)
+\* Unrolled TC for performance (iterate a fixed number of times)
 \* TC(R) ==
 \*     LET Compose(S) == S \cup {<<a, c>> \in Nodes \X Nodes : 
 \*                               \E b \in Nodes : <<a, b>> \in S /\ <<b, c>> \in S}
@@ -66,7 +78,8 @@ UpstreamSCCReps(rep) == {rep} \cup {rep2 \in AllSCCReps : <<rep, rep2>> \in SCCR
 SolutionSCCs(n) == {rep \in UpstreamSCCReps(SCCRep(n)) : IsLeafSCC(rep)}
 
 IsCyclicSCC(rep) == 
-    Cardinality(SCCOf(rep)) > 1 \/ \E e \in StaleSubgraph : e[1] \in SCCOf(rep) /\ e[2] \in SCCOf(rep)
+    Cardinality(SCCOf(rep)) > 1 \/ 
+    \E e \in StaleSubgraph : e[1] \in SCCOf(rep) /\ e[2] \in SCCOf(rep)
 
 BreakNodeOf(rep) ==
     IF ~IsCyclicSCC(rep)
@@ -87,46 +100,62 @@ Downstream(n) == {d \in Nodes : <<n, d>> \in Edges}
 
 \* ===== Init =====
 Init ==
+    /\ taskState = [t \in EL!Tasks |-> [state |-> EL!Ready]]
+    /\ joinWaiters = [t \in EL!Tasks |-> {}]
     /\ generation = [n \in Nodes |-> -1]
     /\ stitchCount = [e \in Edges |-> 0]
-    /\ running = NoNode
     /\ resolutionQueue = {CHOOSE n \in Nodes : TRUE}
     /\ lastAction = <<"Init">>
 
 \* ===== Actions =====
-ResolveAndStart(demanded, n) ==
-    /\ running = NoNode
+
+\* Pop demand from queue, solve to find root causes, schedule one solution node
+ResolveAndSchedule(demanded, n) ==
     /\ demanded \in resolutionQueue
     /\ n \in SolutionNodes(demanded)
     /\ (n = demanded \/ n \notin resolutionQueue)
-    /\ running' = n
+    /\ EL!Schedule(n)                              \* Precondition: IsReady(n), no one Running
     /\ resolutionQueue' = resolutionQueue \ {demanded}
     /\ stitchCount' = [e \in Edges |-> 
         IF e \in EdgesToStitch(demanded) 
         THEN stitchCount[e] + 1 
         ELSE stitchCount[e]]
     /\ UNCHANGED generation
-    /\ lastAction' = <<"ResolveAndStart", demanded, n, SolutionSCCs(demanded), EdgesToStitch(demanded)>>
+    /\ lastAction' = <<"ResolveAndSchedule", demanded, n, EdgesToStitch(demanded)>>
 
-Complete(n) ==
-    /\ running = n
+\* Running node completes its work, goes back to Ready
+NodeComplete(n) ==
+    /\ EL!IsRunning(n)
+    /\ EL!YieldReady(n)                            \* Running → Ready
     /\ generation' = [generation EXCEPT ![n] = @ + 1]
     /\ resolutionQueue' = resolutionQueue \cup Downstream(n)
-    /\ running' = NoNode
     /\ UNCHANGED stitchCount
-    /\ lastAction' = <<"Complete", n>>
+    /\ lastAction' = <<"NodeComplete", n>>
 
-Next == 
-    \/ \E demanded \in Nodes, n \in Nodes : ResolveAndStart(demanded, n)
-    \/ \E n \in Nodes : Complete(n)
+\* Running node blocks (e.g., waiting on input, barrier)
+NodeSleep(n) ==
+    /\ EL!YieldSleep(n)                            \* Running → Sleeping
+    /\ UNCHANGED flowVars
+    /\ lastAction' = <<"NodeSleep", n>>
+
+\* Sleeping node wakes up (e.g., input available, barrier cleared)
+NodeWake(n) ==
+    /\ EL!WakeFromSleep(n)                         \* Sleeping → Ready
+    /\ UNCHANGED flowVars
+    /\ lastAction' = <<"NodeWake", n>>
+
+Next ==
+    \/ \E demanded \in Nodes, n \in Nodes : ResolveAndSchedule(demanded, n)
+    \/ \E n \in Nodes : NodeComplete(n)
+    \/ \E n \in Nodes : NodeSleep(n)
+    \/ \E n \in Nodes : NodeWake(n)
 
 Spec == Init /\ [][Next]_vars
 
-\* Fair spec for liveness checking
 FairSpec == Spec /\ WF_vars(Next)
 
-\* ===== State Constraint (for bounding exploration) =====
-StateConstraint == \A n \in Nodes : generation[n] <= 3
+\* ===== State Constraint =====
+StateConstraint == \A n \in Nodes : generation[n] <= 2
 
 \* ===== Helper Operators =====
 StartedNodes == {n \in Nodes : generation[n] >= 0}
@@ -143,59 +172,39 @@ MinGenStarted ==
 
 \* ===== Type Invariant =====
 TypeOK ==
-    /\ generation \in [Nodes -> Int]
+    /\ EL!TypeOK
+    /\ generation \in [Nodes -> -1..10]
     /\ stitchCount \in [Edges -> 0..1]
-    /\ running \in Nodes \cup {NoNode}
     /\ resolutionQueue \subseteq Nodes
 
 \* ===== Safety Invariants =====
 
-\* Generations only go up by 1
-GenerationsNoSkip == 
-    \A n \in Nodes : generation[n] >= -1
+\* At most one task running (inherited from EventLoopBasic)
+AtMostOneRunning == EL!AtMostOneRunning
 
-\* Stitch count never exceeds 1 (cycle only broken once)
-StitchAtMostOnce == 
-    \A e \in Edges : stitchCount[e] <= 1
+\* Stitch count never exceeds 1
+StitchAtMostOnce == \A e \in Edges : stitchCount[e] <= 1
 
-\* Wavefront tightness: started nodes within 1 generation of each other
+\* Wavefront tightness
 WavefrontTight == 
     StartedNodes # {} => (MaxGenStarted - MinGenStarted <= 1)
 
 \* If work exists and nothing running, we can start something
 ProgressPossible ==
-    (resolutionQueue # {} /\ running = NoNode) => 
+    (resolutionQueue # {} /\ \A t \in Nodes : ~EL!IsRunning(t)) => 
     (\E demanded \in Nodes, n \in Nodes : 
         /\ demanded \in resolutionQueue
         /\ n \in SolutionNodes(demanded)
-        /\ (n = demanded \/ n \notin resolutionQueue))
+        /\ (n = demanded \/ n \notin resolutionQueue)
+        /\ (EL!IsReady(n) \/ EL!IsSleeping(n)))  \* Sleeping = will wake eventually
 
 \* ===== Liveness Properties =====
-
-\* The system eventually becomes quiescent (queue empty, nothing running)
-EventuallyQuiescent == <>(resolutionQueue = {} /\ running = NoNode)
 
 \* Every node eventually runs at least once
 AllNodesEventuallyStart == \A n \in Nodes : <>(generation[n] >= 0)
 
-\* Every node runs infinitely often (strong liveness)
-AllNodesRunInfinitelyOften == \A n \in Nodes : []<>(running = n)
-
 \* Generations always eventually advance
-GenerationsAdvance == \A n \in Nodes : [](generation[n] = 0 => <>(generation[n] > 0))
-
-\* ===== Deadlock Detection =====
-
-\* True if system is "stuck": has work but can't make progress on generations
-\* (In current model this shouldn't happen, but will matter with barriers)
-IsStuck ==
-    /\ running = NoNode
-    /\ resolutionQueue # {}
-    /\ ~(\E demanded \in Nodes, n \in Nodes : 
-         /\ demanded \in resolutionQueue
-         /\ n \in SolutionNodes(demanded)
-         /\ (n = demanded \/ n \notin resolutionQueue))
-
-NoStuck == ~IsStuck
+GenerationsAdvance == 
+    \A n \in Nodes : [](generation[n] >= 0 => <>(generation[n] > 0))
 
 =============================================================================

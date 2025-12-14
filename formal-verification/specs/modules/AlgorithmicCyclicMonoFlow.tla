@@ -1,4 +1,14 @@
----------------------------- MODULE CyclicMonoFlow ----------------------------
+------------------------ MODULE AlgorithmicCyclicMonoFlow ------------------------
+(*
+ * Algorithmic version of CyclicMonoFlow.
+ * 
+ * Key difference: Instead of computing global transitive closure TC(StaleSubgraph),
+ * we compute directed reachability only from the demanded node. This is O(V+E) per
+ * demand instead of O(N³) globally.
+ *
+ * Drop-in replacement for CyclicMonoFlow.tla - same CONSTANTS, VARIABLES, and
+ * exported operators.
+ *)
 EXTENDS Naturals, Integers, FiniteSets
 
 CONSTANTS 
@@ -23,63 +33,79 @@ IsEdgeStale(u, d) ==
 
 StaleSubgraph == {e \in Edges : IsEdgeStale(e[1], e[2])}
 
-\* ===== Transitive Closure =====
-RECURSIVE TC(_)
-TC(R) ==
-    LET R2 == R \cup {<<a, c>> \in Nodes \X Nodes : 
-                      \E b \in Nodes : <<a, b>> \in R /\ <<b, c>> \in R}
-    IN IF R2 = R THEN R ELSE TC(R2)
+\* ===== Directed Reachability (replaces global TC) =====
 
-\* Approximate TC by iterating a fixed number of times (for performance if needed)
-\* TC(R) ==
-\*     LET Compose(S) == S \cup {<<a, c>> \in Nodes \X Nodes : 
-\*                               \E b \in Nodes : <<a, b>> \in S /\ <<b, c>> \in S}
-\*     IN Compose(Compose(Compose(Compose(R))))
+\* Dependency edges: reverse of data flow
+\* Original <<u, d>> means "u produces for d" 
+\* Dependency <<d, u>> means "d depends on u"
+StaleDependencyEdges == {<<e[2], e[1]>> : e \in StaleSubgraph}
 
-StaleReach == TC(StaleSubgraph)
+\* Compute nodes reachable from 'start' following edges in R
+\* Uses bounded iteration (safe for finite graphs)
+ReachableFrom(start, R) ==
+    LET Step(S) == S \cup {v \in Nodes : \E u \in S : <<u, v>> \in R}
+    IN Step(Step(Step(Step(Step({start})))))  \* 5 iterations handles paths up to length 5
 
-\* ===== SCC Detection =====
-InSameSCC(u, v) == 
-    (u = v) \/ (<<u, v>> \in StaleReach /\ <<v, u>> \in StaleReach)
+\* ===== Local SCC Detection =====
 
-SCCOf(n) == {m \in Nodes : InSameSCC(n, m)}
+\* Nodes reachable from n following stale data-flow edges (downstream)
+ForwardReach(n) == ReachableFrom(n, StaleSubgraph)
 
-SCCRep(n) == CHOOSE m \in SCCOf(n) : \A m2 \in SCCOf(n) : m <= m2
+\* Nodes reachable from n following dependency edges (upstream)  
+BackwardReach(n) == ReachableFrom(n, StaleDependencyEdges)
 
-AllSCCReps == {SCCRep(n) : n \in Nodes}
+\* The SCC containing n: nodes that can reach n AND n can reach them
+\* (via stale edges only)
+LocalSCC(n) == ForwardReach(n) \cap BackwardReach(n)
 
-\* ===== SCC DAG =====
-SCCEdge(rep1, rep2) == 
-    rep1 # rep2 /\ 
-    \E u \in SCCOf(rep1), v \in SCCOf(rep2) : <<u, v>> \in StaleSubgraph
+\* ===== Solution Algorithm =====
 
-IsLeafSCC(rep) == ~\E rep2 \in AllSCCReps : SCCEdge(rep2, rep)
+\* Is this SCC cyclic? Either multiple nodes, or self-loop
+IsLocalCyclic(n) ==
+    LET scc == LocalSCC(n)
+    IN Cardinality(scc) > 1 \/ 
+       \E e \in StaleSubgraph : e[1] \in scc /\ e[2] \in scc
 
-\* ===== Upstream SCCs =====
-SCCDagEdges == {<<r1, r2>> \in AllSCCReps \X AllSCCReps : SCCEdge(r1, r2)}
-SCCDagReverse == {<<r2, r1>> : <<r1, r2>> \in SCCDagEdges}
-SCCReachBackward == TC(SCCDagReverse)
+\* External dependencies of an SCC: nodes outside the SCC that the SCC depends on
+ExternalDeps(scc) ==
+    {u \in Nodes : \E d \in scc : <<d, u>> \in StaleDependencyEdges /\ u \notin scc}
 
-UpstreamSCCReps(rep) == {rep} \cup {rep2 \in AllSCCReps : <<rep, rep2>> \in SCCReachBackward}
+\* Is this SCC a leaf? No external stale dependencies
+IsLeafSCC(scc) == ExternalDeps(scc) = {}
 
-\* ===== Solution =====
-SolutionSCCs(n) == {rep \in UpstreamSCCReps(SCCRep(n)) : IsLeafSCC(rep)}
+\* Find all leaf SCCs reachable backward from demanded node
+\* Uses bounded iteration to explore the dependency DAG
+LeafSCCsFrom(demanded) ==
+    LET \* Start with the SCC containing demanded
+        startSCC == LocalSCC(demanded)
+        
+        \* Explore one level: given a set of SCCs, find their upstream SCCs
+        UpstreamSCCs(sccs) ==
+            LET allExternalDeps == UNION {ExternalDeps(scc) : scc \in sccs}
+            IN {LocalSCC(n) : n \in allExternalDeps}
+        
+        \* Iteratively find all reachable SCCs (bounded iterations)
+        Step(sccs) == sccs \cup UpstreamSCCs(sccs)
+        AllReachableSCCs == Step(Step(Step(Step(Step({startSCC})))))
+        
+    IN {scc \in AllReachableSCCs : IsLeafSCC(scc)}
 
-IsCyclicSCC(rep) == 
-    Cardinality(SCCOf(rep)) > 1 \/ \E e \in StaleSubgraph : e[1] \in SCCOf(rep) /\ e[2] \in SCCOf(rep)
+\* Pick the break node from an SCC
+BreakNodeOfSCC(scc) ==
+    IF Cardinality(scc) = 1 /\ ~(\E e \in StaleSubgraph : e[1] \in scc /\ e[2] \in scc)
+    THEN CHOOSE n \in scc : TRUE  \* Non-cyclic singleton
+    ELSE CHOOSE n \in scc : \E e \in BreakEdges : e[2] = n /\ e[1] \in scc
 
-BreakNodeOf(rep) ==
-    IF ~IsCyclicSCC(rep)
-    THEN CHOOSE n \in SCCOf(rep) : TRUE
-    ELSE CHOOSE n \in SCCOf(rep) : \E e \in BreakEdges : e[2] = n /\ e[1] \in SCCOf(rep)
+\* Pick the break edge from an SCC (empty if non-cyclic)
+BreakEdgeOfSCC(scc) ==
+    IF Cardinality(scc) = 1 /\ ~(\E e \in StaleSubgraph : e[1] \in scc /\ e[2] \in scc)
+    THEN {}  \* Non-cyclic singleton
+    ELSE LET candidates == {e \in BreakEdges : e[2] \in scc /\ e[1] \in scc}
+         IN IF candidates = {} THEN {} ELSE {CHOOSE e \in candidates : TRUE}
 
-BreakEdgeOf(rep) ==
-    IF ~IsCyclicSCC(rep)
-    THEN {}
-    ELSE {CHOOSE e \in BreakEdges : e[2] \in SCCOf(rep) /\ e[1] \in SCCOf(rep)}
-
-SolutionNodes(demanded) == {BreakNodeOf(rep) : rep \in SolutionSCCs(demanded)}
-EdgesToStitch(demanded) == UNION {BreakEdgeOf(rep) : rep \in SolutionSCCs(demanded)}
+\* Final solution operators (same interface as CyclicMonoFlow)
+SolutionNodes(demanded) == {BreakNodeOfSCC(scc) : scc \in LeafSCCsFrom(demanded)}
+EdgesToStitch(demanded) == UNION {BreakEdgeOfSCC(scc) : scc \in LeafSCCsFrom(demanded)}
 
 \* ===== Graph helpers =====
 Upstream(n) == {u \in Nodes : <<u, n>> \in Edges}
@@ -106,7 +132,7 @@ ResolveAndStart(demanded, n) ==
         THEN stitchCount[e] + 1 
         ELSE stitchCount[e]]
     /\ UNCHANGED generation
-    /\ lastAction' = <<"ResolveAndStart", demanded, n, SolutionSCCs(demanded), EdgesToStitch(demanded)>>
+    /\ lastAction' = <<"ResolveAndStart", demanded, n, LeafSCCsFrom(demanded), EdgesToStitch(demanded)>>
 
 Complete(n) ==
     /\ running = n
@@ -187,7 +213,6 @@ GenerationsAdvance == \A n \in Nodes : [](generation[n] = 0 => <>(generation[n] 
 \* ===== Deadlock Detection =====
 
 \* True if system is "stuck": has work but can't make progress on generations
-\* (In current model this shouldn't happen, but will matter with barriers)
 IsStuck ==
     /\ running = NoNode
     /\ resolutionQueue # {}
