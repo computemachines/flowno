@@ -211,16 +211,18 @@ FairSpec == Spec /\ WF_vars(Next)
 
 \* ===== State Constraint =====
 MaxGen == 2
+MaxStreamIdx == 3
 StateConstraint == 
     \A n \in Nodes : 
         \/ generation[n] = <<>>
-        \/ (Len(generation[n]) >= 1 /\ generation[n][1] <= MaxGen)
+        \/ (Len(generation[n]) = 1 /\ generation[n][1] <= MaxGen)
+        \/ (Len(generation[n]) = 2 /\ generation[n][1] <= MaxGen /\ generation[n][2] <= MaxStreamIdx)
 
 \* ===== Type Invariant =====
 ValidGeneration(g) ==
     \/ g = <<>>
-    \/ (Len(g) = 1 /\ g[1] \in Nat)
-    \/ (Len(g) = 2 /\ g[1] \in Nat /\ g[2] \in Nat)
+    \/ (Len(g) = 1 /\ g[1] \in -1..100)
+    \/ (Len(g) = 2 /\ g[1] \in -1..100 /\ g[2] \in -1..100)
 
 TypeOK ==
     /\ \A n \in Nodes : ValidGeneration(generation[n])
