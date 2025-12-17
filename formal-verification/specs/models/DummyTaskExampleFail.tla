@@ -1,4 +1,4 @@
------------------------- MODULE DummyTaskExample ------------------------
+------------------------ MODULE DummyTaskExampleFail ------------------------
 (*
  * Concrete model of the dummy_task example.
  * Instances EventLoop and adds program-specific pc tracking.
@@ -151,7 +151,7 @@ MainSpawn1 ==
 
 \* main: spawn dummy_task(2)
 MainSpawn2 ==
-    /\ pc[MainTask] = "joining_1"
+    /\ pc[MainTask] = "spawned_1"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsNonexistent(Dummy2)
     /\ taskState' = [taskState EXCEPT
@@ -165,7 +165,7 @@ MainSpawn2 ==
 
 \* main: await tasks[0].join() - task 1 not done yet
 MainJoin1Wait ==
-    /\ pc[MainTask] = "spawned_1"
+    /\ pc[MainTask] = "spawned_both"
     /\ EL!IsRunning(MainTask)
     /\ ~EL!IsTerminal(Dummy1)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Joining, target |-> Dummy1]]
@@ -176,7 +176,7 @@ MainJoin1Wait ==
 
 \* main: await tasks[0].join() - task 1 already done
 MainJoin1Done ==
-    /\ pc[MainTask] = "spawned_1"
+    /\ pc[MainTask] = "spawned_both"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsTerminal(Dummy1)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
@@ -197,7 +197,7 @@ MainWakeFromJoin1 ==
 
 \* main: await tasks[1].join() - task 2 not done yet
 MainJoin2Wait ==
-    /\ pc[MainTask] = "spawned_both"
+    /\ pc[MainTask] = "joining_1"
     /\ EL!IsRunning(MainTask)
     /\ ~EL!IsTerminal(Dummy2)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Joining, target |-> Dummy2]]
@@ -208,7 +208,7 @@ MainJoin2Wait ==
 
 \* main: await tasks[1].join() - task 2 already done  
 MainJoin2Done ==
-    /\ pc[MainTask] = "spawned_both"
+    /\ pc[MainTask] = "joining_1"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsTerminal(Dummy2)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
