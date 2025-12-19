@@ -9,18 +9,17 @@
  *   AsyncQueue.close() → CloseQueue, wakes all waiters with exception
  *
  * Note: This module requires Value to be defined (set of possible queue values).
- * To run TLC, create a new module that EXTENDS EventLoop and defines Value and
- * MaxQueueSize(q).
+ * Models must initialize queueMaxSize in their Init:
+ *   -1 = unbounded, 0 = rendezvous (putter blocks until getter), N = bounded
  *   
  * Queue model:
  *   - Queues are identified by natural numbers 0..MaxQueueId
- *   - Each queue has: contents (sequence), max size (0 = unbounded), closed flag
+ *   - Each queue has: contents (sequence), max size, closed flag
  *   - We track actual VALUES so refinements can reason about message flow
  *)
-EXTENDS EventLoopBasic, Sequences
+EXTENDS EventLoopBasic, Sequences, Integers
 
 CONSTANT MaxQueueId     \* Bounds state space: queues are 0..MaxQueueId
-CONSTANT MaxQueueSize(_) \* Max items per queue (for bounded queues)
 CONSTANT Value          \* Set of possible values that can be put in queues
 CONSTANT NoPut          \* Sentinel for "not waiting to put"
 
@@ -35,7 +34,7 @@ WaitingPut == "waitingPut"
 
 VARIABLES
     queueContents,  \* Queue ID -> Seq(Value), actual items in FIFO order
-    queueMaxSize,   \* Queue ID -> max size (0 means unbounded)
+    queueMaxSize,   \* Queue ID -> max size (-1 = unbounded, 0 = rendezvous)
     queueClosed,    \* Queue ID -> boolean, whether queue is closed
     getWaiters,     \* Queue ID -> set of tasks waiting to get
     putWaiters,     \* Queue ID -> set of tasks waiting to put
@@ -59,8 +58,9 @@ IsBlockedExt(t) ==
 IsAliveExt(t) == Exists(t) /\ taskState[t].state \notin {Done, Error}
 
 \* Queue predicates
+\* Size semantics: -1 = unbounded, 0 = rendezvous, N = bounded to N items
 HasSpace(q) == 
-    \/ queueMaxSize[q] = 0
+    \/ queueMaxSize[q] = -1
     \/ Len(queueContents[q]) < queueMaxSize[q]
 
 HasItems(q) == queueContents[q] # <<>>
@@ -108,7 +108,7 @@ TypeOKFull ==
         [state: {WaitingPut}, queue: Queues]]
     /\ joinWaiters \in [Tasks -> SUBSET Tasks]
     /\ queueContents \in [Queues -> Seq(Value)]
-    /\ queueMaxSize \in [Queues -> Nat]
+    /\ queueMaxSize \in [Queues -> Int]  \* -1 = unbounded, 0 = rendezvous, N = bounded
     /\ queueClosed \in [Queues -> BOOLEAN]
     /\ getWaiters \in [Queues -> SUBSET Tasks]
     /\ putWaiters \in [Queues -> SUBSET Tasks]
@@ -119,7 +119,7 @@ TypeOKFull ==
 InitExt ==
     /\ Init
     /\ queueContents = [q \in Queues |-> <<>>]
-    /\ queueMaxSize = [q \in Queues |-> MaxQueueSize(q)]
+    \* Note: queueMaxSize must be initialized by the model (-1 = unbounded)
     /\ queueClosed = [q \in Queues |-> FALSE]
     /\ getWaiters = [q \in Queues |-> {}]
     /\ putWaiters = [q \in Queues |-> {}]

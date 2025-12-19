@@ -63,13 +63,9 @@ VARIABLES
     putWaiters,
     pendingPut
 
-\* We need to override MaxQueueSize since EventLoop expects it as a parameter
-TestMaxQueueSize(q) == MaxQueueDepth
-
 EL == INSTANCE EventLoop WITH 
     MaxTaskId <- 2,
     MaxQueueId <- 0,
-    MaxQueueSize <- TestMaxQueueSize,
     Value <- Value,
     NoPut <- NoPut,
     taskState <- taskState,
@@ -107,7 +103,8 @@ DummyPc == {"D0", "D1", "D2", "D3"}
 
 TypeOK ==
     /\ EL!TypeOKFull
-    /\ pc \in [AllTasks -> MainPc \cup DummyPc]
+    /\ pc[MainTask] \in MainPc
+    /\ \A t \in DummyTasks : pc[t] \in DummyPc
     /\ recv \in [DummyTasks -> Value \cup {NoRecv}]
     /\ delivered \in [DummyTasks -> Value \cup {NoRecv}]
 

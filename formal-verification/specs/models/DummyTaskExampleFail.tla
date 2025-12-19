@@ -63,13 +63,9 @@ VARIABLES
     putWaiters,
     pendingPut
 
-\* We need to override MaxQueueSize since EventLoop expects it as a parameter
-TestMaxQueueSize(q) == MaxQueueDepth
-
 EL == INSTANCE EventLoop WITH 
     MaxTaskId <- 2,
     MaxQueueId <- 0,
-    MaxQueueSize <- TestMaxQueueSize,
     Value <- Value,
     NoPut <- NoPut,
     taskState <- taskState,
