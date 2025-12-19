@@ -31,7 +31,7 @@
  *       await q.close()
  *       # pc: M6 (done)
  *)
-EXTENDS Integers, Sequences, FiniteSets
+EXTENDS Integers, Sequences, FiniteSets, TLC
 
 CONSTANT MaxQueueDepth  \* Bound queue size for model checking
 
@@ -112,9 +112,8 @@ TypeOK ==
 
 Init ==
     \* EventLoop initial state (but main starts Ready, others Nonexistent)
-    /\ taskState = [t \in EL!Tasks |->
-        IF t = MainTask THEN [state |-> EL!Ready]
-        ELSE [state |-> EL!Nonexistent]]
+    /\ taskState = [t \in {MainTask} |-> [state |-> EL!Ready]] @@
+                   [t \in DummyTasks |-> [state |-> EL!Nonexistent]]
     /\ joinWaiters = [t \in EL!Tasks |-> {}]
     /\ queueContents = [q \in EL!Queues |-> <<>>]
     /\ queueMaxSize = [q \in EL!Queues |-> MaxQueueDepth]
@@ -122,10 +121,8 @@ Init ==
     /\ getWaiters = [q \in EL!Queues |-> {}]
     /\ putWaiters = [q \in EL!Queues |-> {}]
     /\ pendingPut = [t \in EL!Tasks |-> NoPut]
-    \* Program state
-    /\ pc = [t \in AllTasks |->
-        IF t = MainTask THEN "M1"
-        ELSE "D0"]
+    \* Program state - each task type has its own initial pc
+    /\ pc = [t \in {MainTask} |-> "M1"] @@ [t \in DummyTasks |-> "D0"]
     /\ recv = [t \in DummyTasks |-> NoRecv]
     /\ delivered = [t \in DummyTasks |-> NoRecv]
     /\ lastAction = <<"Init">>
@@ -208,7 +205,7 @@ MainCloseOpen ==
     /\ EL!CloseQueue(MainTask, Q)
     /\ pc' = [pc EXCEPT ![MainTask] = "M6"]
     /\ lastAction' = <<"MainCloseOpen">>
-    /\ UNCHANGED <<joinWaiters, recv, delivered, pendingPut>>
+    /\ UNCHANGED <<joinWaiters, recv, delivered>>
 
 \* main: close queue - queue already closed
 MainCloseAlready ==
@@ -218,7 +215,7 @@ MainCloseAlready ==
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
     /\ pc' = [pc EXCEPT ![MainTask] = "M6"]
     /\ lastAction' = <<"MainCloseAlready">>
-    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, recv, delivered>>
 
 \* main: await tasks[1].join() - task 2 not done yet (block)
 MainJoin2Block ==
