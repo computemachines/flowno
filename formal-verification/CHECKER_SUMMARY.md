@@ -45,3 +45,12 @@ The grid below maps the **Dataflow Structure** (Model Topology + Edge Configurat
 | **Mixed, Diamond4** | N/A |  | N/A | Property: Diamond4_TopStream_CyclicStreamEx.tla 8008 states. 3.33 seconds.<br>Property: Diamond4_BotStream_CyclicStreamEx.tla 5307 states. 2.92 seconds.<br>Property: Diamond4_LeftStream_CyclicStreamEx.tla 11870 states. 5.97 seconds. | N/A |  | N/A |  |
 | **Mixed, Triangle3** | N/A | N/A | N/A | Property: Triangle3_Mixed_BreakMono_CyclicStreamEx.tla 582 states. 1.13 seconds.<br>Property: Triangle3_Mixed_BreakStream_CyclicStreamEx.tla 490 states. 1.11 seconds. | N/A | N/A | N/A | Property: Triangle3_Mixed_BreakStream_CyclicStreamConcEx.tla 976 states. 1.00 seconds. |
 | **Mixed, Complex4** | N/A | N/A | N/A |  | N/A | N/A | N/A |  |
+
+## Infrastructure Tests
+
+These tests verify the underlying `EventLoop` and `EventLoopBasic` modules directly, without a flow topology.
+
+| Model | Description | States | Time |
+|-------|-------------|--------|------|
+| EventLoopBasicEx.tla | Basic task scheduling (Ready/Running/Sleeping/Joining) | 1165 | 1.00s |
+| EventLoopEx.tla | Full EventLoop with AsyncQueue (Put/Get/Close) | 7531 | 1.00s |

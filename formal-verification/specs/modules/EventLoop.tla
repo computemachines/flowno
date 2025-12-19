@@ -98,6 +98,7 @@ TypeOKFull ==
     /\ taskState \in [Tasks -> 
         [state: {Nonexistent}] \cup
         [state: {Ready}] \cup
+        [state: {ReadyResuming}] \cup
         [state: {Running}] \cup
         [state: {Sleeping}] \cup
         [state: {Joining}, target: Tasks] \cup
@@ -128,17 +129,14 @@ InitExt ==
 
 (*
  * PutDirectToWaiter: Item bypasses queue, goes directly to waiting getter.
- * The getter will see this value as "delivered" when it resumes.
- * We track it in pendingPut[waiter] temporarily (repurposed as "received").
- * 
- * Actually, cleaner: add a "delivered" variable. But let's keep it simple
- * and just document that the refinement should capture the value.
+ * The getter transitions to ReadyResuming (not Ready) so program-level
+ * Resume action can distinguish from fresh spawn.
  *)
 PutDirectToWaiter(t, q, v, waiter) ==
     /\ getWaiters' = [getWaiters EXCEPT ![q] = @ \ {waiter}]
     /\ taskState' = [taskState EXCEPT 
         ![t] = [state |-> Ready],
-        ![waiter] = [state |-> Ready]]
+        ![waiter] = [state |-> ReadyResuming]]
     /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, putWaiters, pendingPut>>
 
 (*
@@ -153,12 +151,14 @@ PutIntoQueue(t, q, v) ==
  * GetFromQueueWakePutter: Get head of queue, wake a blocked putter.
  * The putter's pending value enters the queue.
  * Net queue length unchanged (we take head, putter adds their value).
+ * The putter transitions to ReadyResuming (not Ready) so program-level
+ * Resume action can distinguish from fresh spawn.
  *)
 GetFromQueueWakePutter(t, q, putter) ==
     /\ putWaiters' = [putWaiters EXCEPT ![q] = @ \ {putter}]
     /\ taskState' = [taskState EXCEPT
         ![t] = [state |-> Ready],
-        ![putter] = [state |-> Ready]]
+        ![putter] = [state |-> ReadyResuming]]
     \* Take head, append putter's pending value
     /\ queueContents' = [queueContents EXCEPT ![q] = Append(Tail(@), pendingPut[putter])]
     /\ pendingPut' = [pendingPut EXCEPT ![putter] = NoPut]

@@ -49,22 +49,24 @@ vars == <<taskState, joinWaiters>>
 (* ===== STATE PREDICATES ===== *)
 
 \* State type tags
-Nonexistent == "nonexistent"
-Ready       == "ready"
-Running     == "running"  
-Sleeping    == "sleeping"
-Joining     == "joining"
-Done        == "done"
-Error       == "error"
+Nonexistent    == "nonexistent"
+Ready          == "ready"
+ReadyResuming  == "readyResuming"  \* Ready after unblock from put/get (not fresh spawn)
+Running        == "running"  
+Sleeping       == "sleeping"
+Joining        == "joining"
+Done           == "done"
+Error          == "error"
 
 \* Check if task is in a particular state
-IsNonexistent(t) == taskState[t].state = Nonexistent
-IsReady(t)       == taskState[t].state = Ready
-IsRunning(t)     == taskState[t].state = Running
-IsSleeping(t)    == taskState[t].state = Sleeping
-IsJoining(t)     == taskState[t].state = Joining
-IsDone(t)        == taskState[t].state = Done
-IsError(t)       == taskState[t].state = Error
+IsNonexistent(t)    == taskState[t].state = Nonexistent
+IsReady(t)          == taskState[t].state = Ready
+IsReadyResuming(t)  == taskState[t].state = ReadyResuming
+IsRunning(t)        == taskState[t].state = Running
+IsSleeping(t)       == taskState[t].state = Sleeping
+IsJoining(t)        == taskState[t].state = Joining
+IsDone(t)           == taskState[t].state = Done
+IsError(t)          == taskState[t].state = Error
 
 \* Task exists (has been spawned)
 Exists(t) == ~IsNonexistent(t)
@@ -87,6 +89,7 @@ TypeOK ==
     /\ taskState \in [Tasks -> 
         [state: {Nonexistent}] \cup
         [state: {Ready}] \cup
+        [state: {ReadyResuming}] \cup
         [state: {Running}] \cup
         [state: {Sleeping}] \cup
         [state: {Joining}, target: Tasks] \cup

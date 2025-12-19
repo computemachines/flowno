@@ -8,19 +8,28 @@
  *   q = flowno.AsyncQueue()
  *
  *   async def dummy_task(_id: int):
+ *       # pc: D1 (await put)
  *       print(f"task id: {_id}")
  *       await q.put(f"hello from {_id}")
+ *       # pc: D2 (await get)
  *       x = 10
  *       recv = await q.get()
+ *       # pc: D3 (done)
  *       print(f"task {_id} received: {recv}")
- *       await q.close()
  *
  *   async def main():
+ *       # pc: M1 (await spawn1)
  *       tasks = []
- *       for n in range(2):
- *           tasks.append(flowno.spawn(dummy_task(n)))
- *       for task in tasks:
- *           await task.join()
+ *       tasks[0] = await flowno.spawn(dummy_task(0))
+ *       # pc: M2 (await spawn2)
+ *       tasks[1] = await flowno.spawn(dummy_task(1))
+ *       # pc: M3 (await join1)
+ *       await tasks[0].join()
+ *       # pc: M4 (await join2)
+ *       await tasks[1].join()
+ *       # pc: M5 (await queue close)
+ *       await q.close()
+ *       # pc: M6 (done)
  *)
 EXTENDS Integers, Sequences, FiniteSets
 
@@ -89,10 +98,10 @@ vars == <<taskState, joinWaiters, queueContents, queueMaxSize, queueClosed, getW
 \* ===== PC VALUES =====
 
 \* Main task pc values
-MainPc == {"start", "spawned_1", "spawned_both", "joining_1", "joining_2", "done"}
+MainPc == {"M1", "M2", "M3", "M4", "M5", "M6"}
 
 \* Dummy task pc values  
-DummyPc == {"not_spawned", "start", "putting", "after_put", "getting", "after_get", "closing", "done"}
+DummyPc == {"D0", "D1", "D2", "D3"}
 
 \* ===== TYPE INVARIANT =====
 
@@ -118,8 +127,8 @@ Init ==
     /\ pendingPut = [t \in EL!Tasks |-> NoPut]
     \* Program state
     /\ pc = [t \in AllTasks |->
-        IF t = MainTask THEN "start"
-        ELSE "not_spawned"]
+        IF t = MainTask THEN "M1"
+        ELSE "D0"]
     /\ recv = [t \in DummyTasks |-> NoRecv]
     /\ delivered = [t \in DummyTasks |-> NoRecv]
     /\ lastAction = <<"Init">>
@@ -137,111 +146,130 @@ Schedule(t) ==
 
 \* main: spawn dummy_task(1)
 MainSpawn1 ==
-    /\ pc[MainTask] = "start"
+    /\ pc[MainTask] = "M1"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsNonexistent(Dummy1)
     /\ taskState' = [taskState EXCEPT
         ![MainTask] = [state |-> EL!Ready],
         ![Dummy1] = [state |-> EL!Ready]]
     /\ pc' = [pc EXCEPT 
-        ![MainTask] = "spawned_1",
-        ![Dummy1] = "start"]
+        ![MainTask] = "M2",  \* Next: spawn2
+        ![Dummy1] = "D1"]
     /\ lastAction' = <<"MainSpawn1">>
     /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
 \* main: spawn dummy_task(2)
 MainSpawn2 ==
-    /\ pc[MainTask] = "joining_1"
+    /\ pc[MainTask] = "M2"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsNonexistent(Dummy2)
     /\ taskState' = [taskState EXCEPT
         ![MainTask] = [state |-> EL!Ready],
         ![Dummy2] = [state |-> EL!Ready]]
     /\ pc' = [pc EXCEPT
-        ![MainTask] = "spawned_both",
-        ![Dummy2] = "start"]
+        ![MainTask] = "M3",
+        ![Dummy2] = "D1"]
     /\ lastAction' = <<"MainSpawn2">>
     /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
-\* main: await tasks[0].join() - task 1 not done yet
-MainJoin1Wait ==
-    /\ pc[MainTask] = "spawned_1"
+\* main: await tasks[0].join() - task 1 not done yet (block)
+MainJoin1Block ==
+    /\ pc[MainTask] = "M3"
     /\ EL!IsRunning(MainTask)
     /\ ~EL!IsTerminal(Dummy1)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Joining, target |-> Dummy1]]
     /\ joinWaiters' = [joinWaiters EXCEPT ![Dummy1] = @ \cup {MainTask}]
-    /\ pc' = [pc EXCEPT ![MainTask] = "joining_1"]
-    /\ lastAction' = <<"MainJoin1Wait">>
-    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ lastAction' = <<"MainJoin1Block">>
+    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered, pc>>
 
-\* main: await tasks[0].join() - task 1 already done
-MainJoin1Done ==
-    /\ pc[MainTask] = "spawned_1"
+\* main: await tasks[0].join() - task 1 already done (immediate)
+MainJoin1Immediate ==
+    /\ pc[MainTask] = "M3"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsTerminal(Dummy1)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
-    /\ pc' = [pc EXCEPT ![MainTask] = "joining_1"]
-    /\ lastAction' = <<"MainJoin1Done">>
+    /\ pc' = [pc EXCEPT ![MainTask] = "M4"]
+    /\ lastAction' = <<"MainJoin1Immediate">>
     /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
-\* main: wakes from join on task 1, proceeds to join task 2
-MainWakeFromJoin1 ==
-    /\ pc[MainTask] = "joining_1"
+\* main: wakes from join on task 1, proceeds to join task 2 (resume)
+MainJoin1Resume ==
+    /\ pc[MainTask] = "M3"
     /\ EL!IsJoining(MainTask)
     /\ EL!JoinTarget(MainTask) = Dummy1
     /\ EL!IsTerminal(Dummy1)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
     /\ joinWaiters' = [joinWaiters EXCEPT ![Dummy1] = @ \ {MainTask}]
-    /\ lastAction' = <<"MainWakeFromJoin1">>
-    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, pc, recv, delivered>>
+    /\ pc' = [pc EXCEPT ![MainTask] = "M4"]
+    /\ lastAction' = <<"MainJoin1Resume">>
+    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
-\* main: await tasks[1].join() - task 2 not done yet
-MainJoin2Wait ==
-    /\ pc[MainTask] = "spawned_both"
+\* main: close queue - queue still open
+MainCloseOpen ==
+    /\ pc[MainTask] = "M5"
+    /\ EL!IsRunning(MainTask)
+    /\ EL!CloseQueue(MainTask, Q)
+    /\ pc' = [pc EXCEPT ![MainTask] = "M6"]
+    /\ lastAction' = <<"MainCloseOpen">>
+    /\ UNCHANGED <<joinWaiters, recv, delivered, pendingPut>>
+
+\* main: close queue - queue already closed
+MainCloseAlready ==
+    /\ pc[MainTask] = "M5"
+    /\ EL!IsRunning(MainTask)
+    /\ ~EL!IsOpen(Q)
+    /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
+    /\ pc' = [pc EXCEPT ![MainTask] = "M6"]
+    /\ lastAction' = <<"MainCloseAlready">>
+    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+
+\* main: await tasks[1].join() - task 2 not done yet (block)
+MainJoin2Block ==
+    /\ pc[MainTask] = "M4"
     /\ EL!IsRunning(MainTask)
     /\ ~EL!IsTerminal(Dummy2)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Joining, target |-> Dummy2]]
     /\ joinWaiters' = [joinWaiters EXCEPT ![Dummy2] = @ \cup {MainTask}]
-    /\ pc' = [pc EXCEPT ![MainTask] = "joining_2"]
-    /\ lastAction' = <<"MainJoin2Wait">>
-    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ lastAction' = <<"MainJoin2Block">>
+    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered, pc>>
 
-\* main: await tasks[1].join() - task 2 already done  
-MainJoin2Done ==
-    /\ pc[MainTask] = "spawned_both"
+\* main: await tasks[1].join() - task 2 already done (immediate)
+MainJoin2Immediate ==
+    /\ pc[MainTask] = "M4"
     /\ EL!IsRunning(MainTask)
     /\ EL!IsTerminal(Dummy2)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
-    /\ pc' = [pc EXCEPT ![MainTask] = "joining_2"]
-    /\ lastAction' = <<"MainJoin2Done">>
+    /\ pc' = [pc EXCEPT ![MainTask] = "M5"]
+    /\ lastAction' = <<"MainJoin2Immediate">>
     /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
 \* main: wakes from join on task 2
-MainWakeFromJoin2 ==
-    /\ pc[MainTask] = "joining_2"
+MainJoin2Resume ==
+    /\ pc[MainTask] = "M4"
     /\ EL!IsJoining(MainTask)
     /\ EL!JoinTarget(MainTask) = Dummy2
     /\ EL!IsTerminal(Dummy2)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Ready]]
     /\ joinWaiters' = [joinWaiters EXCEPT ![Dummy2] = @ \ {MainTask}]
-    /\ lastAction' = <<"MainWakeFromJoin2">>
-    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, pc, recv, delivered>>
+    /\ pc' = [pc EXCEPT ![MainTask] = "M5"]
+    /\ lastAction' = <<"MainJoin2Resume">>
+    /\ UNCHANGED <<queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
 \* main: completes
 MainComplete ==
-    /\ pc[MainTask] = "joining_2"
+    /\ pc[MainTask] = "M6"
     /\ EL!IsRunning(MainTask)
     /\ taskState' = [taskState EXCEPT ![MainTask] = [state |-> EL!Done]]
-    /\ pc' = [pc EXCEPT ![MainTask] = "done"]
     /\ lastAction' = <<"MainComplete">>
-    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered, pc>>
 
 \* ===== DUMMY TASK ACTIONS =====
 
-\* dummy: print then put - immediate (queue has space)
-DummyPut(t) ==
+\* dummy: print then put - immediate (queue has space or waiter)
+DummyPutImmediate(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "start"
+    /\ pc[t] = "D1"
+    /\ EL!IsRunning(t)
     /\ EL!CanPutImmediate(t, Q)
     /\ IF EL!HasWaitingGetter(Q)
        THEN \E waiter \in getWaiters[Q] :
@@ -251,88 +279,73 @@ DummyPut(t) ==
        ELSE
             /\ EL!PutIntoQueue(t, Q, t)
             /\ UNCHANGED <<recv, delivered>>
-    /\ pc' = [pc EXCEPT ![t] = "after_put"]
-    /\ lastAction' = <<"DummyPut", t>>
+    /\ pc' = [pc EXCEPT ![t] = "D2"]
+    /\ lastAction' = <<"DummyPutImmediate", t>>
 
 \* dummy: print then put - blocks (queue full)
-DummyPutBlocks(t) ==
+DummyPutBlock(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "start"
+    /\ pc[t] = "D1"
+    /\ EL!IsRunning(t)
     /\ EL!YieldPutBlocks(t, Q, t)
-    /\ pc' = [pc EXCEPT ![t] = "putting"]
-    /\ lastAction' = <<"DummyPutBlocks", t>>
-    /\ UNCHANGED <<recv, delivered>>
+    /\ lastAction' = <<"DummyPutBlock", t>>
+    /\ UNCHANGED <<recv, delivered, pc>>
 
 \* dummy: was blocked on put, now unblocked
-DummyPutUnblocked(t) ==
+\* This fires when task was blocked on put and is now in ReadyResuming state.
+\* The value was already consumed into the queue by GetFromQueueWakePutter.
+DummyPutResume(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "putting"
-    /\ EL!IsReady(t)
-    /\ pc' = [pc EXCEPT ![t] = "after_put"]
-    /\ lastAction' = <<"DummyPutUnblocked", t>>
-    /\ UNCHANGED <<taskState, joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ pc[t] = "D1"
+    /\ EL!IsReadyResuming(t)  \* Just unblocked from put (not fresh spawn)
+    /\ taskState' = [taskState EXCEPT ![t] = [state |-> EL!Ready]]
+    /\ pc' = [pc EXCEPT ![t] = "D2"]
+    /\ lastAction' = <<"DummyPutResume", t>>
+    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
 
 \* dummy: x=10 then get - immediate (queue has items)
-DummyGet(t) ==
+DummyGetImmediate(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "after_put"
+    /\ pc[t] = "D2"
+    /\ EL!IsRunning(t)
     /\ EL!CanGetImmediate(t, Q)
     /\ LET msg == EL!QueueHead(Q)  \* Capture BEFORE action modifies queue
        IN /\ recv' = [recv EXCEPT ![t] = msg]
           /\ EL!YieldGetImmediate(t, Q)
-    /\ pc' = [pc EXCEPT ![t] = "after_get"]
-    /\ lastAction' = <<"DummyGet", t>>
+    /\ pc' = [pc EXCEPT ![t] = "D3"]
+    /\ lastAction' = <<"DummyGetImmediate", t>>
     /\ UNCHANGED delivered
 
 \* dummy: x=10 then get - blocks (queue empty)
-DummyGetBlocks(t) ==
+DummyGetBlock(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "after_put"
+    /\ pc[t] = "D2"
+    /\ EL!IsRunning(t)
     /\ EL!YieldGetBlocks(t, Q)
-    /\ pc' = [pc EXCEPT ![t] = "getting"]
-    /\ lastAction' = <<"DummyGetBlocks", t>>
-    /\ UNCHANGED <<recv, delivered>>
+    /\ lastAction' = <<"DummyGetBlock", t>>
+    /\ UNCHANGED <<recv, delivered, pc>>
 
-\* dummy: was blocked on get, now running again (message delivered via PutDirectToWaiter)
-DummyGetUnblocked(t) ==
+\* dummy: was blocked on get, now unblocked (message delivered via PutDirectToWaiter)
+DummyGetResume(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "getting"
-    /\ EL!IsReady(t)
+    /\ pc[t] = "D2"
+    /\ EL!IsReadyResuming(t)  \* Just unblocked from get (not fresh spawn)
     /\ delivered[t] # NoRecv
     /\ recv' = [recv EXCEPT ![t] = delivered[t]]
     /\ delivered' = [delivered EXCEPT ![t] = NoRecv]
-    /\ pc' = [pc EXCEPT ![t] = "after_get"]
-    /\ lastAction' = <<"DummyGetUnblocked", t>>
-    /\ UNCHANGED <<taskState, joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut>>
-
-\* dummy: print then close - queue still open
-DummyCloseOpen(t) ==
-    /\ t \in DummyTasks
-    /\ pc[t] = "after_get"
-    /\ EL!CloseQueue(t, Q)
-    /\ pc' = [pc EXCEPT ![t] = "closing"]
-    /\ lastAction' = <<"DummyCloseOpen", t>>
-    /\ UNCHANGED <<recv, delivered>>
-
-\* dummy: print then close - queue already closed
-DummyCloseAlready(t) ==
-    /\ t \in DummyTasks
-    /\ pc[t] = "after_get"
-    /\ EL!IsRunning(t)
-    /\ ~EL!IsOpen(Q)
     /\ taskState' = [taskState EXCEPT ![t] = [state |-> EL!Ready]]
-    /\ pc' = [pc EXCEPT ![t] = "closing"]
-    /\ lastAction' = <<"DummyCloseAlready", t>>
-    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ pc' = [pc EXCEPT ![t] = "D3"]
+    /\ lastAction' = <<"DummyGetResume", t>>
+    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut>>
 
 \* dummy: completes
 DummyComplete(t) ==
     /\ t \in DummyTasks
-    /\ pc[t] = "closing"
+    /\ pc[t] = "D3"
+    /\ EL!IsRunning(t)
     /\ EL!Complete(t)
-    /\ pc' = [pc EXCEPT ![t] = "done"]
     /\ lastAction' = <<"DummyComplete", t>>
-    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered>>
+    /\ UNCHANGED <<joinWaiters, queueContents, queueMaxSize, queueClosed, getWaiters, putWaiters, pendingPut, recv, delivered, pc>>
 
 \* ===== NEXT STATE =====
 
@@ -342,36 +355,44 @@ Next ==
     \* Main task
     \/ MainSpawn1
     \/ MainSpawn2
-    \/ MainJoin1Wait
-    \/ MainJoin1Done
-    \/ MainWakeFromJoin1
-    \/ MainJoin2Wait
-    \/ MainJoin2Done
-    \/ MainWakeFromJoin2
+    \/ MainJoin1Immediate
+    \/ MainJoin1Block
+    \/ MainJoin1Resume
+    \/ MainJoin2Immediate
+    \/ MainJoin2Block
+    \/ MainJoin2Resume
+    \/ MainCloseOpen
+    \/ MainCloseAlready
     \/ MainComplete
     \* Dummy tasks
-    \/ \E t \in DummyTasks : DummyPut(t)
-    \/ \E t \in DummyTasks : DummyPutBlocks(t)
-    \/ \E t \in DummyTasks : DummyPutUnblocked(t)
-    \/ \E t \in DummyTasks : DummyGet(t)
-    \/ \E t \in DummyTasks : DummyGetBlocks(t)
-    \/ \E t \in DummyTasks : DummyGetUnblocked(t)
-    \/ \E t \in DummyTasks : DummyCloseOpen(t)
-    \/ \E t \in DummyTasks : DummyCloseAlready(t)
+    \/ \E t \in DummyTasks : DummyPutImmediate(t)
+    \/ \E t \in DummyTasks : DummyPutBlock(t)
+    \/ \E t \in DummyTasks : DummyPutResume(t)
+    \/ \E t \in DummyTasks : DummyGetImmediate(t)
+    \/ \E t \in DummyTasks : DummyGetBlock(t)
+    \/ \E t \in DummyTasks : DummyGetResume(t)
     \/ \E t \in DummyTasks : DummyComplete(t)
 
-Spec == Init /\ [][Next]_vars
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
 
 \* ===== INVARIANTS =====
 
 \* The assertion you want violated: message matches sender ID
 MessageMatchesId ==
     \A t \in DummyTasks :
-        (pc[t] \in {"after_get", "closing", "done"} /\ recv[t] # NoRecv) 
+        (pc[t] \in {"D2", "D3"} /\ recv[t] # NoRecv) 
         => recv[t] = t
 
 \* Sanity: queue contents length matches item count (implicit in queueContents)
 QueueConsistent ==
     Len(queueContents[Q]) <= MaxQueueDepth
+
+\* ===== LIVENESS PROPERTIES =====
+
+\* Eventually all tasks complete (this should fail if Dummy2 gets stuck)
+EventuallyComplete ==
+    /\ <>(pc[MainTask] = "M6" /\ EL!IsTerminal(MainTask))
+    /\ <>(pc[Dummy1] = "D3" /\ EL!IsTerminal(Dummy1))
+    /\ <>(pc[Dummy2] = "D3" /\ EL!IsTerminal(Dummy2))
 
 =============================================================================
