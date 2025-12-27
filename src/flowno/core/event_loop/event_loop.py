@@ -27,6 +27,8 @@ from typing import Any, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
     Command,
+    EventSetCommand,
+    EventWaitCommand,
     ExitCommand,
     JoinCommand,
     QueueCloseCommand,
@@ -108,6 +110,10 @@ class EventLoop:
         self.tasks_waiting_on_a_queue: set[
             RawTask[QueueGetCommand[object] | QueuePutCommand[object], Any, Any]
         ] = set()
+        # Synchronization primitive waiters
+        self.event_waiters: defaultdict[Any, set[RawTask[Command, Any, Any]]] = defaultdict(set)
+        self.lock_waiters: defaultdict[Any, deque[RawTask[Command, Any, Any]]] = defaultdict(deque)
+        self.condition_waiters: defaultdict[Any, set[RawTask[Command, Any, Any]]] = defaultdict(set)
         self.finished: dict[RawTask[Command, Any, Any], object] = {}
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
@@ -255,6 +261,13 @@ class EventLoop:
             if watching_tasks:
                 return True
         if self.tasks_waiting_on_a_queue:
+            return True
+        # Check synchronization primitive waiters
+        if any(self.event_waiters.values()):
+            return True
+        if any(self.lock_waiters.values()):
+            return True
+        if any(self.condition_waiters.values()):
             return True
         return False
 
@@ -519,6 +532,22 @@ class EventLoop:
             else:
                 # Set the exit flag with the return value and no exception
                 self._exit_requested = (True, command.return_value, None)
+        elif isinstance(command, EventWaitCommand):
+            # Wait for an event to be set
+            if command.event._set:
+                # Event already set - immediate resume
+                # This should not actually reach the event loop, but just in case
+                self.tasks.append((current_task_packet[0], None, None))
+            else:
+                # Event not set - block task
+                self.event_waiters[command.event].add(current_task_packet[0])
+        elif isinstance(command, EventSetCommand):
+            # Set event and wake all waiting tasks
+            command.event._set = True
+            for waiter in self.event_waiters[command.event]:
+                self.tasks.append((waiter, None, None))
+            self.event_waiters[command.event].clear()
+            self.tasks.append((current_task_packet[0], None, None))
         else:
             return False
         return True

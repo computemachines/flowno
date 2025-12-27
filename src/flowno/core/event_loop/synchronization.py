@@ -56,11 +56,105 @@ Examples:
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Generator
 
 from flowno.core.event_loop.queues import AsyncQueue
+from flowno.core.event_loop.commands import EventWaitCommand, EventSetCommand
 
 logger = logging.getLogger(__name__)
+
+
+class Event:
+    """
+    A one-shot synchronization primitive for waking multiple waiting tasks.
+
+    An Event starts in the "not set" state. Tasks can wait() on the event,
+    blocking until another task calls set(). Once set, the event remains set
+    permanently, and all current and future wait() calls return immediately.
+
+    This primitive is ideal for signaling completion of an initialization
+    phase or broadcasting a one-time notification to multiple consumers.
+
+    Examples:
+        >>> from flowno.core.event_loop.event_loop import EventLoop
+        >>> from flowno.core.event_loop.primitives import spawn
+        >>> from flowno.core.event_loop.synchronization import Event
+        >>>
+        >>> async def waiter(name: str, event: Event):
+        ...     print(f"{name}: Waiting...")
+        ...     await event.wait()
+        ...     print(f"{name}: Event set, proceeding!")
+        ...     return name
+        >>>
+        >>> async def setter(event: Event):
+        ...     print("Setter: About to set event")
+        ...     await event.set()
+        ...     print("Setter: Event set")
+        >>>
+        >>> async def main():
+        ...     event = Event()
+        ...
+        ...     # Start multiple waiters
+        ...     w1 = await spawn(waiter("Waiter1", event))
+        ...     w2 = await spawn(waiter("Waiter2", event))
+        ...
+        ...     # Set the event
+        ...     s = await spawn(setter(event))
+        ...
+        ...     # All waiters should proceed
+        ...     await w1.join()
+        ...     await w2.join()
+        ...     await s.join()
+        >>>
+        >>> event_loop = EventLoop()
+        >>> event_loop.run_until_complete(main(), join=True)
+        Waiter1: Waiting...
+        Waiter2: Waiting...
+        Setter: About to set event
+        Setter: Event set
+        Waiter1: Event set, proceeding!
+        Waiter2: Event set, proceeding!
+    """
+
+    def __init__(self) -> None:
+        """Initialize a new Event in the not-set state."""
+        self._set = False
+
+    def is_set(self) -> bool:
+        """
+        Check if the event is set.
+
+        Returns:
+            True if the event has been set, False otherwise.
+        """
+        return self._set
+
+    async def wait(self) -> None:
+        """
+        Wait for the event to be set.
+
+        If the event is already set, return immediately.
+        Otherwise, block until another task calls set().
+        """
+        if self._set:
+            return  # Fast path: event already set
+        yield EventWaitCommand(event=self)
+
+    async def set(self) -> None:
+        """
+        Set the event, waking all waiting tasks.
+
+        Once set, the event remains set permanently. All current and future
+        wait() calls will return immediately.
+        """
+        if not self._set:
+            self._set = True
+            yield EventSetCommand(event=self)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the Event."""
+        state = "set" if self._set else "not set"
+        return f"Event({state})"
 
 
 class CountdownLatch:

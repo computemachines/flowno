@@ -208,6 +208,36 @@ class ExitCommand(Command):
 
 
 @dataclass
+class EventWaitCommand(Command):
+    """
+    Wait for an event to be set (one-shot signal).
+
+    :param event: The Event synchronization primitive to wait on.
+
+    .. note::
+       This command blocks the task until the event is set. If the event is
+       already set when this command is issued, the task resumes immediately.
+    """
+
+    event: Any  # Event type from synchronization.py
+
+
+@dataclass
+class EventSetCommand(Command):
+    """
+    Set an event, waking all waiting tasks.
+
+    :param event: The Event synchronization primitive to set.
+
+    .. note::
+       This command sets the event and wakes all tasks blocked on event.wait().
+       The event remains set permanently (one-shot semantics).
+    """
+
+    event: Any  # Event type from synchronization.py
+
+
+@dataclass
 class StreamCancelCommand(Command):
     """
     Internal command to cancel a stream, causing the producer to receive StreamCancelled.
