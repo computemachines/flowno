@@ -268,6 +268,41 @@ class LockReleaseCommand(Command):
 
 
 @dataclass
+class ConditionWaitCommand(Command):
+    """
+    Wait on a condition variable (atomically releases lock).
+
+    :param condition: The Condition synchronization primitive to wait on.
+
+    .. note::
+       This command atomically releases the associated lock and blocks the task
+       until another task calls notify() or notify_all() on the condition.
+       When the task wakes up, it automatically reacquires the lock before continuing.
+       The task must hold the lock before calling wait().
+    """
+
+    condition: Any  # Condition type from synchronization.py
+
+
+@dataclass
+class ConditionNotifyCommand(Command):
+    """
+    Notify waiters on a condition variable.
+
+    :param condition: The Condition synchronization primitive to notify.
+    :param all: If True, notify all waiters (notify_all). If False, notify one waiter (notify).
+
+    .. note::
+       This command wakes one or all tasks waiting on the condition.
+       Notified tasks are moved to the lock's wait queue and must reacquire the lock.
+       The task must hold the lock before calling notify().
+    """
+
+    condition: Any  # Condition type from synchronization.py
+    all: bool  # True = notify_all, False = notify
+
+
+@dataclass
 class StreamCancelCommand(Command):
     """
     Internal command to cancel a stream, causing the producer to receive StreamCancelled.

@@ -57,6 +57,7 @@ Examples:
 
 import logging
 from typing import Optional, Generator
+from types import coroutine
 
 from flowno.core.event_loop.queues import AsyncQueue
 from flowno.core.event_loop.commands import (
@@ -256,18 +257,114 @@ class Lock:
         return f"Lock({state}{owner})"
 
 
+class Condition:
+    """
+    A condition variable for coordinating tasks based on arbitrary conditions.
+
+    A Condition is always associated with a Lock. It provides wait() and notify()
+    operations that allow tasks to wait for a condition to become true and to
+    signal when the condition changes.
+
+    Typical usage pattern:
+        lock = Lock()
+        condition = Condition(lock)
+
+        # Waiter:
+        async with lock:
+            while not some_condition:
+                await condition.wait()  # Atomically releases lock and waits
+            # Lock is reacquired here
+
+        # Notifier:
+        async with lock:
+            # Change the condition
+            await condition.notify()  # or notify_all()
+    """
+
+    def __init__(self, lock: Lock) -> None:
+        """
+        Initialize a Condition with an associated Lock.
+
+        :param lock: The Lock to associate with this condition.
+        """
+        self._lock = lock
+
+    @property
+    def lock(self) -> Lock:
+        """Get the associated lock."""
+        return self._lock
+
+    async def wait(self) -> None:
+        """
+        Wait for the condition to be notified.
+
+        This method atomically releases the associated lock and blocks the task
+        until another task calls notify() or notify_all(). When the task wakes up,
+        it automatically reacquires the lock before returning.
+
+        The task must hold the lock before calling wait().
+
+        Typical usage is in a while loop checking the condition:
+            async with lock:
+                while not condition_is_met():
+                    await condition.wait()
+        """
+        from .commands import ConditionWaitCommand
+
+        yield ConditionWaitCommand(condition=self)
+
+    async def notify(self, n: int = 1) -> None:
+        """
+        Wake up one or more tasks waiting on this condition.
+
+        The task must hold the lock before calling notify().
+        Woken tasks are moved to the lock's wait queue and will reacquire
+        the lock in FIFO order.
+
+        :param n: Number of tasks to wake (default 1). Use notify_all() to wake all.
+        """
+        from .commands import ConditionNotifyCommand
+
+        if n == 1:
+            yield ConditionNotifyCommand(condition=self, all=False)
+        else:
+            # For n > 1, we'd need to extend the command to support count
+            # For now, delegate to notify_all if n > 1
+            yield ConditionNotifyCommand(condition=self, all=True)
+
+    async def notify_all(self) -> None:
+        """
+        Wake up all tasks waiting on this condition.
+
+        The task must hold the lock before calling notify_all().
+        All woken tasks are moved to the lock's wait queue and will reacquire
+        the lock in FIFO order.
+        """
+        from .commands import ConditionNotifyCommand
+
+        yield ConditionNotifyCommand(condition=self, all=True)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the Condition."""
+        return f"Condition(lock={self._lock})"
+
+
 class CountdownLatch:
     """
     A synchronization primitive that allows one or more tasks to wait until
     a set of operations in other tasks completes.
-    
+
     The latch is initialized with a given count. Tasks can then wait on the latch,
     and each count_down() call decreases the counter. When the counter reaches zero,
     all waiting tasks are released.
-    
+
     This is currently used in :py:mod:`~flowno.core.node_base` where a node needs to ensure
     all downstream nodes have consumed its previous output before generating new data.
-    
+
+    Implementation uses Event and Lock primitives:
+    - Event provides the one-shot signal when count reaches zero
+    - Lock protects the counter during decrements
+
     Attributes:
         count: The initial count that must be counted down to zero
     """
@@ -275,18 +372,19 @@ class CountdownLatch:
     def __init__(self, count: int) -> None:
         """
         Initialize a new CountdownLatch.
-        
+
         Args:
             count: The number of count_down() calls needed to release waiting tasks.
                   Must be non-negative.
-                  
+
         Raises:
             ValueError: If count is negative.
         """
         if count < 0:
             raise ValueError("CountdownLatch count must be non-negative")
         self._count = count
-        self._queue = AsyncQueue()
+        self._event = Event()
+        self._lock = Lock()
 
     @property
     def count(self) -> int:
@@ -301,65 +399,98 @@ class CountdownLatch:
     def set_count(self, count: int) -> None:
         """
         Set a new count for the latch.
-        
+
         This method should only be called when no tasks are waiting on the latch.
-        
+
         Args:
             count: The new count value. Must be non-negative.
-            
+
         Raises:
             ValueError: If count is negative.
+
+        Warning:
+            This is not thread-safe. Should only be used when you know no other
+            tasks are accessing the latch.
         """
         if count < 0:
             raise ValueError("CountdownLatch count must be non-negative")
         self._count = count
 
+    @coroutine
+    def _wait(self) -> Generator[EventWaitCommand, None, None]:
+        """Internal coroutine for waiting on the event."""
+        yield EventWaitCommand(event=self._event)
+
     async def wait(self) -> None:
         """
         Block until the latch has counted down to zero.
-        
+
         This coroutine will not complete until count_down() has been called
         the specified number of times.
+
+        Multiple tasks can wait on the same latch; they will all be released
+        when the count reaches zero.
         """
-        # Retrieve 'count' items from the queue
-        for _ in range(self._count):
-            await self._queue.get()
+        await self._wait()
 
     class ZeroLatchError(Exception):
         """
         Exception raised when trying to count down a latch that is already at zero.
-        
+
         This exception is used internally to indicate that the latch has already
         been counted down to zero, and no further countdowns are possible.
         """
         pass
 
-    async def count_down(self, exception_if_zero: bool = False) -> None:
-        """
-        Decrement the latch count by one.
-        
-        If the count reaches zero as a result of this call, all waiting
-        tasks will be unblocked.
-        
-        If the latch is already at zero, this method logs a warning.
-        """
+    @coroutine
+    def _count_down(self, exception_if_zero: bool = False) -> Generator[LockAcquireCommand | LockReleaseCommand | EventSetCommand, None, None]:
+        """Internal coroutine for counting down the latch."""
+        # Acquire lock
+        yield LockAcquireCommand(lock=self._lock)
+
+        # Check and decrement count
         if self._count == 0:
+            # Release lock before raising/warning
+            yield LockReleaseCommand(lock=self._lock)
             if exception_if_zero:
                 raise self.ZeroLatchError("Cannot count down a latch that is already at zero")
             else:
                 logger.warning(f"counted down on already zero latch: {self}")
         else:
             logger.debug(f"counting down latch: {self}")
-            await self._queue.put(None)
+            self._count -= 1
+            if self._count == 0:
+                # Set event while holding lock
+                yield EventSetCommand(event=self._event)
+            # Release lock
+            yield LockReleaseCommand(lock=self._lock)
+
+    async def count_down(self, exception_if_zero: bool = False) -> None:
+        """
+        Decrement the latch count by one.
+
+        If the count reaches zero as a result of this call, all waiting
+        tasks will be unblocked by setting the internal event.
+
+        If the latch is already at zero, this method logs a warning (or raises
+        an exception if exception_if_zero is True).
+
+        Args:
+            exception_if_zero: If True, raise ZeroLatchError when trying to
+                             count down a latch that is already at zero.
+
+        Raises:
+            ZeroLatchError: If exception_if_zero is True and the latch is already at zero.
+        """
+        await self._count_down(exception_if_zero)
     
     def __repr__(self) -> str:
         """
         Return a string representation of the CountdownLatch.
-        
-        This representation includes the current count and the maximum size of the queue.
+
+        This representation includes the current count value.
         """
-        current_latch_count = len(self._queue._get_waiting)
-        return f"CountdownLatch(original_count={self._count}, remaining_counts={current_latch_count})"
+        return f"CountdownLatch(count={self._count}, set={self._event.is_set()})"
 
 
 class Barrier:
@@ -438,6 +569,7 @@ class Barrier:
 __all__ = [
     "Event",
     "Lock",
+    "Condition",
     "CountdownLatch",
     "Barrier"
 ]

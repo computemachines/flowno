@@ -27,6 +27,8 @@ from typing import Any, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
     Command,
+    ConditionNotifyCommand,
+    ConditionWaitCommand,
     EventSetCommand,
     EventWaitCommand,
     ExitCommand,
@@ -576,6 +578,41 @@ class EventLoop:
                 command.lock._owner = None
 
             # Releaser continues
+            self.tasks.append((current_task_packet[0], None, None))
+        elif isinstance(command, ConditionWaitCommand):
+            # Wait on condition (atomically releases lock)
+            # Must hold lock before calling wait
+            assert command.condition._lock._owner == current_task_packet[0], \
+                f"Condition wait by non-owner: {current_task_packet[0]} != {command.condition._lock._owner}"
+
+            # Atomically: add to condition waiters, release lock
+            self.condition_waiters[command.condition].add(current_task_packet[0])
+
+            # Release the lock and wake next lock waiter if any
+            if self.lock_waiters[command.condition._lock]:
+                waiter = self.lock_waiters[command.condition._lock].popleft()
+                command.condition._lock._owner = waiter
+                self.tasks.append((waiter, None, None))
+            else:
+                command.condition._lock._locked = False
+                command.condition._lock._owner = None
+        elif isinstance(command, ConditionNotifyCommand):
+            # Notify waiters on condition (must hold lock)
+            assert command.condition._lock._owner == current_task_packet[0], \
+                f"Condition notify by non-owner: {current_task_packet[0]} != {command.condition._lock._owner}"
+
+            if command.all:
+                # notify_all: move all condition waiters to lock waiters
+                for waiter in self.condition_waiters[command.condition]:
+                    self.lock_waiters[command.condition._lock].append(waiter)
+                self.condition_waiters[command.condition].clear()
+            else:
+                # notify: move one condition waiter to lock waiters
+                if self.condition_waiters[command.condition]:
+                    waiter = self.condition_waiters[command.condition].pop()
+                    self.lock_waiters[command.condition._lock].append(waiter)
+
+            # Notifier continues
             self.tasks.append((current_task_packet[0], None, None))
         else:
             return False
