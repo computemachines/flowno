@@ -135,6 +135,11 @@ class Event:
         """
         return self._set
 
+    @coroutine
+    def _wait_impl(self) -> Generator[EventWaitCommand, None, None]:
+        """Internal coroutine for waiting on the event."""
+        yield EventWaitCommand(event=self)
+
     async def wait(self) -> None:
         """
         Wait for the event to be set.
@@ -144,7 +149,13 @@ class Event:
         """
         if self._set:
             return  # Fast path: event already set
-        yield EventWaitCommand(event=self)
+        await self._wait_impl()
+
+    @coroutine
+    def _set_impl(self) -> Generator[EventSetCommand, None, None]:
+        """Internal coroutine for setting the event."""
+        self._set = True
+        yield EventSetCommand(event=self)
 
     async def set(self) -> None:
         """
@@ -154,8 +165,7 @@ class Event:
         wait() calls will return immediately.
         """
         if not self._set:
-            self._set = True
-            yield EventSetCommand(event=self)
+            await self._set_impl()
 
     def __repr__(self) -> str:
         """Return a string representation of the Event."""
@@ -228,6 +238,11 @@ class Lock:
         """
         return self._locked
 
+    @coroutine
+    def _acquire(self) -> Generator[LockAcquireCommand, None, None]:
+        """Internal coroutine for acquiring the lock."""
+        yield LockAcquireCommand(lock=self)
+
     async def acquire(self) -> None:
         """
         Acquire the lock.
@@ -236,7 +251,12 @@ class Lock:
         If the lock is held by another task, block until it becomes available.
         Tasks waiting for the lock are served in FIFO order.
         """
-        yield LockAcquireCommand(lock=self)
+        await self._acquire()
+
+    @coroutine
+    def _release(self) -> Generator[LockReleaseCommand, None, None]:
+        """Internal coroutine for releasing the lock."""
+        yield LockReleaseCommand(lock=self)
 
     async def release(self) -> None:
         """
@@ -248,7 +268,7 @@ class Lock:
         Raises:
             AssertionError: If the lock is not held by the current task (checked by event loop).
         """
-        yield LockReleaseCommand(lock=self)
+        await self._release()
 
     def __repr__(self) -> str:
         """Return a string representation of the Lock."""
@@ -294,6 +314,12 @@ class Condition:
         """Get the associated lock."""
         return self._lock
 
+    @coroutine
+    def _wait(self) -> Generator:
+        """Internal coroutine for waiting on the condition."""
+        from .commands import ConditionWaitCommand
+        yield ConditionWaitCommand(condition=self)
+
     async def wait(self) -> None:
         """
         Wait for the condition to be notified.
@@ -309,9 +335,19 @@ class Condition:
                 while not condition_is_met():
                     await condition.wait()
         """
-        from .commands import ConditionWaitCommand
+        await self._wait()
 
-        yield ConditionWaitCommand(condition=self)
+    @coroutine
+    def _notify(self, n: int = 1) -> Generator:
+        """Internal coroutine for notifying waiters."""
+        from .commands import ConditionNotifyCommand
+
+        if n == 1:
+            yield ConditionNotifyCommand(condition=self, all=False)
+        else:
+            # For n > 1, we'd need to extend the command to support count
+            # For now, delegate to notify_all if n > 1
+            yield ConditionNotifyCommand(condition=self, all=True)
 
     async def notify(self, n: int = 1) -> None:
         """
@@ -323,14 +359,13 @@ class Condition:
 
         :param n: Number of tasks to wake (default 1). Use notify_all() to wake all.
         """
-        from .commands import ConditionNotifyCommand
+        await self._notify(n)
 
-        if n == 1:
-            yield ConditionNotifyCommand(condition=self, all=False)
-        else:
-            # For n > 1, we'd need to extend the command to support count
-            # For now, delegate to notify_all if n > 1
-            yield ConditionNotifyCommand(condition=self, all=True)
+    @coroutine
+    def _notify_all(self) -> Generator:
+        """Internal coroutine for notifying all waiters."""
+        from .commands import ConditionNotifyCommand
+        yield ConditionNotifyCommand(condition=self, all=True)
 
     async def notify_all(self) -> None:
         """
@@ -340,9 +375,7 @@ class Condition:
         All woken tasks are moved to the lock's wait queue and will reacquire
         the lock in FIFO order.
         """
-        from .commands import ConditionNotifyCommand
-
-        yield ConditionNotifyCommand(condition=self, all=True)
+        await self._notify_all()
 
     def __repr__(self) -> str:
         """Return a string representation of the Condition."""
