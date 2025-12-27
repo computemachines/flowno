@@ -238,6 +238,36 @@ class EventSetCommand(Command):
 
 
 @dataclass
+class LockAcquireCommand(Command):
+    """
+    Acquire a lock (mutual exclusion).
+
+    :param lock: The Lock synchronization primitive to acquire.
+
+    .. note::
+       This command blocks the task until the lock becomes available.
+       If the lock is already available, the task acquires it immediately.
+    """
+
+    lock: Any  # Lock type from synchronization.py
+
+
+@dataclass
+class LockReleaseCommand(Command):
+    """
+    Release a lock, waking the next waiting task.
+
+    :param lock: The Lock synchronization primitive to release.
+
+    .. note::
+       This command releases the lock and wakes the next waiting task (FIFO order).
+       Only the lock owner can release the lock.
+    """
+
+    lock: Any  # Lock type from synchronization.py
+
+
+@dataclass
 class StreamCancelCommand(Command):
     """
     Internal command to cancel a stream, causing the producer to receive StreamCancelled.

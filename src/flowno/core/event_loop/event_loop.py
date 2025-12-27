@@ -31,6 +31,8 @@ from flowno.core.event_loop.commands import (
     EventWaitCommand,
     ExitCommand,
     JoinCommand,
+    LockAcquireCommand,
+    LockReleaseCommand,
     QueueCloseCommand,
     QueueGetCommand,
     QueueNotifyGettersCommand,
@@ -547,6 +549,33 @@ class EventLoop:
             for waiter in self.event_waiters[command.event]:
                 self.tasks.append((waiter, None, None))
             self.event_waiters[command.event].clear()
+            self.tasks.append((current_task_packet[0], None, None))
+        elif isinstance(command, LockAcquireCommand):
+            # Acquire lock (mutual exclusion)
+            if not command.lock._locked:
+                # Lock available - acquire immediately
+                command.lock._locked = True
+                command.lock._owner = current_task_packet[0]
+                self.tasks.append((current_task_packet[0], None, None))
+            else:
+                # Lock held - block in FIFO queue
+                self.lock_waiters[command.lock].append(current_task_packet[0])
+        elif isinstance(command, LockReleaseCommand):
+            # Release lock (must be owner)
+            assert command.lock._owner == current_task_packet[0], \
+                f"Lock release by non-owner: {current_task_packet[0]} != {command.lock._owner}"
+
+            if self.lock_waiters[command.lock]:
+                # Wake next waiter in FIFO order, transfer ownership
+                waiter = self.lock_waiters[command.lock].popleft()
+                command.lock._owner = waiter
+                self.tasks.append((waiter, None, None))
+            else:
+                # No waiters - unlock
+                command.lock._locked = False
+                command.lock._owner = None
+
+            # Releaser continues
             self.tasks.append((current_task_packet[0], None, None))
         else:
             return False

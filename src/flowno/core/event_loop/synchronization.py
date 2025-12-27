@@ -59,7 +59,12 @@ import logging
 from typing import Optional, Generator
 
 from flowno.core.event_loop.queues import AsyncQueue
-from flowno.core.event_loop.commands import EventWaitCommand, EventSetCommand
+from flowno.core.event_loop.commands import (
+    EventWaitCommand,
+    EventSetCommand,
+    LockAcquireCommand,
+    LockReleaseCommand,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +160,100 @@ class Event:
         """Return a string representation of the Event."""
         state = "set" if self._set else "not set"
         return f"Event({state})"
+
+
+class Lock:
+    """
+    A mutual exclusion lock for protecting critical sections.
+
+    A Lock provides mutual exclusion - only one task can hold the lock at a time.
+    Tasks that attempt to acquire a held lock will block until the lock is released.
+    The lock uses FIFO ordering to prevent starvation.
+
+    Examples:
+        >>> from flowno.core.event_loop.event_loop import EventLoop
+        >>> from flowno.core.event_loop.primitives import spawn
+        >>> from flowno.core.event_loop.synchronization import Lock
+        >>>
+        >>> async def critical_section(name: str, lock: Lock, shared_counter: list):
+        ...     print(f"{name}: Waiting for lock")
+        ...     await lock.acquire()
+        ...     try:
+        ...         print(f"{name}: Acquired lock, in critical section")
+        ...         # Simulate work in critical section
+        ...         shared_counter[0] += 1
+        ...         print(f"{name}: Counter = {shared_counter[0]}")
+        ...     finally:
+        ...         await lock.release()
+        ...         print(f"{name}: Released lock")
+        >>>
+        >>> async def main():
+        ...     lock = Lock()
+        ...     counter = [0]
+        ...
+        ...     # Start two tasks that compete for the lock
+        ...     task1 = await spawn(critical_section("Task1", lock, counter))
+        ...     task2 = await spawn(critical_section("Task2", lock, counter))
+        ...
+        ...     await task1.join()
+        ...     await task2.join()
+        ...     return counter[0]
+        >>>
+        >>> event_loop = EventLoop()
+        >>> result = event_loop.run_until_complete(main(), join=True)
+        Task1: Waiting for lock
+        Task1: Acquired lock, in critical section
+        Task1: Counter = 1
+        Task1: Released lock
+        Task2: Waiting for lock
+        Task2: Acquired lock, in critical section
+        Task2: Counter = 2
+        Task2: Released lock
+        >>> print(result)
+        2
+    """
+
+    def __init__(self) -> None:
+        """Initialize a new Lock in the unlocked state."""
+        self._locked = False
+        self._owner = None  # Will be set by event loop
+
+    def is_locked(self) -> bool:
+        """
+        Check if the lock is currently held.
+
+        Returns:
+            True if the lock is held by any task, False otherwise.
+        """
+        return self._locked
+
+    async def acquire(self) -> None:
+        """
+        Acquire the lock.
+
+        If the lock is available, acquire it immediately and return.
+        If the lock is held by another task, block until it becomes available.
+        Tasks waiting for the lock are served in FIFO order.
+        """
+        yield LockAcquireCommand(lock=self)
+
+    async def release(self) -> None:
+        """
+        Release the lock.
+
+        The lock must be held by the current task. If other tasks are waiting,
+        the next task in FIFO order will acquire the lock.
+
+        Raises:
+            AssertionError: If the lock is not held by the current task (checked by event loop).
+        """
+        yield LockReleaseCommand(lock=self)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the Lock."""
+        state = "locked" if self._locked else "unlocked"
+        owner = f" by {self._owner}" if self._owner else ""
+        return f"Lock({state}{owner})"
 
 
 class CountdownLatch:
@@ -337,6 +436,8 @@ class Barrier:
 
 
 __all__ = [
+    "Event",
+    "Lock",
     "CountdownLatch",
     "Barrier"
 ]
