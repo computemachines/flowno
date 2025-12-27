@@ -1,0 +1,105 @@
+------------------------ MODULE EventLoopBasic --------------------------
+(*
+ * PlusCal version of EventLoop - each task is a process.
+ *
+ * Key insight: PlusCal's pc (program counter) per process automatically
+ * tracks task states. The task code looks like actual async Python!
+ *)
+EXTENDS Naturals, TLC
+
+CONSTANT MaxTaskId
+
+(* --algorithm EventLoop {
+    variables
+        \* Which task IDs have been spawned
+        spawned = {0},
+        \* Which tasks are sleeping (blocked on timer)
+        sleeping = {},
+        \* Which tasks finished (used for join)
+        finished = {},
+        \* Which tasks errored
+        errored = {};
+
+    \* Helper to check if any task is at a given label
+    define {
+        \* Task states are inferred from pc values:
+        \* pc[t] = "taskBody" -> task is ready/running
+        \* pc[t] = "waitWake" -> task is sleeping
+        \* pc[t] = "waitJoin" -> task is joining
+        \* pc[t] = "Done" -> task finished
+
+        IsNonexistent(t) == t \notin spawned
+        IsAlive(t) == t \in spawned /\ pc[t] # "Done"
+        IsTerminal(t) == t \in finished \/ t \in errored
+    }
+
+    \* Each task is a PlusCal process - they run cooperatively
+    fair process (Task \in 0..MaxTaskId)
+    {
+        waitSpawn:
+            \* All tasks except root (0) wait to be spawned
+            if (self # 0) {
+                await self \in spawned;
+            };
+
+        taskBody:
+            \* Task executes - makes a choice of what to do
+            while (TRUE) {
+                either {
+                    \* YIELD - just give up control and continue
+                    yield: skip;
+                }
+                or {
+                    \* SLEEP - block on timer
+                    goSleep:
+                        sleeping := sleeping \cup {self};
+                    waitWake:
+                        await self \notin sleeping;  \* Woken by timer
+                }
+                or {
+                    \* JOIN - wait for another task to finish
+                    waitJoin:
+                        with (target \in (spawned \ {self})) {
+                            await target \in finished \/ target \in errored;
+                        }
+                }
+                or {
+                    \* SPAWN - create a new task
+                    spawn:
+                        with (newTask \in {t \in 0..MaxTaskId : t \notin spawned}) {
+                            spawned := spawned \cup {newTask};
+                        }
+                }
+                or {
+                    \* COMPLETE - finish successfully
+                    complete:
+                        finished := finished \cup {self};
+                        goto taskDone;
+                }
+                or {
+                    \* ERROR - finish with error
+                    fail:
+                        errored := errored \cup {self};
+                        goto taskDone;
+                }
+            };
+
+        taskDone:
+            skip;  \* Process ends (pc[self] becomes "Done")
+    }
+
+    \* Separate process to wake sleeping tasks (models timer events)
+    fair process (WakeTimer = MaxTaskId + 1)
+    {
+        timerLoop:
+            while (TRUE) {
+                \* Non-deterministically wake any sleeping task
+                wake:
+                    with (t \in sleeping) {
+                        sleeping := sleeping \ {t};
+                    }
+            }
+    }
+} *)
+
+=============================================================================

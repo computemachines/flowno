@@ -1,0 +1,463 @@
+------------------- MODULE JoinExample_D_PerCommandHandlers -------------------
+(*
+ * Approach D: One Process Per Command Type (TLA+ Style)
+ *
+ * Each command type has its own "handler" process that awaits the right
+ * conditions. Mirrors the pure TLA+ spec structure with separate actions
+ * for each command.
+ *
+ * Python equivalent:
+ *   async def task1():
+ *       await sleep(1)
+ *
+ *   async def task2(task1_handle):
+ *       await sleep(1)
+ *       await task1_handle.join()
+ *
+ *   async def main():
+ *       task1_handle = await spawn(task1())
+ *       task2_handle = await spawn(task2(task1_handle))
+ *       await task1_handle.join()
+ *       await task2_handle.join()
+ *)
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS NoTask
+
+Tasks == {0, 1, 2}  \* 0=Main, 1=Task1, 2=Task2
+
+(* --algorithm JoinExample_D {
+    variables
+        \* Running task tracking - only one task runs at a time
+        running = NoTask,
+
+        \* Task states - includes intermediate "Wants*" states
+        taskState = [t \in Tasks |-> IF t = 0 THEN "Ready" ELSE "Nonexistent"],
+
+        \* Join target per task (when in WantsJoin state)
+        joinTarget = [t \in Tasks |-> NoTask],
+
+        \* Spawn target per task (when in WantsSpawn state)
+        spawnTarget = [t \in Tasks |-> NoTask],
+
+        \* Join waiters: task -> set of tasks waiting for it
+        joinWaiters = [t \in Tasks |-> {}];
+
+    define {
+        \* State predicates
+        IsNonexistent(t) == taskState[t] = "Nonexistent"
+        IsReady(t) == taskState[t] = "Ready"
+        IsReadyResuming(t) == taskState[t] = "ReadyResuming"
+        IsRunning(t) == taskState[t] = "Running"
+        IsSleeping(t) == taskState[t] = "Sleeping"
+        IsWantsSleep(t) == taskState[t] = "WantsSleep"
+        IsWantsJoin(t) == taskState[t] = "WantsJoin"
+        IsWantsSpawn(t) == taskState[t] = "WantsSpawn"
+        IsWantsComplete(t) == taskState[t] = "WantsComplete"
+        IsJoining(t) == taskState[t] = "Joining"
+        IsDone(t) == taskState[t] = "Done"
+
+        \* Schedulable = Ready or ReadyResuming
+        IsSchedulable(t) == IsReady(t) \/ IsReadyResuming(t)
+
+        \* Invariants
+        AtMostOneRunning == Cardinality({t \in Tasks : IsRunning(t)}) <= 1
+
+        JoinWaitersConsistent ==
+            \A t \in Tasks : \A w \in joinWaiters[t] : IsJoining(w)
+
+        \* Liveness: all tasks eventually complete
+        EventuallyAllDone == <>(IsDone(0) /\ IsDone(1) /\ IsDone(2))
+    }
+
+    macro yield_sleep() {
+        taskState[self] := "WantsSleep";
+        running := NoTask;
+    }
+
+    macro yield_join(target) {
+        taskState[self] := "WantsJoin";
+        joinTarget[self] := target;
+        running := NoTask;
+    }
+
+    macro yield_spawn(newTask) {
+        taskState[self] := "WantsSpawn";
+        spawnTarget[self] := newTask;
+        running := NoTask;
+    }
+
+    macro yield_complete() {
+        taskState[self] := "WantsComplete";
+        running := NoTask;
+    }
+
+    \* Scheduler: picks a ready task and makes it Running
+    fair process (Scheduler \in {99})
+    {
+      sched:
+        while (TRUE) {
+            await running = NoTask /\ \E t \in Tasks : IsSchedulable(t);
+            with (t \in {t \in Tasks : IsSchedulable(t)}) {
+                running := t;
+                taskState[t] := "Running";
+            }
+        }
+    }
+
+    \* SleepHandler: processes WantsSleep -> Sleeping
+    fair process (SleepHandler \in {98})
+    {
+      sleep_handle:
+        while (TRUE) {
+            await \E t \in Tasks : IsWantsSleep(t);
+            with (t \in {t \in Tasks : IsWantsSleep(t)}) {
+                taskState[t] := "Sleeping";
+            }
+        }
+    }
+
+    \* Waker: wakes sleeping tasks (timer expiry)
+    fair process (Waker \in {97})
+    {
+      wake:
+        while (TRUE) {
+            await \E t \in Tasks : IsSleeping(t);
+            with (t \in {t \in Tasks : IsSleeping(t)}) {
+                taskState[t] := "ReadyResuming";
+            }
+        }
+    }
+
+    \* JoinHandler: processes WantsJoin -> Joining or ReadyResuming
+    fair process (JoinHandler \in {96})
+    {
+      join_handle:
+        while (TRUE) {
+            either {
+                \* JoinImmediate: target already done
+                await \E t \in Tasks : IsWantsJoin(t) /\ IsDone(joinTarget[t]);
+                with (t \in {t \in Tasks : IsWantsJoin(t) /\ IsDone(joinTarget[t])}) {
+                    taskState[t] := "ReadyResuming";
+                }
+            }
+            or {
+                \* JoinBlock: target not done yet
+                await \E t \in Tasks : IsWantsJoin(t) /\ ~IsDone(joinTarget[t]);
+                with (t \in {t \in Tasks : IsWantsJoin(t) /\ ~IsDone(joinTarget[t])}) {
+                    taskState[t] := "Joining";
+                    joinWaiters[joinTarget[t]] := joinWaiters[joinTarget[t]] \cup {t};
+                }
+            }
+        }
+    }
+
+    \* SpawnHandler: processes WantsSpawn
+    fair process (SpawnHandler \in {95})
+    {
+      spawn_handle:
+        while (TRUE) {
+            await \E t \in Tasks : IsWantsSpawn(t);
+            with (t \in {t \in Tasks : IsWantsSpawn(t)}) {
+                \* Set new task Ready AND spawner ReadyResuming in single assignment
+                taskState := [task \in Tasks |->
+                    IF task = spawnTarget[t] THEN "Ready"
+                    ELSE IF task = t THEN "ReadyResuming"
+                    ELSE taskState[task]];
+            }
+        }
+    }
+
+    \* CompleteHandler: processes WantsComplete and wakes joiners
+    fair process (CompleteHandler \in {94})
+    {
+      complete_handle:
+        while (TRUE) {
+            await \E t \in Tasks : IsWantsComplete(t);
+            with (t \in {t \in Tasks : IsWantsComplete(t)}) {
+                taskState := [task \in Tasks |->
+                    IF task \in joinWaiters[t] THEN "ReadyResuming"
+                    ELSE IF task = t THEN "Done"
+                    ELSE taskState[task]];
+                joinWaiters[t] := {};
+            }
+        }
+    }
+
+    \* Main task
+    fair process (Main \in {0})
+    {
+      main_spawn1:
+        await running = self;
+        yield_spawn(1);
+
+      main_spawn2:
+        await running = self;
+        yield_spawn(2);
+
+      main_join1:
+        await running = self;
+        yield_join(1);
+
+      main_join2:
+        await running = self;
+        yield_join(2);
+
+      main_complete:
+        await running = self;
+        yield_complete();
+    }
+
+    \* Task1: just sleeps then completes
+    fair process (Task1 \in {1})
+    {
+      t1_sleep:
+        await running = self;
+        yield_sleep();
+
+      t1_complete:
+        await running = self;
+        yield_complete();
+    }
+
+    \* Task2: sleeps, then joins Task1, then completes
+    fair process (Task2 \in {2})
+    {
+      t2_sleep:
+        await running = self;
+        yield_sleep();
+
+      t2_join:
+        await running = self;
+        yield_join(1);
+
+      t2_complete:
+        await running = self;
+        yield_complete();
+    }
+} *)
+
+\* BEGIN TRANSLATION
+VARIABLES running, taskState, joinTarget, spawnTarget, joinWaiters, pc
+
+(* define statement *)
+IsNonexistent(t) == taskState[t] = "Nonexistent"
+IsReady(t) == taskState[t] = "Ready"
+IsReadyResuming(t) == taskState[t] = "ReadyResuming"
+IsRunning(t) == taskState[t] = "Running"
+IsSleeping(t) == taskState[t] = "Sleeping"
+IsWantsSleep(t) == taskState[t] = "WantsSleep"
+IsWantsJoin(t) == taskState[t] = "WantsJoin"
+IsWantsSpawn(t) == taskState[t] = "WantsSpawn"
+IsWantsComplete(t) == taskState[t] = "WantsComplete"
+IsJoining(t) == taskState[t] = "Joining"
+IsDone(t) == taskState[t] = "Done"
+
+
+IsSchedulable(t) == IsReady(t) \/ IsReadyResuming(t)
+
+
+AtMostOneRunning == Cardinality({t \in Tasks : IsRunning(t)}) <= 1
+
+JoinWaitersConsistent ==
+    \A t \in Tasks : \A w \in joinWaiters[t] : IsJoining(w)
+
+
+EventuallyAllDone == <>(IsDone(0) /\ IsDone(1) /\ IsDone(2))
+
+
+vars == << running, taskState, joinTarget, spawnTarget, joinWaiters, pc >>
+
+ProcSet == ({99}) \cup ({98}) \cup ({97}) \cup ({96}) \cup ({95}) \cup ({94}) \cup ({0}) \cup ({1}) \cup ({2})
+
+Init == (* Global variables *)
+        /\ running = NoTask
+        /\ taskState = [t \in Tasks |-> IF t = 0 THEN "Ready" ELSE "Nonexistent"]
+        /\ joinTarget = [t \in Tasks |-> NoTask]
+        /\ spawnTarget = [t \in Tasks |-> NoTask]
+        /\ joinWaiters = [t \in Tasks |-> {}]
+        /\ pc = [self \in ProcSet |-> CASE self \in {99} -> "sched"
+                                        [] self \in {98} -> "sleep_handle"
+                                        [] self \in {97} -> "wake"
+                                        [] self \in {96} -> "join_handle"
+                                        [] self \in {95} -> "spawn_handle"
+                                        [] self \in {94} -> "complete_handle"
+                                        [] self \in {0} -> "main_spawn1"
+                                        [] self \in {1} -> "t1_sleep"
+                                        [] self \in {2} -> "t2_sleep"]
+
+sched(self) == /\ pc[self] = "sched"
+               /\ running = NoTask /\ \E t \in Tasks : IsSchedulable(t)
+               /\ \E t \in {t \in Tasks : IsSchedulable(t)}:
+                    /\ running' = t
+                    /\ taskState' = [taskState EXCEPT ![t] = "Running"]
+               /\ pc' = [pc EXCEPT ![self] = "sched"]
+               /\ UNCHANGED << joinTarget, spawnTarget, joinWaiters >>
+
+Scheduler(self) == sched(self)
+
+sleep_handle(self) == /\ pc[self] = "sleep_handle"
+                      /\ \E t \in Tasks : IsWantsSleep(t)
+                      /\ \E t \in {t \in Tasks : IsWantsSleep(t)}:
+                           taskState' = [taskState EXCEPT ![t] = "Sleeping"]
+                      /\ pc' = [pc EXCEPT ![self] = "sleep_handle"]
+                      /\ UNCHANGED << running, joinTarget, spawnTarget, 
+                                      joinWaiters >>
+
+SleepHandler(self) == sleep_handle(self)
+
+wake(self) == /\ pc[self] = "wake"
+              /\ \E t \in Tasks : IsSleeping(t)
+              /\ \E t \in {t \in Tasks : IsSleeping(t)}:
+                   taskState' = [taskState EXCEPT ![t] = "ReadyResuming"]
+              /\ pc' = [pc EXCEPT ![self] = "wake"]
+              /\ UNCHANGED << running, joinTarget, spawnTarget, joinWaiters >>
+
+Waker(self) == wake(self)
+
+join_handle(self) == /\ pc[self] = "join_handle"
+                     /\ \/ /\ \E t \in Tasks : IsWantsJoin(t) /\ IsDone(joinTarget[t])
+                           /\ \E t \in {t \in Tasks : IsWantsJoin(t) /\ IsDone(joinTarget[t])}:
+                                taskState' = [taskState EXCEPT ![t] = "ReadyResuming"]
+                           /\ UNCHANGED joinWaiters
+                        \/ /\ \E t \in Tasks : IsWantsJoin(t) /\ ~IsDone(joinTarget[t])
+                           /\ \E t \in {t \in Tasks : IsWantsJoin(t) /\ ~IsDone(joinTarget[t])}:
+                                /\ taskState' = [taskState EXCEPT ![t] = "Joining"]
+                                /\ joinWaiters' = [joinWaiters EXCEPT ![joinTarget[t]] = joinWaiters[joinTarget[t]] \cup {t}]
+                     /\ pc' = [pc EXCEPT ![self] = "join_handle"]
+                     /\ UNCHANGED << running, joinTarget, spawnTarget >>
+
+JoinHandler(self) == join_handle(self)
+
+spawn_handle(self) == /\ pc[self] = "spawn_handle"
+                      /\ \E t \in Tasks : IsWantsSpawn(t)
+                      /\ \E t \in {t \in Tasks : IsWantsSpawn(t)}:
+                           taskState' =          [task \in Tasks |->
+                                        IF task = spawnTarget[t] THEN "Ready"
+                                        ELSE IF task = t THEN "ReadyResuming"
+                                        ELSE taskState[task]]
+                      /\ pc' = [pc EXCEPT ![self] = "spawn_handle"]
+                      /\ UNCHANGED << running, joinTarget, spawnTarget, 
+                                      joinWaiters >>
+
+SpawnHandler(self) == spawn_handle(self)
+
+complete_handle(self) == /\ pc[self] = "complete_handle"
+                         /\ \E t \in Tasks : IsWantsComplete(t)
+                         /\ \E t \in {t \in Tasks : IsWantsComplete(t)}:
+                              /\ taskState' =          [task \in Tasks |->
+                                              IF task \in joinWaiters[t] THEN "ReadyResuming"
+                                              ELSE IF task = t THEN "Done"
+                                              ELSE taskState[task]]
+                              /\ joinWaiters' = [joinWaiters EXCEPT ![t] = {}]
+                         /\ pc' = [pc EXCEPT ![self] = "complete_handle"]
+                         /\ UNCHANGED << running, joinTarget, spawnTarget >>
+
+CompleteHandler(self) == complete_handle(self)
+
+main_spawn1(self) == /\ pc[self] = "main_spawn1"
+                     /\ running = self
+                     /\ taskState' = [taskState EXCEPT ![self] = "WantsSpawn"]
+                     /\ spawnTarget' = [spawnTarget EXCEPT ![self] = 1]
+                     /\ running' = NoTask
+                     /\ pc' = [pc EXCEPT ![self] = "main_spawn2"]
+                     /\ UNCHANGED << joinTarget, joinWaiters >>
+
+main_spawn2(self) == /\ pc[self] = "main_spawn2"
+                     /\ running = self
+                     /\ taskState' = [taskState EXCEPT ![self] = "WantsSpawn"]
+                     /\ spawnTarget' = [spawnTarget EXCEPT ![self] = 2]
+                     /\ running' = NoTask
+                     /\ pc' = [pc EXCEPT ![self] = "main_join1"]
+                     /\ UNCHANGED << joinTarget, joinWaiters >>
+
+main_join1(self) == /\ pc[self] = "main_join1"
+                    /\ running = self
+                    /\ taskState' = [taskState EXCEPT ![self] = "WantsJoin"]
+                    /\ joinTarget' = [joinTarget EXCEPT ![self] = 1]
+                    /\ running' = NoTask
+                    /\ pc' = [pc EXCEPT ![self] = "main_join2"]
+                    /\ UNCHANGED << spawnTarget, joinWaiters >>
+
+main_join2(self) == /\ pc[self] = "main_join2"
+                    /\ running = self
+                    /\ taskState' = [taskState EXCEPT ![self] = "WantsJoin"]
+                    /\ joinTarget' = [joinTarget EXCEPT ![self] = 2]
+                    /\ running' = NoTask
+                    /\ pc' = [pc EXCEPT ![self] = "main_complete"]
+                    /\ UNCHANGED << spawnTarget, joinWaiters >>
+
+main_complete(self) == /\ pc[self] = "main_complete"
+                       /\ running = self
+                       /\ taskState' = [taskState EXCEPT ![self] = "WantsComplete"]
+                       /\ running' = NoTask
+                       /\ pc' = [pc EXCEPT ![self] = "Done"]
+                       /\ UNCHANGED << joinTarget, spawnTarget, joinWaiters >>
+
+Main(self) == main_spawn1(self) \/ main_spawn2(self) \/ main_join1(self)
+                 \/ main_join2(self) \/ main_complete(self)
+
+t1_sleep(self) == /\ pc[self] = "t1_sleep"
+                  /\ running = self
+                  /\ taskState' = [taskState EXCEPT ![self] = "WantsSleep"]
+                  /\ running' = NoTask
+                  /\ pc' = [pc EXCEPT ![self] = "t1_complete"]
+                  /\ UNCHANGED << joinTarget, spawnTarget, joinWaiters >>
+
+t1_complete(self) == /\ pc[self] = "t1_complete"
+                     /\ running = self
+                     /\ taskState' = [taskState EXCEPT ![self] = "WantsComplete"]
+                     /\ running' = NoTask
+                     /\ pc' = [pc EXCEPT ![self] = "Done"]
+                     /\ UNCHANGED << joinTarget, spawnTarget, joinWaiters >>
+
+Task1(self) == t1_sleep(self) \/ t1_complete(self)
+
+t2_sleep(self) == /\ pc[self] = "t2_sleep"
+                  /\ running = self
+                  /\ taskState' = [taskState EXCEPT ![self] = "WantsSleep"]
+                  /\ running' = NoTask
+                  /\ pc' = [pc EXCEPT ![self] = "t2_join"]
+                  /\ UNCHANGED << joinTarget, spawnTarget, joinWaiters >>
+
+t2_join(self) == /\ pc[self] = "t2_join"
+                 /\ running = self
+                 /\ taskState' = [taskState EXCEPT ![self] = "WantsJoin"]
+                 /\ joinTarget' = [joinTarget EXCEPT ![self] = 1]
+                 /\ running' = NoTask
+                 /\ pc' = [pc EXCEPT ![self] = "t2_complete"]
+                 /\ UNCHANGED << spawnTarget, joinWaiters >>
+
+t2_complete(self) == /\ pc[self] = "t2_complete"
+                     /\ running = self
+                     /\ taskState' = [taskState EXCEPT ![self] = "WantsComplete"]
+                     /\ running' = NoTask
+                     /\ pc' = [pc EXCEPT ![self] = "Done"]
+                     /\ UNCHANGED << joinTarget, spawnTarget, joinWaiters >>
+
+Task2(self) == t2_sleep(self) \/ t2_join(self) \/ t2_complete(self)
+
+Next == (\E self \in {99}: Scheduler(self))
+           \/ (\E self \in {98}: SleepHandler(self))
+           \/ (\E self \in {97}: Waker(self))
+           \/ (\E self \in {96}: JoinHandler(self))
+           \/ (\E self \in {95}: SpawnHandler(self))
+           \/ (\E self \in {94}: CompleteHandler(self))
+           \/ (\E self \in {0}: Main(self))
+           \/ (\E self \in {1}: Task1(self))
+           \/ (\E self \in {2}: Task2(self))
+
+Spec == /\ Init /\ [][Next]_vars
+        /\ \A self \in {99} : WF_vars(Scheduler(self))
+        /\ \A self \in {98} : WF_vars(SleepHandler(self))
+        /\ \A self \in {97} : WF_vars(Waker(self))
+        /\ \A self \in {96} : WF_vars(JoinHandler(self))
+        /\ \A self \in {95} : WF_vars(SpawnHandler(self))
+        /\ \A self \in {94} : WF_vars(CompleteHandler(self))
+        /\ \A self \in {0} : WF_vars(Main(self))
+        /\ \A self \in {1} : WF_vars(Task1(self))
+        /\ \A self \in {2} : WF_vars(Task2(self))
+
+\* END TRANSLATION
+
+=============================================================================
