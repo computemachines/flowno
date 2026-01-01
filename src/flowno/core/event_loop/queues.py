@@ -260,11 +260,23 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
     def __len__(self) -> int:
         """
         Get the current number of items in the queue.
-        
+
         Returns:
             Number of items currently in the queue
         """
         return len(self.items)
+
+    def __contains__(self, item: _T) -> bool:
+        """
+        Check if an item is in the queue.
+
+        Args:
+            item: The item to check for
+
+        Returns:
+            True if the item is in the queue, False otherwise
+        """
+        return item in self.items
 
     @override
     def __aiter__(self) -> AsyncIterator[_T]:
