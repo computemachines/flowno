@@ -62,7 +62,7 @@ import logging
 from collections import deque
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 from flowno.core.event_loop.instrumentation import get_current_instrument
 from flowno.core.event_loop.synchronization import Condition, Lock
@@ -357,10 +357,12 @@ class AsyncSetQueue(Generic[_T], AsyncQueue[_T]):
             
             if self.closed:
                 raise QueueClosedError("Cannot put item into closed queue")
-            
+
             get_current_instrument().on_queue_put(queue=self, item=item, immediate=True)
             self.items.append(item)
+            logger.debug(f"AsyncSetQueue.put: Added {item} to queue, items now: {list(self.items)}")
             await self._not_empty.notify()
+            logger.debug(f"AsyncSetQueue.put: After notify, items: {list(self.items)}")
 
     async def putAll(self, items: list[_T]) -> None:
         """
@@ -415,7 +417,7 @@ class AsyncSetQueue(Generic[_T], AsyncQueue[_T]):
         self.items.append(item)
         
         # Notify one waiter if any are waiting on _not_empty
-        event_loop.condition_notify_nowait(self._not_empty)
+        self._not_empty.notify_nowait(event_loop)
         
         return True
 

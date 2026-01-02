@@ -215,16 +215,16 @@ def clip_generation(gen: Generation, run_level: int) -> Generation:
 def parent_generation(gen: Generation) -> Generation:
     """
     Return the parent generation of the given generation tuple.
-    
+
     The parent generation is created by removing the last element of the
     generation tuple, representing moving up one run level in the hierarchy.
-    
+
     Args:
         gen: The generation tuple to find the parent of
-        
+
     Returns:
         The parent generation, or None if gen is None or empty
-        
+
     Examples:
         >>> parent_generation(None)
         None
@@ -243,6 +243,37 @@ def parent_generation(gen: Generation) -> Generation:
         return tuple()
     else:
         return tuple(list(gen)[:-1])
+
+
+def main_generation(gen: Generation) -> Generation:
+    """
+    Return the main (run level 0) generation from any generation tuple.
+
+    Unlike clip_generation which finds the highest generation <= input at a given
+    run level, this function simply extracts the first element as a tuple,
+    representing which main generation this streaming generation belongs to.
+
+    Args:
+        gen: The generation tuple to extract the main generation from
+
+    Returns:
+        A length-1 tuple with just the main generation, or the input if None/empty
+
+    Examples:
+        >>> main_generation(None)
+        None
+        >>> main_generation(())
+        ()
+        >>> main_generation((1,))
+        (1,)
+        >>> main_generation((1, 2))
+        (1,)
+        >>> main_generation((0, 5))
+        (0,)
+    """
+    if gen is None or len(gen) == 0:
+        return gen
+    return (gen[0],)
 
 
 def stitched_generation(gen: Generation, stitch_0: int) -> Generation:

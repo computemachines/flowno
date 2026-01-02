@@ -55,6 +55,25 @@ logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 _Ts = TypeVarTuple("_Ts")
 
+
+# === Stream Result Types ===
+# Option-like types for stream results. We can't use T | None because None is a valid stream value.
+
+@dataclass(frozen=True)
+class Some(Generic[_T]):
+    """Represents a stream value that is available."""
+    value: _T
+
+
+@dataclass(frozen=True)
+class Nothing:
+    """Represents that no stream value is available yet."""
+    pass
+
+
+StreamResult = Some[_T] | Nothing
+"""Type alias for stream check results: either Some(value) or Nothing."""
+
 #: The return type of a single output or multiple output node.
 ReturnTupleT_co = TypeVar("ReturnTupleT_co", covariant=True, bound=tuple[object, ...])
 _InputType = TypeVar("_InputType")
@@ -797,31 +816,65 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
 
         All stream iteration logic (checking data readiness, detecting completion,
         etc.) has been moved to the Flow/EventLoop command handler. This method
-        simply delegates to _stream_get which yields a StreamGetCommand.
+        delegates to _stream_get which uses StreamCheckCommand/StreamWaitCommand.
         """
         logger.debug(f"calling __anext__({self})")
         return await _stream_get(self)
 
 
 @dataclass
-class StreamGetCommand(Generic[_T], Command):
-    """Command to get the next value from a stream.
+class StreamCheckCommand(Generic[_T], Command):
+    """Command to check if stream data is available.
 
-    All stream iteration logic should be handled by the event loop/flow,
-    not by the Stream class itself. This command requests the next value
-    and the handler decides whether to:
-    - Return available data
-    - Stall waiting for producer
-    - Raise StopAsyncIteration (stream complete)
+    This is a non-blocking check that returns immediately with either:
+    - Some(value): Data is available
+    - Nothing: No data available yet
+    - StopAsyncIteration exception: Stream is complete
+
+    The handler never stalls the task - it always returns control.
+    """
+    stream: "Stream[_T]"
+
+
+@dataclass
+class StreamWaitCommand(Generic[_T], Command):
+    """Command to wait/stall until stream data might be available.
+
+    This command stalls the task until the resolver decides to wake it.
+    The handler:
+    - Marks the node as Stalled
+    - Enqueues the producer if it's idle
+    - Does NOT add the task back to the queue
+
+    When the resolver resumes the node (via ResumeNodesCommand), the task
+    continues from this yield point with None, then loops to re-check.
     """
     stream: "Stream[_T]"
 
 
 @coroutine
-def _stream_get(stream: "Stream[_T]") -> Generator[StreamGetCommand[_T], _T, _T]:
-    """Yield a command to get the next value from the stream."""
-    logger.info(f"Requesting next value from stream {stream}", extra={"tag": "flow"})
-    return (yield StreamGetCommand(stream))
+def _stream_get(stream: "Stream[_T]") -> Generator[StreamCheckCommand[_T] | StreamWaitCommand[_T], Some[_T] | Nothing | None, _T]:
+    """Get the next value from the stream using check/wait pattern.
+
+    This function loops:
+    1. Issue StreamCheckCommand to check if data is available
+    2. If Some(value), return it
+    3. If Nothing, issue StreamWaitCommand to stall until poked
+    4. When resumed, loop back to step 1
+
+    StopAsyncIteration is thrown by the handler when the stream is complete.
+    """
+    while True:
+        logger.info(f"Checking stream {stream} for data", extra={"tag": "flow"})
+        result: Some[_T] | Nothing = (yield StreamCheckCommand(stream))
+
+        match result:
+            case Some(value):
+                return value
+            case Nothing():
+                logger.debug(f"Stream {stream} not ready, waiting")
+                yield StreamWaitCommand(stream)
+                # Resumed by resolver - loop back to check again
 
 @dataclass
 class NodePlaceholder:

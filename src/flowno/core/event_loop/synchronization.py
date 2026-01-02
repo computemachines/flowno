@@ -402,6 +402,32 @@ class Condition:
         """
         await self._notify_all()
 
+    def notify_nowait(self, event_loop: "EventLoop") -> bool:
+        """
+        Synchronously notify one waiter on this condition.
+        
+        Args:
+            event_loop: The event loop to use for notifying waiters
+            
+        Returns:
+            True if a waiter was notified, False otherwise
+        """
+        if not event_loop.condition_waiters[self]:
+            return False
+
+        waiter = event_loop.condition_waiters[self].pop()
+        
+        # If the lock is free, we can wake the waiter immediately and give it the lock
+        if not self._lock._locked:
+            self._lock._locked = True
+            self._lock._owner = waiter
+            event_loop.tasks.append((waiter, None, None))
+        else:
+            # Lock is held, move waiter to lock waiters
+            event_loop.lock_waiters[self._lock].append(waiter)
+            
+        return True
+
     def notify_all_nowait(self, event_loop: "EventLoop") -> int:
         """
         Synchronously notify all waiters on this condition.
@@ -599,6 +625,33 @@ class CountdownLatch:
             ZeroLatchError: If exception_if_zero is True and the latch is already at zero.
         """
         await self._count_down(exception_if_zero)
+
+    def countdown_nowait(self, event_loop: "EventLoop") -> None:
+        """
+        Synchronously decrement the latch count by one.
+        
+        This method is designed to be called from within a command handler,
+        where async operations are not possible. It handles waiter notification
+        synchronously through the event loop.
+        
+        Args:
+            event_loop: The event loop to use for notifying waiters
+        """
+        if self._count == 0:
+            logger.warning(f"countdown_nowait called on already zero latch: {self}")
+            return
+
+        self._count -= 1
+        if self._count == 0:
+            # Set event and wake all waiting tasks
+            self._event._set = True
+            
+            # Wake all waiters
+            waiters = event_loop.event_waiters[self._event]
+            if waiters:
+                for waiter in waiters:
+                    event_loop.tasks.append((waiter, None, None))
+                waiters.clear()
     
     def __repr__(self) -> str:
         """
