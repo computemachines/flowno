@@ -231,7 +231,7 @@ def test_exception_handling():
     assert log == ["main start", "foo start", "Caught exception: Something went wrong", "main end"]
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_tls_socket():
     @node
     async def main():
@@ -248,7 +248,7 @@ def test_tls_socket():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_recv_zero_bytes():
     @node
     async def main():
@@ -265,7 +265,7 @@ def test_recv_zero_bytes():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_recv_double():
     @node
     async def main():
@@ -286,7 +286,7 @@ def test_recv_double():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_http_get():
     @node
     async def main():
@@ -301,7 +301,7 @@ def test_http_get():
     flow.run_until_complete(terminate_on_node_error=True)
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_http_get_https():
     @node
     async def main():

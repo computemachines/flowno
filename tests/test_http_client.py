@@ -13,7 +13,7 @@ from flowno.io.http_client import (
 T = TypeVar("T")
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_get_status():
     async def main():
         client = HttpClient()
@@ -27,7 +27,7 @@ def test_get_status():
     assert response.body == b"201 Created"
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_get_stream():
     async def main():
         client = HttpClient()
@@ -46,7 +46,7 @@ def test_get_stream():
     assert isinstance(response, OkStreamingResponse)
 
 
-@pytest.mark.network
+@pytest.mark.skip
 def test_multiple_concurrent_streams():
     client = HttpClient()
 

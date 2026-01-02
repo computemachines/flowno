@@ -1,4 +1,4 @@
-Only run non `network` marked tests. E.g. `uv run pytest -m "not network"`.
+Run tests with `uv run pytest -v"` or similar command.
 Only run tests when ready for release or when completely baffled by a bug. 
 
 DO NOT USE MCP SERVERS for TLA+/PlusCal work. Use the command line (the `tla2tools.jar` commands below) for PlusCal transpilation, SANY parsing, and TLC runs.
