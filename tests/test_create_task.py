@@ -154,6 +154,16 @@ def test_create_task_runs2():
             "TASK FINISHED",
             "TASK CREATED",
         ],
+        [
+            # With Lock/Condition implementation, task can finish before main prints
+            "MAIN START",
+            "TASK CREATING",
+            "TASK CREATED",
+            "TASK EXECUTING",
+            "TASK FINISHED",
+            "MAIN GOT VALUE hello",
+            "MAIN END",
+        ],
     ]
 
     msgs = [msg for _, msg in log]

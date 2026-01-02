@@ -16,11 +16,11 @@ from collections import defaultdict, deque
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator
 from dataclasses import dataclass
 from types import coroutine
-from typing import Any, Callable, NamedTuple, TypeAlias, cast
+from typing import Any, Callable, NamedTuple, Optional, TypeAlias, cast
 
 from flowno.core.event_loop.commands import Command, StreamCancelCommand
 from flowno.core.event_loop.event_loop import EventLoop
-from flowno.core.event_loop.queues import AsyncSetQueue
+from flowno.core.event_loop.queues import AsyncSetQueue, QueueClosedError
 from flowno.core.event_loop.types import RawTask, TaskHandlePacket
 from flowno.core.flow.instrumentation import get_current_flow_instrument
 from flowno.core.node_base import (
@@ -31,14 +31,13 @@ from flowno.core.node_base import (
     FinalizedNode,
     MissingDefaultError,
     NodeContextFactoryProtocol,
-    StalledNodeRequestCommand,
     Stream,
     StreamGetCommand,
     SuperNode,
     StreamCancelled,
 )
-from flowno.core.types import Generation, InputPortIndex
-from flowno.utilities.helpers import cmp_generation, clip_generation, parent_generation, stitched_generation
+from flowno.core.types import DataGeneration, Generation, InputPortIndex, OutputPortIndex
+from flowno.utilities.helpers import cmp_generation, clip_generation, inc_generation, parent_generation, stitched_generation
 from flowno.utilities.logging import log_async
 from typing_extensions import Never, Unpack, override
 
@@ -46,7 +45,16 @@ logger = logging.getLogger(__name__)
 
 AnyFinalizedNode: TypeAlias = FinalizedNode[Unpack[tuple[Any, ...]], tuple[Any, ...]]
 ObjectFinalizedNode: TypeAlias = FinalizedNode[
-    Unpack[tuple[object, ...]], tuple[object, ...]
+    Unpack[tuple[object, ...]], tuple[object, ...]]
+
+# Key for stream consumer state: (consumer_node, input_port, producer_node, output_port, run_level)
+# This is stable across RL0 cycles unlike Stream object identity
+StreamStateKey: TypeAlias = tuple[
+    FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],  # consumer
+    int,  # consumer input port index
+    FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],  # producer
+    int,  # producer output port index
+    int,  # run level
 ]
 
 _current_flow: "Flow | None" = None
@@ -102,7 +110,12 @@ def current_context() -> Any:
 
 @dataclass
 class WaitForStartNextGenerationCommand(Command):
-    """Command to wait for a node to start its next generation."""
+    """Command to wait for a node to start its next generation.
+    
+    .. warning::
+        If this command is handled before the resolution queue is pushed with new nodes,
+        and the resolution queue is empty, the resolution queue will be closed, causing the flow to terminate.
+    """
 
     node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
     run_level: int = 0
@@ -166,18 +179,18 @@ class NodeExecutionError(Exception):
 
 
 @dataclass
-class ResumeNodeCommand(Command):
-    """Command to resume a node's execution."""
+class ResumeNodesCommand(Command):
+    """Command to resume execution of one or more nodes."""
 
-    node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
+    nodes: list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]
 
 
 @coroutine
-def _resume_node(
-    node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
-) -> Generator[ResumeNodeCommand, None, None]:
-    """Resume the concurrent node task. Does not guarantee that the node will resume if already running."""
-    return (yield ResumeNodeCommand(node))
+def _resume_nodes(
+    nodes: list[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]],
+) -> Generator[ResumeNodesCommand, None, None]:
+    """Resume the concurrent node tasks. Does not guarantee that the nodes will resume if already running."""
+    return (yield ResumeNodesCommand(nodes))
 
 
 class NodeTaskStatus:
@@ -185,23 +198,30 @@ class NodeTaskStatus:
     Represents the possible states of a node's task within the flow execution.
 
     States:
-        - Running: The node is currently executing.
-        - Ready: The node is ready to execute but not yet running.
+        - Queued: The node is queued to be executed (in the event loop task queue).
+        - Executing: The node task is currently executing (task.send/throw is being called).
+        - WaitingForStartNextGeneration: The node is waiting to start its next generation.
         - Error: The node encountered an error during execution.
         - Stalled: The node is blocked waiting on input data.
     """
 
     @dataclass(frozen=True)
-    class Running:
-        """Node is actively executing."""
+    class Queued:
+        """Node is queued to be executed."""
 
         pass
 
     @dataclass(frozen=True)
-    class Ready:
-        """Node is ready to be executed."""
+    class Executing:
+        """Node is currently being executed (task.send/throw is being called)."""
 
         pass
+
+    @dataclass(frozen=True)
+    class WaitingForStartNextGeneration:
+        """Node is waiting to start its next generation."""
+
+        run_level: int
 
     @dataclass(frozen=True)
     class Error:
@@ -215,7 +235,7 @@ class NodeTaskStatus:
 
         stalling_input: FinalizedInputPortRef[object]
 
-    Type: TypeAlias = Ready | Running | Error | Stalled
+    Type: TypeAlias = Queued | Executing | WaitingForStartNextGeneration | Error | Stalled
 
 
 class NodeTaskAndStatus(NamedTuple):
@@ -233,8 +253,7 @@ class StreamConsumerState:
     for the producer, or raise StopAsyncIteration (stream complete).
     """
     last_consumed_generation: Generation | None = None
-    last_consumed_parent_generation: Generation | None = None
-    cancelled: bool = False
+    cancelled_after_consuming_generation: Optional[Generation] = None
 
 
 class Flow:
@@ -255,7 +274,6 @@ class Flow:
         unvisited: List of nodes that have not yet been visited during execution
         visited: Set of nodes that have been visited
         node_tasks: Dictionary mapping nodes to their tasks and status
-        running_nodes: Set of nodes currently running
         resolution_queue: Queue of nodes waiting to be resolved
     """
 
@@ -273,7 +291,6 @@ class Flow:
     node_tasks: dict[
         FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], NodeTaskAndStatus
     ]
-    running_nodes: set[FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]]
     resolution_queue: AsyncSetQueue[
         FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
     ]
@@ -283,6 +300,11 @@ class Flow:
     ]
     _cancelled_streams: defaultdict[
         FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]], set[Stream]
+    ]
+    _stream_consumer_state: defaultdict[StreamStateKey, "StreamConsumerState"]
+    _stalled_stream_consumers: dict[
+        tuple[FinalizedNode[Any, Any], int],
+        list[tuple[RawTask[Command, Any, Any], StreamStateKey]],
     ]
     _context_factory: Callable[["FinalizedNode"], Any] | None
 
@@ -302,16 +324,23 @@ class Flow:
         self.counter = Flow.counter
         Flow.counter += 1
 
+        self._active_nodes = set()
+        self._processing_queue_item = False
+
         self.unvisited = []
         self.visited = set()
         self._stop_at_node_generation = None
         self.node_tasks = {}
-        self.running_nodes = set()
         self.resolution_queue = AsyncSetQueue()
         self._defaulted_inputs = defaultdict(list)
         self._cancelled_streams = defaultdict(set)
-        self._stream_consumer_state: dict[Stream, "StreamConsumerState"] = {}
+        self._stream_consumer_state = defaultdict(StreamConsumerState)
+        self._stalled_stream_consumers = defaultdict(list)
         self._context_factory = None
+
+    @property
+    def active_nodes(self) -> int:
+        return len(self._active_nodes)
 
     def set_node_status(
         self,
@@ -330,11 +359,6 @@ class Flow:
             self, node, old_status, status
         )
         self.node_tasks[node] = self.node_tasks[node]._replace(status=status)
-
-        if isinstance(status, NodeTaskStatus.Running):
-            self.running_nodes.add(node)
-        elif node in self.running_nodes:
-            self.running_nodes.remove(node)
 
     def set_defaulted_inputs(
         self,
@@ -409,6 +433,58 @@ class Flow:
                 self, node, stop_generation
             )
             await _terminate_reached_limit()
+
+    def _stall_stream_consumer(
+        self,
+        consumer_node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        producer_node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+        stream: Stream[object],
+        consumer_task: Generator[object, object, object],
+        state_key: StreamStateKey,
+        event_loop: EventLoop,
+    ) -> None:
+        """
+        Stall a stream consumer and potentially wake the producer.
+        
+        Called when a consumer requests stream data that isn't available yet.
+        Updates consumer status, registers it for notification when data arrives,
+        and enqueues the producer if it's idle.
+        
+        PRODUCER STATUS → ACTION:
+        - WaitingForStartNextGeneration: Enqueue (producer is idle)
+        - Stalled: Enqueue (producer blocked, needs cycle resolution)
+        - Queued: No action (already pending)
+        - Executing: No action (will push data when it yields)
+        - Error: End stream with StopAsyncIteration
+        """
+        # Mark consumer as stalled
+        self.set_node_status(consumer_node, NodeTaskStatus.Stalled(stream.input))
+        self._active_nodes.discard(consumer_node)
+        logger.debug(f"Active nodes: {self.active_nodes} (Stall {consumer_node})")
+        get_current_flow_instrument().on_node_stalled(self, consumer_node, stream.input)
+        
+        # Register for notification when producer pushes data
+        self._stalled_stream_consumers[(producer_node, stream.output.port_index)].append(
+            (consumer_task, state_key)
+        )
+        
+        # Check producer status and take appropriate action
+        producer_status = self.node_tasks[producer_node].status
+        
+        match producer_status:
+            case NodeTaskStatus.WaitingForStartNextGeneration() | NodeTaskStatus.Stalled():
+                # Producer idle or blocked - enqueue to wake it up
+                if self.resolution_queue.put_nowait(producer_node, event_loop):
+                    self.set_node_status(producer_node, NodeTaskStatus.Queued())
+                    
+            case NodeTaskStatus.Queued() | NodeTaskStatus.Executing():
+                # Producer already active - it will push data when it yields
+                pass
+                
+            case NodeTaskStatus.Error():
+                # Producer failed - Raise a runtime exception in the consumer?
+                # TODO
+                raise NotImplementedError("Handling producer error not implemented yet.")
 
     async def _handle_coroutine_node(
         self,
@@ -511,7 +587,7 @@ class Flow:
 
                 # Push this iteration's data
                 node.push_data(result, 1)
-                # remember how many times output data must be read
+
                 node._barrier1.set_count(len(node.get_output_nodes_by_run_level(1)))
 
                 get_current_flow_instrument().on_node_emitted_data(
@@ -547,7 +623,9 @@ class Flow:
             # Wait for the last output data to have been read before overwriting
             with get_current_flow_instrument().on_barrier_node_write(self, node, data, 0):
                 await node._barrier0.wait()
+
             node.push_data(data, 0)
+            
             # Remember how many times output data must be read
             node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
 
@@ -665,7 +743,7 @@ class Flow:
         # prime the coroutine. I choose to structure the evaluate_node while loop this way so
         # it needs to be primed once to get rid of the unawaited coroutine warning
         _ = task.send(None)
-        self.node_tasks[node] = NodeTaskAndStatus(task, NodeTaskStatus.Ready())
+        self.node_tasks[node] = NodeTaskAndStatus(task, NodeTaskStatus.WaitingForStartNextGeneration(-1))
 
     def _mark_node_as_visited(
         self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
@@ -708,9 +786,11 @@ class Flow:
         Args:
             out_node: The node whose dependents should be enqueued
         """
+        logger.debug(f"🔍 _enqueue_output_nodes called for {out_node}, queue {id(self.resolution_queue)} closed={self.resolution_queue.closed}, active_nodes={self.active_nodes}")
         if not self.resolution_queue.closed:
             nodes_to_enqueue = []
             all_output_nodes = out_node.get_output_nodes()
+            logger.debug(f"🔍 Output nodes of {out_node}: {all_output_nodes}")
 
             for output_node in all_output_nodes:
                 # Check if this output node has a streaming connection (minimum_run_level=1) to out_node
@@ -722,23 +802,13 @@ class Flow:
                         is_streaming_consumer = True
                         break
 
-                # For streaming consumers: skip if they're in Ready status and at same/higher generation
-                # This prevents restarting completed streaming consumers when source completes
-                if is_streaming_consumer and output_node in self.node_tasks:
-                    status = self.node_tasks[output_node].status
-                    if isinstance(status, NodeTaskStatus.Ready):
-                        if (output_node.generation is not None and
-                            out_node.generation is not None and
-                            len(output_node.generation) == len(out_node.generation)):
-                            from ..node_base import cmp_generation
-                            if cmp_generation(output_node.generation, out_node.generation) >= 0:
-                                logger.debug(f"Skipping enqueue of streaming consumer {output_node} (gen={output_node.generation}) - at same/higher generation as {out_node} (gen={out_node.generation})")
-                                continue
-
                 nodes_to_enqueue.append(output_node)
                 get_current_flow_instrument().on_resolution_queue_put(self, output_node)
 
+            logger.debug(f"🔍 Enqueueing {len(nodes_to_enqueue)} nodes: {nodes_to_enqueue}")
             await self.resolution_queue.putAll(nodes_to_enqueue)
+        else:
+            logger.debug(f"🔍 Skipping enqueue because queue is closed")
 
     async def _enqueue_node(
         self, node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]
@@ -845,10 +915,20 @@ class Flow:
         if not self.unvisited:
             logger.warning("No nodes to run.")
 
+        logger.debug(f"🔍 Initial unvisited list: {self.unvisited}")
         while self.unvisited:
             initial_node = self.unvisited.pop(0)
+            logger.debug(f"🔍 Processing unvisited node: {initial_node}, remaining: {self.unvisited}")
             if self.resolution_queue.closed:
+                logger.debug(f"🔍 Reopening closed resolution queue for {initial_node}")
                 self.resolution_queue = AsyncSetQueue()
+
+            # Manually mark as executing so active_nodes > 0, preventing immediate closure
+            # by _handle_command when processing intermediate commands.
+            if isinstance(self.node_tasks[initial_node].status, NodeTaskStatus.WaitingForStartNextGeneration):
+                self._active_nodes.add(initial_node)
+                self.set_node_status(initial_node, NodeTaskStatus.Executing())
+
             get_current_flow_instrument().on_resolution_queue_put(self, initial_node)
             await self.resolution_queue.put(initial_node)
 
@@ -1110,6 +1190,32 @@ class FlowEventLoop(EventLoop):
         self.flow = flow
 
     @override
+    def _on_task_before_send(
+        self, task: RawTask[Command, Any, Any], value: Any
+    ) -> None:
+        """Set node status to Executing when the task is about to be executed."""
+        super()._on_task_before_send(task, value)
+        
+        # Check if this task corresponds to a node task
+        for node, task_and_status in self.flow.node_tasks.items():
+            if task_and_status.task is task:
+                self.flow.set_node_status(node, NodeTaskStatus.Executing())
+                break
+
+    @override
+    def _on_task_before_throw(
+        self, task: RawTask[Command, Any, Any], exception: Exception
+    ) -> None:
+        """Set node status to Executing when the task is about to receive an exception."""
+        super()._on_task_before_throw(task, exception)
+        
+        # Check if this task corresponds to a node task
+        for node, task_and_status in self.flow.node_tasks.items():
+            if task_and_status.task is task:
+                self.flow.set_node_status(node, NodeTaskStatus.Executing())
+                break
+
+    @override
     def _handle_command(
         self,
         current_task_packet: TaskHandlePacket[Command, Any, Any, Exception],
@@ -1120,133 +1226,125 @@ class FlowEventLoop(EventLoop):
 
         if isinstance(command, WaitForStartNextGenerationCommand):
             node = command.node
-            self.flow.set_node_status(node, NodeTaskStatus.Ready())
-            if not self.flow.running_nodes and not self.flow.resolution_queue:
+            old_status = self.flow.node_tasks[node].status
+            self.flow.set_node_status(node, NodeTaskStatus.WaitingForStartNextGeneration(command.run_level))
+            
+            if isinstance(old_status, NodeTaskStatus.Executing):
+                self.flow._active_nodes.discard(node)
+                logger.debug(f"Active nodes: {self.flow.active_nodes} (Wait {node})")
+            else:
+                logger.warning(f"Node {node} yielded WaitForStartNextGenerationCommand but was in status {old_status}")
+
+            if not self.flow.resolution_queue and self.flow.active_nodes == 0 and not self.flow._processing_queue_item:
                 # close the resolution queue, allowing the main loop to exit
                 # we can't await the .close() method because we are outside a coroutine
-                self.handle_queue_close(queue=self.flow.resolution_queue)
+                logger.debug("Closing resolution queue (active_nodes=0)")
+                self.flow.resolution_queue.close_nowait(self)
 
         elif isinstance(command, TerminateWithExceptionCommand):
             node = command.node
+            old_status = self.flow.node_tasks[node].status
             self.flow.set_node_status(node, NodeTaskStatus.Error())
-            if not self.flow.running_nodes and not self.flow.resolution_queue:
+            
+            if isinstance(old_status, NodeTaskStatus.Executing):
+                self.flow._active_nodes.discard(node)
+                logger.debug(f"Active nodes: {self.flow.active_nodes} (Terminate {node})")
+            else:
+                logger.warning(f"Node {node} terminated but was in status {old_status}")
+
+            if not self.flow.resolution_queue and self.flow.active_nodes == 0 and not self.flow._processing_queue_item:
                 # close the resolution queue, allowing the main loop to exit
                 # we can't await the .close() method because we are outside a coroutine
-                self.handle_queue_close(queue=self.flow.resolution_queue)
+                logger.debug("Closing resolution queue (active_nodes=0)")
+                self.flow.resolution_queue.close_nowait(self)
             raise command.exception
 
         elif isinstance(command, TerminateReachedLimitCommand):
             raise TerminateLimitReached()
 
-        elif isinstance(command, ResumeNodeCommand):
-            node = command.node
+        elif isinstance(command, ResumeNodesCommand):
+            nodes = command.nodes
             current_task = current_task_packet[0]
+            
+            for node in nodes:
+                status = self.flow.node_tasks[node].status
 
-            if node not in self.flow.running_nodes:
-                self.flow.set_node_status(node, NodeTaskStatus.Running())
+                if isinstance(status, NodeTaskStatus.WaitingForStartNextGeneration):
+                    self.flow._active_nodes.add(node)
+                    logger.debug(f"Active nodes: {self.flow.active_nodes} (Resume {node})")
+                    self.flow.set_node_status(node, NodeTaskStatus.Queued())
+                    self.tasks.append((self.flow.node_tasks[node][0], None, None))
+                else:
+                    raise RuntimeError(
+                        f"Cannot resume node {node} because it is in status {status}"
+                    )
+                    # may not actually require a full exception - could just skip resuming
 
-                # queue up the node's task to run before the current task
-                self.tasks.append((self.flow.node_tasks[node][0], None, None))
-                # continue the current task afterwards (always flow._node_resolve_loop() task)
-                self.tasks.append((current_task, None, None))
-            else:
-                # node is already running, it has a task in the queue
-                # just schedule the current task again
-                self.tasks.append((current_task, None, None))
-
-        elif isinstance(command, StalledNodeRequestCommand):
-            stalled_input = command.stalled_input
-            stalling_node = command.stalling_node
-            self.flow.set_node_status(
-                stalled_input.node, NodeTaskStatus.Stalled(stalled_input)
-            )
-            get_current_flow_instrument().on_node_stalled(
-                self.flow, stalling_node, stalled_input
-            )
-            self.tasks.insert(0, (self.flow._enqueue_node(stalling_node), None, None))
+            self.tasks.append((current_task, None, None))
 
         elif isinstance(command, StreamGetCommand):
-            logger.debug(f"StreamGetCommand handler ENTERED for stream {command.stream}")
             stream = command.stream
-            consumer_node = command.consumer_node
+            consumer_node = stream.input.node
+            producer_node = stream.output.node
             current_task = current_task_packet[0]
 
-            # Get or create stream consumer state
-            if stream not in self.flow._stream_consumer_state:
-                self.flow._stream_consumer_state[stream] = StreamConsumerState()
-
-            state = self.flow._stream_consumer_state[stream]
-
-            # Check if stream is cancelled
-            producer_node = stream.output.node
-            if stream in self.flow._cancelled_streams.get(producer_node, set()):
-                logger.debug(f"Stream {stream} is cancelled, raising StopAsyncIteration")
-                self.tasks.append((current_task, None, StopAsyncIteration("Stream was cancelled")))
-                return True
-
-            # Calculate clipped stitched generation
-            stitch_0 = stream.input.node._input_ports[stream.input.port_index].stitch_level_0
-            clipped_stitched_gen = clip_generation(
-                stitched_generation(stream.output.node.generation, stitch_0),
-                run_level=stream.run_level
+            state_key: StreamStateKey = (
+                consumer_node,
+                stream.input.port_index,
+                producer_node,
+                stream.output.port_index,
+                stream.run_level,
             )
+            state = self.flow._stream_consumer_state[state_key]
 
-            # Check if data is ready
-            logger.debug(f"StreamGetCommand: checking data readiness: clipped_stitched={clipped_stitched_gen}, last_consumed={state.last_consumed_generation}")
-            if cmp_generation(clipped_stitched_gen, state.last_consumed_generation) <= 0:
-                # Data not ready - stall the consumer and request producer
-                logger.debug(
-                    f"{stream.output.node}'s generation (clipped/stitched: {clipped_stitched_gen}) "
-                    f"is <= last consumed {state.last_consumed_generation}, stalling consumer"
-                )
+            assert stream.run_level == 1, "Only run level 1 streams are supported currently"
+            
+            # === 1. COMPUTE GENERATIONS ===
+            # The producer's current RL0 cycle
+            producer_parent = clip_generation(producer_node.generation, 0)
 
-                # Set consumer to stalled status (removes from running_nodes)
-                self.flow.set_node_status(
-                    consumer_node, NodeTaskStatus.Stalled(stream.input)
-                )
+            # Given the last consumed generation, compute the next desired generation
+            desired_generation = inc_generation(state.last_consumed_generation, 1)
+            desired_parent = clip_generation(desired_generation, 0)
 
-                # Enqueue producer to generate more data
-                self.tasks.insert(0, (self.flow._enqueue_node(producer_node), None, None))
+            # === 2. CHECK FOR STREAM RESET ===
+            # Producer started a new RL0 cycle - consumer needs to catch up
+            if cmp_generation(producer_parent, desired_parent) > 0:
+                # The producer has started a new stream. Reset the consumer state.
+                state.last_consumed_generation = None
+                # The producer generation is now either a new streamed value 
+                # or a new mono value. If it is a mono value, we should raise StopAsyncIteration.
+                if len(producer_node.generation) == 1:
+                    self.tasks.insert(0, (current_task, None, StopAsyncIteration()))
+                    return True
+                elif len(producer_node.generation) == 2:
+                    # Set the last consumed generation to the first value of the new stream
+                    state.last_consumed_generation = producer_node.generation
+                    # Return the first value of the new stream
+                    value = producer_node._data[cast("DataGeneration", producer_node.generation)]
+                    producer_node._barrier1.count_down()
+                    self.tasks.insert(0, (current_task, value, None))
+                    return True
 
-                # Don't reschedule consumer - it will be resumed when producer finishes
+            # === 3. CHECK IF DESIRED DATA IS AVAILABLE ===
+            if cast("DataGeneration", desired_generation) in producer_node._data:
+                state.last_consumed_generation = desired_generation
+                value = producer_node._data[cast("DataGeneration", desired_generation)]
+                producer_node._barrier1.count_down()
+                self.tasks.insert(0, (current_task, value, None))
                 return True
 
-            logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
-
-            # Check if parent generation changed (stream complete/restarted)
-            current_parent_gen = parent_generation(stream.output.node.generation)
-            if (state.last_consumed_generation is not None
-                and current_parent_gen != state.last_consumed_parent_generation):
-                logger.debug(
-                    f"Parent generation changed from {state.last_consumed_parent_generation} "
-                    f"to {current_parent_gen}, stream complete"
-                )
-                logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
-                get_current_flow_instrument().on_stream_end(stream)
-
-                # Raise StopAsyncIteration to consumer
-                self.tasks.append((current_task, None, StopAsyncIteration()))
+            # === 4. CHECK IF STREAM IS COMPLETE ===
+            # If the producer's RL0 data exists, the stream is finished
+            completion_marker = cast("DataGeneration", desired_parent)
+            if completion_marker in producer_node._data:
+                self.tasks.insert(0, (current_task, None, StopAsyncIteration()))
                 return True
 
-            # Data is ready - update state and return data
-            state.last_consumed_generation = clipped_stitched_gen
-            state.last_consumed_parent_generation = current_parent_gen
-
-            # Get the data
-            data_tuple = stream.output.node.get_data(run_level=stream.run_level)
-            assert data_tuple is not None
-            data = cast(Any, data_tuple[stream.output.port_index])
-
-            logger.debug(f"Stream {stream} returning {repr(data)}")
-            logger.info(f"Stream {stream} consumed data {repr(data)}", extra={"tag": "flow"})
-
-            # Instrumentation
-            get_current_flow_instrument().on_stream_next(stream, data)
-
-            # Resume consumer task with the data
-            # Note: The consumer (_stream_get) will handle barrier countdown after receiving data
-            logger.debug(f"StreamGetCommand handler: resuming consumer with data={data!r}")
-            self.tasks.append((current_task, data, None))
+            # === 5. STALL - DATA NOT READY ===
+            self.flow._stall_stream_consumer(
+                consumer_node, producer_node, stream, current_task, state_key, self
+            )
             return True
 
         elif isinstance(command, StreamCancelCommand):

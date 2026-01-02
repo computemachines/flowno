@@ -4,6 +4,7 @@ from timeit import timeit
 import pytest
 from flowno import EventLoop, sleep, spawn, AsyncQueue
 from flowno.core.event_loop.primitives import azip
+from flowno.core.event_loop.queues import QueueClosedError, AsyncSetQueue
 from flowno.core.event_loop.synchronization import CountdownLatch
 from flowno.io.http_client import HttpClient, OkStreamingResponse
 from flowno.utilities.logging import log_async
@@ -176,6 +177,65 @@ def test_queue_mpmc():
     assert total == 45
 
 
+def test_queue_close_wakes_blocked_getter():
+    """Test that closing a queue wakes up tasks blocked on get() with QueueClosedError."""
+    loop = EventLoop()
+    
+    async def waiter(q: AsyncQueue[str]):
+        """Task that blocks on get() from empty queue."""
+        try:
+            await q.get()
+            return "ERROR: Should have raised QueueClosedError"
+        except QueueClosedError:
+            return "SUCCESS: QueueClosedError caught"
+    
+    async def main():
+        q = AsyncQueue[str]()
+        # Start waiter task that will block on empty queue
+        waiter_task = await spawn(waiter(q))
+        # Give waiter time to block
+        await sleep(0.05)
+        # Close the queue, which should wake up the waiter
+        await q.close()
+        # Get result from waiter
+        result = await waiter_task.join()
+        return result
+    
+    result = loop.run_until_complete(main(), join=True)
+    assert result == "SUCCESS: QueueClosedError caught"
+
+
+def test_queue_close_wakes_blocked_putter():
+    """Test that closing a queue wakes up tasks blocked on put() with QueueClosedError."""
+    loop = EventLoop()
+    
+    async def putter(q: AsyncQueue[str]):
+        """Task that blocks on put() to full queue."""
+        try:
+            # Try to put into full queue - will block
+            await q.put("item")
+            return "ERROR: Should have raised QueueClosedError"
+        except QueueClosedError:
+            return "SUCCESS: QueueClosedError caught"
+    
+    async def main():
+        q = AsyncQueue[str](maxsize=1)
+        # Fill the queue
+        await q.put("filling")
+        # Start putter task that will block on full queue
+        putter_task = await spawn(putter(q))
+        # Give putter time to block
+        await sleep(0.05)
+        # Close the queue, which should wake up the putter
+        await q.close()
+        # Get result from putter
+        result = await putter_task.join()
+        return result
+    
+    result = loop.run_until_complete(main(), join=True)
+    assert result == "SUCCESS: QueueClosedError caught"
+
+
 def test_httpclient_200():
     loop = EventLoop()
 
@@ -284,3 +344,48 @@ def test_azip():
 
     loop = EventLoop()
     loop.run_until_complete(main(), join=True)
+
+
+def test_async_set_queue_put_nowait():
+    loop = EventLoop()
+
+    async def test():
+        q = AsyncSetQueue[int]()
+        
+        # Test basic put_nowait
+        assert q.put_nowait(1, loop) is True
+        assert 1 in q
+        assert len(q) == 1
+        
+        # Test deduplication
+        assert q.put_nowait(1, loop) is False
+        assert len(q) == 1
+        
+        # Test waking a waiter
+        results = []
+        
+        async def waiter():
+            val = await q.get()
+            results.append(val)
+            
+        # Spawn a waiter. It should immediately get 1.
+        _ = await spawn(waiter())
+        await sleep(0.1)
+        assert results == [1]
+        assert len(q) == 0
+        
+        # Spawn another waiter. It should block.
+        _ = await spawn(waiter())
+        await sleep(0.1)
+        assert len(results) == 1
+        
+        # Use put_nowait to wake the second waiter
+        q.put_nowait(2, loop)
+        
+        # Give the waiter a chance to wake up and finish
+        await sleep(0.1)
+        assert 2 in results
+        assert len(results) == 2
+        assert len(q) == 0
+
+    loop.run_until_complete(test(), join=True)

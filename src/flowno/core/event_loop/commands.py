@@ -130,67 +130,6 @@ class SocketAcceptCommand(SocketCommand):
 
 
 @dataclass
-class QueueGetCommand(Generic[_T], Command):
-    """
-    Internal command to retrieve an item from an asynchronous queue.
-
-    :param queue: The asynchronous queue from which to retrieve the item.
-    :param peek: If True, the command will not remove the item from the queue.
-
-    .. note::
-       This command is used internally to implement the blocking get behavior.
-    """
-
-    queue: "AsyncQueue[_T]"
-    peek: bool = False
-
-
-@dataclass
-class QueuePutCommand(Generic[_T], Command):
-    """
-    Internal command to put an item into an asynchronous queue.
-
-    :param queue: The asynchronous queue into which the item should be inserted.
-    :param item: The item to be inserted.
-
-    .. note::
-       This command is used internally to implement the blocking put behavior.
-    """
-
-    queue: "AsyncQueue[_T]"
-    item: _T
-
-
-@dataclass
-class QueueCloseCommand(Generic[_T], Command):
-    """
-    Internal command to close an asynchronous queue.
-
-    :param queue: The asynchronous queue to be closed.
-
-    .. note::
-       This command is used internally by the event loop when closing queues.
-    """
-
-    queue: "AsyncQueue[_T]"
-
-
-@dataclass
-class QueueNotifyGettersCommand(Generic[_T], Command):
-    """
-    Internal command to notify tasks waiting for items on an asynchronous queue.
-
-    :param queue: The asynchronous queue whose waiting getters should be notified.
-
-    .. note::
-       This command is used internally when an item is added to a queue to wake up
-       tasks blocked on a get operation.
-    """
-
-    queue: "AsyncQueue[_T]"
-
-
-@dataclass
 class ExitCommand(Command):
     """
     Internal command to forcibly terminate the event loop.
@@ -205,6 +144,101 @@ class ExitCommand(Command):
 
     return_value: object = None
     exception: Exception | None = None
+
+
+@dataclass
+class EventWaitCommand(Command):
+    """
+    Wait for an event to be set (one-shot signal).
+
+    :param event: The Event synchronization primitive to wait on.
+
+    .. note::
+       This command blocks the task until the event is set. If the event is
+       already set when this command is issued, the task resumes immediately.
+    """
+
+    event: Any  # Event type from synchronization.py
+
+
+@dataclass
+class EventSetCommand(Command):
+    """
+    Set an event, waking all waiting tasks.
+
+    :param event: The Event synchronization primitive to set.
+
+    .. note::
+       This command sets the event and wakes all tasks blocked on event.wait().
+       The event remains set permanently (one-shot semantics).
+    """
+
+    event: Any  # Event type from synchronization.py
+
+
+@dataclass
+class LockAcquireCommand(Command):
+    """
+    Acquire a lock (mutual exclusion).
+
+    :param lock: The Lock synchronization primitive to acquire.
+
+    .. note::
+       This command blocks the task until the lock becomes available.
+       If the lock is already available, the task acquires it immediately.
+    """
+
+    lock: Any  # Lock type from synchronization.py
+
+
+@dataclass
+class LockReleaseCommand(Command):
+    """
+    Release a lock, waking the next waiting task.
+
+    :param lock: The Lock synchronization primitive to release.
+
+    .. note::
+       This command releases the lock and wakes the next waiting task (FIFO order).
+       Only the lock owner can release the lock.
+    """
+
+    lock: Any  # Lock type from synchronization.py
+
+
+@dataclass
+class ConditionWaitCommand(Command):
+    """
+    Wait on a condition variable (atomically releases lock).
+
+    :param condition: The Condition synchronization primitive to wait on.
+
+    .. note::
+       This command atomically releases the associated lock and blocks the task
+       until another task calls notify() or notify_all() on the condition.
+       When the task wakes up, it automatically reacquires the lock before continuing.
+       The task must hold the lock before calling wait().
+    """
+
+    condition: Any  # Condition type from synchronization.py
+
+
+@dataclass
+class ConditionNotifyCommand(Command):
+    """
+    Notify waiters on a condition variable.
+
+    :param condition: The Condition synchronization primitive to notify.
+    :param all: If True, notify all waiters (notify_all). If False, notify one waiter (notify).
+
+    .. note::
+       This command wakes one or all tasks waiting on the condition.
+       Notified tasks are moved to the lock's wait queue and must reacquire the lock.
+       The task must hold the lock before calling notify().
+    """
+
+    condition: Any  # Condition type from synchronization.py
+    all: bool  # True = notify_all, False = notify
 
 
 @dataclass

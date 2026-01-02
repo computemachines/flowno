@@ -121,6 +121,20 @@ class SocketConnectReadyMetadata(SocketConnectStartMetadata):
         )
 
 
+@dataclass
+class TaskSendMetadata:
+    """Metadata for task send operations."""
+    task: "RawTask[Command, Any, Any]"
+    send_value: Any
+
+
+@dataclass
+class TaskThrowMetadata:
+    """Metadata for task throw operations."""
+    task: "RawTask[Command, Any, Any]"
+    exception: Exception
+
+
 class EventLoopInstrument:
     """
     Base class for event loop instrumentation.
@@ -246,6 +260,74 @@ class EventLoopInstrument:
         """
         pass
 
+    def on_task_before_send(self, metadata: TaskSendMetadata) -> None:
+        """
+        Called before a task's send() method is invoked.
+        
+        Args:
+            metadata: Task send metadata including the task and value being sent
+        """
+        pass
+
+    def on_task_after_send(self, metadata: TaskSendMetadata, command: "Command") -> None:
+        """
+        Called after a task's send() method completes successfully.
+        
+        Args:
+            metadata: Task send metadata including the task and value that was sent
+            command: The command yielded by the task
+        """
+        pass
+
+    def on_task_before_throw(self, metadata: TaskThrowMetadata) -> None:
+        """
+        Called before a task's throw() method is invoked.
+        
+        Args:
+            metadata: Task throw metadata including the task and exception being thrown
+        """
+        pass
+
+    def on_task_after_throw(self, metadata: TaskThrowMetadata, command: "Command") -> None:
+        """
+        Called after a task's throw() method completes successfully.
+        
+        Args:
+            metadata: Task throw metadata including the task and exception that was thrown
+            command: The command yielded by the task
+        """
+        pass
+
+    def on_task_completed(self, task: "RawTask[Command, Any, Any]", result: Any) -> None:
+        """
+        Called when a task completes successfully (StopIteration).
+        
+        Args:
+            task: The task that completed
+            result: The return value of the task
+        """
+        pass
+
+    def on_task_error(self, task: "RawTask[Command, Any, Any]", exception: Exception) -> None:
+        """
+        Called when a task raises an exception.
+        
+        Args:
+            task: The task that raised the exception
+            exception: The exception that was raised
+        """
+        pass
+
+    def on_task_cancelled(self, task: "RawTask[Command, Any, Any]", exception: Exception) -> None:
+        """
+        Called when a task is cancelled (TaskCancelled exception).
+        
+        Args:
+            task: The task that was cancelled
+            exception: The TaskCancelled exception
+        """
+        pass
+
     def __enter__(self: Self) -> Self:
         # token to restore old value of instrument
         # TODO: change to a list so I can use multiple instruments at the same time
@@ -360,5 +442,7 @@ __all__ = [
     "SocketRecvDataMetadata",
     "SocketConnectStartMetadata",
     "SocketConnectReadyMetadata",
+    "TaskSendMetadata",
+    "TaskThrowMetadata",
     "get_current_instrument"
 ]

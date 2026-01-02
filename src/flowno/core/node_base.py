@@ -723,6 +723,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 else:
                     raise MissingDefaultError(self, input_port_index)
         return self.GatheredInputs(tuple(positional_args), defaulted_ports)
+    
     def debug_print(self) -> None:
         """
         Print detailed debug information about this node, including its inputs, outputs, and data.
@@ -767,11 +768,7 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
         super().__init__()
         self.input = input
         self.output = output
-        self._last_consumed_generation: Generation = None
         self.run_level: RunLevel = 1
-        self._last_consumed_parent_generation: Generation = None
-        self._cancelled: bool = False
-        self._cancel_acknowledged: bool = False
 
     @override
     def __aiter__(self) -> AsyncIterator[_InputType]:
@@ -780,15 +777,11 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
 
     @override
     def __repr__(self) -> str:
-        return f"Stream({self.output}->{self.input}, last_consumed={self._last_consumed_generation}, last_consumed_parent={self._last_consumed_parent_generation}, run_level={self.run_level})"
+        return f"Stream({self.output}->{self.input}, run_level={self.run_level})"
 
     @coroutine
     def cancel(self) -> Generator["StreamCancelCommand", None, None]:
         """Cancel this stream, causing the producer to receive StreamCancelled on next yield."""
-        if self._cancelled:
-            return  # Already cancelled
-        
-        self._cancelled = True
         logger.info(f"Stream {self} cancellation requested", extra={"tag": "flow"})
         
         # Yield command to event loop to inject exception into producer        
@@ -811,12 +804,6 @@ class Stream(Generic[_InputType], AsyncIterator[_InputType]):
 
 
 @dataclass
-class StalledNodeRequestCommand(Command):
-    stalled_input: "FinalizedInputPortRef[object]"
-    stalling_node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
-
-
-@dataclass
 class StreamGetCommand(Generic[_T], Command):
     """Command to get the next value from a stream.
 
@@ -828,118 +815,13 @@ class StreamGetCommand(Generic[_T], Command):
     - Raise StopAsyncIteration (stream complete)
     """
     stream: "Stream[_T]"
-    consumer_node: "FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]]"
 
 
 @coroutine
-def _node_stalled(
-    stalled_input: "FinalizedInputPortRef[Any]",
-    stalling_node: FinalizedNode[Unpack[tuple[object, ...]], tuple[object, ...]],
-) -> Generator["StalledNodeRequestCommand", None, None]:
-
-    logger.info(
-        f"{stalled_input} is stalled. Requesting new data from {stalling_node}.",
-        extra={"tag": "flow"},
-    )
-
-    return (yield StalledNodeRequestCommand(stalled_input, stalling_node))
-
-
-@coroutine
-def _stream_get(stream: "Stream[_T]") -> Generator[StalledNodeRequestCommand | Any, Any, _T]:
-    """Get the next value from a stream.
-
-    This coroutine contains ALL the stream iteration logic that was originally in
-    Stream.__anext__(). It loops until data is ready, checks for stream completion,
-    handles barrier countdown, etc.
-    """
-    from flowno.core.flow.instrumentation import get_current_flow_instrument
-    from flowno.utilities.helpers import cmp_generation, clip_generation, parent_generation, stitched_generation
-
-    # Get state from flow (stored per stream object)
-    from flowno.core.flow.flow import current_flow
-    flow = current_flow()
-    if flow is None:
-        raise RuntimeError("_stream_get called outside of flow context")
-
-    if stream not in flow._stream_consumer_state:
-        from flowno.core.flow.flow import StreamConsumerState
-        flow._stream_consumer_state[stream] = StreamConsumerState()
-    state = flow._stream_consumer_state[stream]
-
-    # Check if cancelled
-    producer_node = stream.output.node
-    if stream in flow._cancelled_streams.get(producer_node, set()):
-        logger.debug(f"Stream {stream} is cancelled, raising StopAsyncIteration")
-        raise StopAsyncIteration("Stream was cancelled")
-
-    def get_clipped_stitched_gen():
-        stitch_0 = stream.input.node._input_ports[stream.input.port_index].stitch_level_0
-        return clip_generation(
-            stitched_generation(stream.output.node.generation, stitch_0), run_level=stream.run_level
-        )
-
-    # Loop until data is ready (original while loop from Stream.__anext__)
-    while cmp_generation(get_clipped_stitched_gen(), state.last_consumed_generation) <= 0:
-        # Check if parent generation changed (stream complete/restarted) BEFORE stalling
-        # This prevents stalling when the stream has already completed
-        current_parent_gen = parent_generation(stream.output.node.generation)
-        if (state.last_consumed_generation is not None
-            and current_parent_gen != state.last_consumed_parent_generation):
-            logger.debug(
-                f"Parent generation changed from {state.last_consumed_parent_generation} "
-                f"to {current_parent_gen}, stream complete"
-            )
-            logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
-            get_current_flow_instrument().on_stream_end(stream)
-            raise StopAsyncIteration
-
-        logger.debug(
-            f"{stream.output.node}'s generation, "
-            f"when clipped/stitched {get_clipped_stitched_gen()}, "
-            f"is <= last consumed {state.last_consumed_generation}, requesting new data."
-        )
-        yield from _node_stalled(stream.input, stream.output.node)
-
-    logger.debug(f"{stream.output.node}'s generation is greater than last consumed, continuing")
-
-    # Check if parent generation changed (stream complete/restarted)
-    # This check also happens here for the case where data IS ready but parent changed
-    current_parent_gen = parent_generation(stream.output.node.generation)
-    if (state.last_consumed_generation is not None
-        and current_parent_gen != state.last_consumed_parent_generation):
-        logger.debug(
-            f"Parent generation changed from {state.last_consumed_parent_generation} "
-            f"to {current_parent_gen}, stream complete"
-        )
-        logger.info(f"Stream {stream} is complete or restarted.", extra={"tag": "flow"})
-        get_current_flow_instrument().on_stream_end(stream)
-        raise StopAsyncIteration
-
-    # Update state
-    state.last_consumed_generation = get_clipped_stitched_gen()
-    state.last_consumed_parent_generation = current_parent_gen
-
-    # Get the data
-    data_tuple = stream.output.node.get_data(run_level=stream.run_level)
-    assert data_tuple is not None
-    data = cast(_T, data_tuple[stream.output.port_index])
-
-    logger.debug(f"_stream_get returning {repr(data)}")
-    logger.info(f"Stream {stream} consumed data {repr(data)}", extra={"tag": "flow"})
-
-    # Countdown the barrier after consuming data
-    with get_current_flow_instrument().on_barrier_node_read(stream.output.node, 1):
-        try:
-            yield from stream.output.node._barrier1.count_down(exception_if_zero=True)
-        except Exception as e:
-            logger.warning(f"Stream {stream} count_down error: {e}")
-
-    # Instrumentation
-    get_current_flow_instrument().on_stream_next(stream, data)
-
-    return data
-
+def _stream_get(stream: "Stream[_T]") -> Generator[StreamGetCommand[_T], _T, _T]:
+    """Yield a command to get the next value from the stream."""
+    logger.info(f"Requesting next value from stream {stream}", extra={"tag": "flow"})
+    return (yield StreamGetCommand(stream))
 
 @dataclass
 class NodePlaceholder:

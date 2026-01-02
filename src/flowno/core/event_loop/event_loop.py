@@ -27,12 +27,14 @@ from typing import Any, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
     Command,
+    ConditionNotifyCommand,
+    ConditionWaitCommand,
+    EventSetCommand,
+    EventWaitCommand,
     ExitCommand,
     JoinCommand,
-    QueueCloseCommand,
-    QueueGetCommand,
-    QueueNotifyGettersCommand,
-    QueuePutCommand,
+    LockAcquireCommand,
+    LockReleaseCommand,
     SleepCommand,
     SocketAcceptCommand,
     SocketCommand,
@@ -43,13 +45,13 @@ from flowno.core.event_loop.commands import (
 from flowno.core.event_loop.instrumentation import (
     InstrumentationMetadata,
     ReadySocketInstrumentationMetadata,
+    TaskSendMetadata,
+    TaskThrowMetadata,
     get_current_instrument,
 )
 from flowno.core.event_loop.queues import (
     AsyncQueue,
     QueueClosedError,
-    TaskWaitingOnQueueGet,
-    TaskWaitingOnQueuePut,
 )
 from flowno.core.event_loop.selectors import sel
 from flowno.core.event_loop.tasks import TaskCancelled, TaskHandle
@@ -105,9 +107,10 @@ class EventLoop:
             RawTask[Command, object, object], list[RawTask[Command, object, object]]
         ] = defaultdict(list)
         self.waiting_on_network: list[RawTask[SocketCommand, Any, Any]] = []
-        self.tasks_waiting_on_a_queue: set[
-            RawTask[QueueGetCommand[object] | QueuePutCommand[object], Any, Any]
-        ] = set()
+        # Synchronization primitive waiters
+        self.event_waiters: defaultdict[Any, set[RawTask[Command, Any, Any]]] = defaultdict(set)
+        self.lock_waiters: defaultdict[Any, deque[RawTask[Command, Any, Any]]] = defaultdict(deque)
+        self.condition_waiters: defaultdict[Any, set[RawTask[Command, Any, Any]]] = defaultdict(set)
         self.finished: dict[RawTask[Command, Any, Any], object] = {}
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
@@ -254,7 +257,12 @@ class EventLoop:
         for _watched_task, watching_tasks in self.watching_task.items():
             if watching_tasks:
                 return True
-        if self.tasks_waiting_on_a_queue:
+        # Check synchronization primitive waiters
+        if any(self.event_waiters.values()):
+            return True
+        if any(self.lock_waiters.values()):
+            return True
+        if any(self.condition_waiters.values()):
             return True
         return False
 
@@ -285,6 +293,120 @@ class EventLoop:
                 pass
 
         return TaskHandle(self, raw_task)
+
+    def _on_task_before_send(
+        self, task: RawTask[Command, Any, Any], value: Any
+    ) -> None:
+        """
+        Hook called before sending a value to a task.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that will receive the value
+            value: The value being sent to the task
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_before_send(TaskSendMetadata(task=task, send_value=value))
+
+    def _on_task_after_send(
+        self, task: RawTask[Command, Any, Any], value: Any, command: Command
+    ) -> None:
+        """
+        Hook called after successfully sending a value to a task.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that received the value
+            value: The value that was sent to the task
+            command: The command yielded by the task
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_after_send(TaskSendMetadata(task=task, send_value=value), command)
+
+    def _on_task_before_throw(
+        self, task: RawTask[Command, Any, Any], exception: Exception
+    ) -> None:
+        """
+        Hook called before throwing an exception into a task.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that will receive the exception
+            exception: The exception being thrown into the task
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_before_throw(TaskThrowMetadata(task=task, exception=exception))
+
+    def _on_task_after_throw(
+        self, task: RawTask[Command, Any, Any], exception: Exception, command: Command
+    ) -> None:
+        """
+        Hook called after successfully throwing an exception into a task.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that received the exception
+            exception: The exception that was thrown into the task
+            command: The command yielded by the task
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_after_throw(TaskThrowMetadata(task=task, exception=exception), command)
+
+    def _on_task_completed(
+        self, task: RawTask[Command, Any, Any], result: Any
+    ) -> None:
+        """
+        Hook called when a task completes successfully.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that completed
+            result: The return value of the task
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_completed(task, result)
+
+    def _on_task_error(
+        self, task: RawTask[Command, Any, Any], exception: Exception
+    ) -> None:
+        """
+        Hook called when a task raises an exception.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that raised the exception
+            exception: The exception that was raised
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_error(task, exception)
+
+    def _on_task_cancelled(
+        self, task: RawTask[Command, Any, Any], exception: Exception
+    ) -> None:
+        """
+        Hook called when a task is cancelled.
+        
+        Subclasses can override this method to add custom behavior.
+        The default implementation delegates to the current instrumentation.
+        
+        Args:
+            task: The task that was cancelled
+            exception: The TaskCancelled exception
+        """
+        instrument = get_current_instrument()
+        instrument.on_task_cancelled(task, exception)
 
     def _handle_command(
         self,
@@ -390,122 +512,6 @@ class EventLoop:
             self.waiting_on_network.append(current_task_packet[0])
             _ = sel.register(command.handle.socket, selectors.EVENT_READ, metadata)
 
-        elif isinstance(command, QueueGetCommand):
-            command = cast(QueueGetCommand[object], command)
-            current_task_packet = cast(
-                TaskHandlePacket[QueueGetCommand[object], Any, Any, Exception],
-                current_task_packet,
-            )
-            queue = command.queue
-            if queue.items:
-                if command.peek:
-                    self.tasks.append((current_task_packet[0], queue.items[0], None))
-                else:
-                    item = queue.items.popleft()
-                    self.tasks.append((current_task_packet[0], item, None))
-                    get_current_instrument().on_queue_get(
-                        queue=queue, item=item, immediate=False
-                    )
-                    if queue._put_waiting:  # pyright: ignore[reportPrivateUsage]
-                        task_waiting = (
-                            queue._put_waiting.popleft()
-                        )  # pyright: ignore[reportPrivateUsage]
-                        self.tasks_waiting_on_a_queue.remove(task_waiting.task)
-                        if queue._get_waiting:  # pyright: ignore[reportPrivateUsage]
-                            raise RuntimeError(
-                                "Internal error: Tasks waiting to both get and put on the same queue"
-                            )
-                        else:
-                            queue.items.append(task_waiting.item)
-                            self.tasks.append((task_waiting.task, None, None))
-            elif queue.closed:
-                self.tasks.append(
-                    (
-                        current_task_packet[0],
-                        None,
-                        QueueClosedError("Queue has been closed and is empty"),
-                    )
-                )
-            else:
-                queue._get_waiting.append(  # pyright: ignore[reportPrivateUsage]
-                    TaskWaitingOnQueueGet(
-                        task=current_task_packet[0],
-                        peek=command.peek,
-                    )
-                )
-                self.tasks_waiting_on_a_queue.add(current_task_packet[0])
-
-        elif isinstance(command, QueuePutCommand):
-            command = cast(QueuePutCommand[object], command)
-            current_task_packet = cast(
-                TaskHandlePacket[QueuePutCommand[object], Any, None, Exception],
-                current_task_packet,
-            )
-            queue = command.queue
-            item = command.item
-            if queue.closed:
-                self.tasks.append(
-                    (
-                        current_task_packet[0],
-                        None,
-                        QueueClosedError("Cannot put item into closed queue"),
-                    )
-                )
-            elif queue.maxsize is not None and len(queue.items) >= queue.maxsize:
-                queue._put_waiting.append(  # pyright: ignore[reportPrivateUsage]
-                    TaskWaitingOnQueuePut(
-                        task=current_task_packet[0],
-                        item=item,
-                    )
-                )
-                self.tasks_waiting_on_a_queue.add(current_task_packet[0])
-            else:
-                if queue._get_waiting:  # pyright: ignore[reportPrivateUsage]
-                    task_blocked_on_get = (
-                        queue._get_waiting.popleft()
-                    )  # pyright: ignore[reportPrivateUsage]
-                    self.tasks_waiting_on_a_queue.remove(task_blocked_on_get.task)
-                    self.tasks.append((task_blocked_on_get.task, item, None))
-                    self.tasks.append((current_task_packet[0], None, None))
-                else:
-                    queue.items.append(item)
-                    get_current_instrument().on_queue_put(
-                        queue=queue, item=item, immediate=False
-                    )
-                    self.tasks.append((current_task_packet[0], None, None))
-
-        elif isinstance(command, QueueNotifyGettersCommand):
-            command = cast(QueueNotifyGettersCommand[object], command)
-            current_task_packet = cast(
-                TaskHandlePacket[
-                    QueueNotifyGettersCommand[object], Any, None, Exception
-                ],
-                current_task_packet,
-            )
-            queue = command.queue
-            if (
-                queue._get_waiting and queue.items
-            ):  # pyright: ignore[reportPrivateUsage]
-                task_blocked_on_get = (
-                    queue._get_waiting.popleft()
-                )  # pyright: ignore[reportPrivateUsage]
-                self.tasks_waiting_on_a_queue.remove(task_blocked_on_get.task)
-                item = queue.items.popleft()
-                self.tasks.append((task_blocked_on_get.task, item, None))
-                get_current_instrument().on_queue_get(
-                    queue=queue, item=item, immediate=False
-                )
-            self.tasks.append((current_task_packet[0], None, None))
-
-        elif isinstance(command, QueueCloseCommand):
-            command = cast(QueueCloseCommand[object], command)
-            current_task_packet = cast(
-                TaskHandlePacket[QueueCloseCommand[object], Any, None, Exception],
-                current_task_packet,
-            )
-            queue = command.queue
-            self.handle_queue_close(queue)
-            self.tasks.append((current_task_packet[0], None, None))
         elif isinstance(command, ExitCommand):
             # Handle the exit command
 
@@ -519,34 +525,88 @@ class EventLoop:
             else:
                 # Set the exit flag with the return value and no exception
                 self._exit_requested = (True, command.return_value, None)
+        elif isinstance(command, EventWaitCommand):
+            # Wait for an event to be set
+            if command.event._set:
+                # Event already set - immediate resume
+                # This should not actually reach the event loop, but just in case
+                self.tasks.append((current_task_packet[0], None, None))
+            else:
+                # Event not set - block task
+                self.event_waiters[command.event].add(current_task_packet[0])
+        elif isinstance(command, EventSetCommand):
+            # Set event and wake all waiting tasks
+            command.event._set = True
+            for waiter in self.event_waiters[command.event]:
+                self.tasks.append((waiter, None, None))
+            self.event_waiters[command.event].clear()
+            self.tasks.append((current_task_packet[0], None, None))
+        elif isinstance(command, LockAcquireCommand):
+            # Acquire lock (mutual exclusion)
+            if not command.lock._locked:
+                # Lock available - acquire immediately
+                command.lock._locked = True
+                command.lock._owner = current_task_packet[0]
+                self.tasks.append((current_task_packet[0], None, None))
+            else:
+                # Lock held - block in FIFO queue
+                self.lock_waiters[command.lock].append(current_task_packet[0])
+        elif isinstance(command, LockReleaseCommand):
+            # Release lock (must be owner)
+            assert command.lock._owner == current_task_packet[0], \
+                f"Lock release by non-owner: {current_task_packet[0]} != {command.lock._owner}"
+
+            if self.lock_waiters[command.lock]:
+                # Wake next waiter in FIFO order, transfer ownership
+                waiter = self.lock_waiters[command.lock].popleft()
+                command.lock._owner = waiter
+                self.tasks.append((waiter, None, None))
+            else:
+                # No waiters - unlock
+                command.lock._locked = False
+                command.lock._owner = None
+
+            # Releaser continues
+            self.tasks.append((current_task_packet[0], None, None))
+        elif isinstance(command, ConditionWaitCommand):
+            # Wait on condition (atomically releases lock)
+            # Must hold lock before calling wait
+            assert command.condition._lock._owner == current_task_packet[0], \
+                f"Condition wait by non-owner: {current_task_packet[0]} != {command.condition._lock._owner}"
+
+            # Atomically: add to condition waiters, release lock
+            self.condition_waiters[command.condition].add(current_task_packet[0])
+
+            # Release the lock and wake next lock waiter if any
+            if self.lock_waiters[command.condition._lock]:
+                waiter = self.lock_waiters[command.condition._lock].popleft()
+                command.condition._lock._owner = waiter
+                self.tasks.append((waiter, None, None))
+            else:
+                command.condition._lock._locked = False
+                command.condition._lock._owner = None
+        elif isinstance(command, ConditionNotifyCommand):
+            # Notify waiters on condition (must hold lock)
+            assert command.condition._lock._owner == current_task_packet[0], \
+                f"Condition notify by non-owner: {current_task_packet[0]} != {command.condition._lock._owner}"
+
+            if command.all:
+                # notify_all: move all condition waiters to lock waiters
+                for waiter in self.condition_waiters[command.condition]:
+                    self.lock_waiters[command.condition._lock].append(waiter)
+                self.condition_waiters[command.condition].clear()
+            else:
+                # notify: move one condition waiter to lock waiters
+                if self.condition_waiters[command.condition]:
+                    waiter = self.condition_waiters[command.condition].pop()
+                    self.lock_waiters[command.condition._lock].append(waiter)
+
+            # Notifier continues
+            self.tasks.append((current_task_packet[0], None, None))
         else:
             return False
         return True
 
-    def handle_queue_close(self, queue: AsyncQueue[Any]) -> None:
-        """
-        Handle a queue being closed. Also resumes all tasks waiting on the queue
-        with an appropriate exception.
-        """
-        queue.closed = True
-        for task_waiting in queue._get_waiting:  # pyright: ignore[reportPrivateUsage]
-            self.tasks.append(
-                (
-                    task_waiting.task,
-                    None,
-                    QueueClosedError("Queue has been closed and is empty"),
-                )
-            )
-            self.tasks_waiting_on_a_queue.remove(task_waiting.task)
-        for task_waiting in queue._put_waiting:  # pyright: ignore[reportPrivateUsage]
-            self.tasks.append(
-                (
-                    task_waiting.task,
-                    None,
-                    QueueClosedError("Cannot put item into closed queue"),
-                )
-            )
-            self.tasks_waiting_on_a_queue.remove(task_waiting.task)
 
     def cancel(self, raw_task: RawTask[Command, Any, Any]) -> bool:
         """
@@ -737,12 +797,17 @@ class EventLoop:
                     
                     try:
                         if task_packet[2] is not None:
+                            self._on_task_before_throw(task_packet[0], task_packet[2])
                             command = task_packet[0].throw(task_packet[2])
+                            self._on_task_after_throw(task_packet[0], task_packet[2], command)
                         else:
+                            self._on_task_before_send(task_packet[0], task_packet[1])
                             command = task_packet[0].send(task_packet[1])
+                            self._on_task_after_send(task_packet[0], task_packet[1], command)
                     except StopIteration as e:
                         returned_value = cast(object, e.value)
                         self.finished[task_packet[0]] = returned_value
+                        self._on_task_completed(task_packet[0], returned_value)
                         for watcher in self.watching_task[task_packet[0]]:
                             self.tasks.append((watcher, returned_value, None))
                         del self.watching_task[task_packet[0]]
@@ -751,6 +816,7 @@ class EventLoop:
                     except TaskCancelled as e:
                         self.cancelled.add(task_packet[0])
                         self.exceptions[task_packet[0]] = e
+                        self._on_task_cancelled(task_packet[0], e)
                         for watcher in self.watching_task[task_packet[0]]:
                             self.tasks.append((watcher, None, e))
                         del self.watching_task[task_packet[0]]
@@ -762,6 +828,7 @@ class EventLoop:
                     except Exception as e:
                         logger.exception(f"Task {task_packet[0]} raised an exception: {e}")
                         self.exceptions[task_packet[0]] = e
+                        self._on_task_error(task_packet[0], e)
                         for watcher in self.watching_task[task_packet[0]]:
                             self.tasks.append((watcher, None, e))
                         del self.watching_task[task_packet[0]]

@@ -60,22 +60,17 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from collections.abc import AsyncIterator, Generator
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from types import coroutine
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from flowno.core.event_loop.instrumentation import get_current_instrument
+from flowno.core.event_loop.synchronization import Condition, Lock
 from flowno.utilities.logging import log_async
 from typing_extensions import override
 
-from .commands import (
-    QueueCloseCommand,
-    QueueGetCommand,
-    QueueNotifyGettersCommand,
-    QueuePutCommand,
-)
-from .types import RawTask
+if TYPE_CHECKING:
+    from flowno.core.event_loop.event_loop import EventLoop
 
 logger = logging.getLogger(__name__)
 
@@ -86,19 +81,6 @@ class QueueClosedError(Exception):
     """Raised when attempting to put/get on a closed queue."""
     pass
 
-
-@dataclass(frozen=True)
-class TaskWaitingOnQueueGet(Generic[_T]):
-    """Internal class for tracking tasks waiting to get an item."""
-    task: RawTask[QueueGetCommand[_T], Any, Any]  # pyright: ignore[reportExplicitAny]
-    peek: bool
-
-
-@dataclass(frozen=True)
-class TaskWaitingOnQueuePut(Generic[_T]):
-    """Internal class for tracking tasks waiting to put an item."""
-    task: RawTask[QueuePutCommand[_T], Any, None] # pyright: ignore[reportExplicitAny]
-    item: _T
 
 
 class AsyncQueue(Generic[_T], AsyncIterator[_T]):
@@ -117,37 +99,24 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
     """
     def __init__(self, maxsize: int | None = None):
         self.items: deque[_T] = deque()
-        self.maxsize: int | None = None
-        self.closed: bool = False
-        self._get_waiting: deque[TaskWaitingOnQueueGet[object]] = deque()
-        self._put_waiting: deque[TaskWaitingOnQueuePut[object]] = deque()
+        self.maxsize: int | None = maxsize
+        self._closed: bool = False
+        self._lock = Lock()
+        self._not_empty = Condition(self._lock)
+        self._not_full = Condition(self._lock)
+        logger.debug(f"AsyncQueue created: {self}")
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
+
+    @closed.setter
+    def closed(self, value: bool) -> None:
+        self._closed = value
 
     @override
     def __repr__(self) -> str:
-        return f"<AsyncQueue maxsize={self.maxsize} items={self.items} num_tasks_blocked_on_get={len(self._get_waiting)} num_tasks_blocked_on_put={len(self._put_waiting)}>"
-
-    @coroutine
-    def _put(self, item: _T) -> Generator[QueuePutCommand[_T] | QueueNotifyGettersCommand[_T], None, None]:
-        """        Put an item into the queue and notify blocked tasks or wait for room on the queue.
-        
-        Raises:
-            QueueClosedError: If the queue is closed.
-        """
-        if self.closed:
-            raise QueueClosedError("Cannot put item into closed queue")
-            
-        if self.maxsize is not None and len(self.items) >= self.maxsize:
-            # Queue is full, block until an item is removed
-            yield QueuePutCommand(queue=self, item=item)
-        else:
-            # Queue is not full, add the item directly and notify any waiting tasks
-            get_current_instrument().on_queue_put(queue=self, item=item, immediate=True)
-            self.items.append(item)
-
-            if self._get_waiting:
-                yield QueueNotifyGettersCommand(queue=self)
-
-            return None
+        return f"<AsyncQueue id={id(self)} maxsize={self.maxsize} items={list(self.items)} closed={self._closed}>"
 
     async def put(self, item: _T) -> None:
         """
@@ -162,28 +131,20 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
         Raises:
             QueueClosedError: If the queue is closed
         """
-        await self._put(item)
-
-    @coroutine
-    def _get(self) -> Generator[QueueGetCommand[_T], _T, _T]:
-        """
-        Pop an item from the queue or block until an item is available.
-        
-        Raises:
-            QueueClosedError: If the queue is closed and empty.
-        """
-    # TODO: BUG! If the queue is full, it needs to inform the event loop
-        # that a spot has openned up.
-
-        if self.items:
-            item = self.items.popleft()
-            get_current_instrument().on_queue_get(queue=self, item=item, immediate=True)
-            return item
-        elif self.closed:
-            raise QueueClosedError("Queue has been closed and is empty")
-        else:
-            item = yield QueueGetCommand(self)
-            return item
+        async with self._lock:
+            # Wait while the queue is full
+            while self.maxsize is not None and len(self.items) >= self.maxsize:
+                if self._closed:
+                    raise QueueClosedError("Cannot put item into closed queue")
+                await self._not_full.wait()
+            
+            if self._closed:
+                raise QueueClosedError("Cannot put item into closed queue")
+            
+            get_current_instrument().on_queue_put(queue=self, item=item, immediate=True)
+            self.items.append(item)
+            await self._not_empty.notify()
+            logger.debug(f"AsyncQueue.put {item} into {self}")
 
     async def get(self) -> _T:
         """
@@ -198,22 +159,18 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
         Raises:
             QueueClosedError: If the queue is closed and empty
         """
-        return await self._get()
-
-    @coroutine
-    def _peek(self) -> Generator[QueueGetCommand[_T], _T, _T]:
-        """
-        Peek at the next item without removing it from the queue.
-        
-        Raises:
-            QueueClosedError: If the queue is closed and empty.
-        """
-        if self.items:
-            return self.items[0]
-        elif self.closed:
-            raise QueueClosedError("Queue has been closed and is empty")
-        else:
-            item = yield QueueGetCommand(self, peek=True)
+        async with self._lock:
+            # Wait while the queue is empty
+            while not self.items:
+                if self._closed:
+                    logger.debug(f"AsyncQueue.get sees closed queue {self}")
+                    raise QueueClosedError("Queue has been closed and is empty")
+                await self._not_empty.wait()
+            
+            item = self.items.popleft()
+            get_current_instrument().on_queue_get(queue=self, item=item, immediate=True)
+            await self._not_full.notify()
+            logger.debug(f"AsyncQueue.get {item} from {self}")
             return item
 
     async def peek(self) -> _T:
@@ -229,13 +186,14 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
         Raises:
             QueueClosedError: If the queue is closed and empty
         """
-        return await self._peek()
-
-    @coroutine
-    def _close(self) -> Generator[QueueCloseCommand[_T], None, None]:
-        """Close the queue, preventing further put operations."""
-        self.closed = True
-        yield QueueCloseCommand(self)
+        async with self._lock:
+            # Wait while the queue is empty
+            while not self.items:
+                if self.closed:
+                    raise QueueClosedError("Queue has been closed and is empty")
+                await self._not_empty.wait()
+            
+            return self.items[0]
 
     async def close(self) -> None:
         """
@@ -246,7 +204,29 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
             - get() will succeed until the queue is empty, then raise QueueClosedError
             - AsyncIterator interface will stop iteration when the queue is empty
         """
-        await self._close()
+        logger.debug(f"AsyncQueue.close called on {self}", stack_info=True)
+        async with self._lock:
+            self.closed = True
+            # Wake up all waiting tasks so they can see the queue is closed
+            await self._not_empty.notify_all()
+            await self._not_full.notify_all()
+
+    def close_nowait(self, event_loop: "EventLoop") -> None:
+        """
+        Synchronously close the queue.
+        
+        This method is designed to be called from within a command handler,
+        where async operations are not possible. It handles waiter notification
+        synchronously through the event loop.
+        
+        Args:
+            event_loop: The event loop to use for notifying waiters
+        """
+        logger.debug(f"AsyncQueue.close_nowait called on {self}", stack_info=True)
+        self.closed = True
+        # Notify all waiters so they can see the queue is closed
+        self._not_empty.notify_all_nowait(event_loop)
+        self._not_full.notify_all_nowait(event_loop)
 
     def is_closed(self) -> bool:
         """
@@ -367,9 +347,20 @@ class AsyncSetQueue(Generic[_T], AsyncQueue[_T]):
         Raises:
             QueueClosedError: If the queue is closed
         """
-        if item in self.items:
-            return
-        await super()._put(item)
+        async with self._lock:
+            if item in self.items:
+                return
+            
+            # Wait while the queue is full
+            while self.maxsize is not None and len(self.items) >= self.maxsize:
+                await self._not_full.wait()
+            
+            if self.closed:
+                raise QueueClosedError("Cannot put item into closed queue")
+            
+            get_current_instrument().on_queue_put(queue=self, item=item, immediate=True)
+            self.items.append(item)
+            await self._not_empty.notify()
 
     async def putAll(self, items: list[_T]) -> None:
         """
@@ -383,6 +374,50 @@ class AsyncSetQueue(Generic[_T], AsyncQueue[_T]):
         """
         for item in items:
             await self.put(item)
+
+    def __contains__(self, item: _T) -> bool:
+        """
+        Check if an item is in the queue.
+        
+        Args:
+            item: The item to check for
+            
+        Returns:
+            True if the item is in the queue, False otherwise
+        """
+        return item in self.items
+
+    def put_nowait(self, item: _T, event_loop: "EventLoop") -> bool:
+        """
+        Synchronously put an item into the queue if not already present.
+        
+        This method is designed to be called from within a command handler,
+        where async operations are not possible. It handles waiter notification
+        synchronously through the event loop.
+        
+        Args:
+            item: The item to put into the queue
+            event_loop: The event loop to use for notifying waiters
+            
+        Returns:
+            True if the item was added, False if it was already present
+            
+        Raises:
+            QueueClosedError: If the queue is closed
+        """
+        if item in self.items:
+            return False
+        
+        if self.closed:
+            raise QueueClosedError("Cannot put item into closed queue")
+        
+        get_current_instrument().on_queue_put(queue=self, item=item, immediate=True)
+        self.items.append(item)
+        
+        # Notify one waiter if any are waiting on _not_empty
+        event_loop.condition_notify_nowait(self._not_empty)
+        
+        return True
 
 
 _K = TypeVar("_K")

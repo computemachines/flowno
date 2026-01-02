@@ -66,6 +66,14 @@ def test_run_trivial_flow_explicit():
     flow.run_until_complete()
     assert finalized_node1.get_data() == ("Left", "Center", "Right")
 
+def test_simple_flow_implicit():
+    with FlowHDL() as f:
+        f.node1 = Constants()
+
+    finalized_node1 = f.node1
+
+    f.run_until_complete()
+    assert finalized_node1.get_data() == ("Left", "Center", "Right")
 
 @node
 async def Looper(x: int = 0) -> int:
