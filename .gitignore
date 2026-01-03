@@ -22,3 +22,4 @@ states/
 .flat-specs/
 formal-verification/specs/modules/*.cfg
 formal-verification/specs/*.old
+.DS_Store
