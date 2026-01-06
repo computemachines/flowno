@@ -310,6 +310,10 @@ class Flow:
         tuple[FinalizedNode[Any, Any], int],
         list[tuple[RawTask[Command, Any, Any], StreamStateKey]],
     ]
+    # Track which specific stream connections have been cancelled
+    # Key is the StreamStateKey tuple: (consumer, input_port, producer, output_port, run_level)
+    # This is cleared when the stream resets (new generation)
+    _cancelled_stream_connections: set["StreamStateKey"]
     _context_factory: Callable[["FinalizedNode"], Any] | None
 
     resumable: bool
@@ -342,6 +346,7 @@ class Flow:
         self._cancelled_streams = defaultdict(set)
         self._stream_consumer_state = defaultdict(StreamConsumerState)
         self._stalled_stream_consumers = defaultdict(list)
+        self._cancelled_stream_connections = set()
         self._context_factory = None
 
     @property
@@ -548,6 +553,15 @@ class Flow:
         """
         acc: tuple[object, ...] | None = None
 
+        # Clear any cancelled stream connections where this node is the producer.
+        # This ensures cancellations from previous generations don't affect the new generation.
+        if self._cancelled_stream_connections:  # Quick check before iterating
+            for state_key in list(self._cancelled_stream_connections):
+                # state_key = (consumer, input_port, producer, output_port, run_level)
+                if state_key[2] is node:  # producer is this node
+                    logger.debug(f"🧹 Clearing cancelled stream connection {state_key} for new generation of {node}")
+                    self._cancelled_stream_connections.discard(state_key)
+
         try:
             while True:
                 cancelled_streams = self._cancelled_streams.get(node, set())
@@ -632,7 +646,21 @@ class Flow:
                 await node._barrier0.wait()
 
             node.push_data(data, 0)
-            
+
+            # Clear cancelled stream connections for this producer now that it's completed,
+            # but ONLY for consumers that are stalled waiting for StopAsyncIteration.
+            # Consumers that already completed (not stalled) shouldn't be re-enqueued.
+            if self._cancelled_stream_connections:
+                for state_key in list(self._cancelled_stream_connections):
+                    if state_key[2] is node:  # producer is this node
+                        consumer_node = state_key[0]
+                        consumer_status = self.node_tasks[consumer_node].status
+                        if isinstance(consumer_status, NodeTaskStatus.Stalled):
+                            logger.debug(f"🧹 Clearing cancelled stream connection {state_key} for stalled consumer")
+                            self._cancelled_stream_connections.discard(state_key)
+                        else:
+                            logger.debug(f"🔒 Keeping cancelled stream connection {state_key} (consumer not stalled)")
+
             # Remember how many times output data must be read
             node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
 
@@ -660,6 +688,17 @@ class Flow:
                 with get_current_flow_instrument().on_barrier_node_write(self, node, data, 0):
                     await node._barrier0.wait()
                 node.push_data(data, 0)
+
+                # Clear cancelled stream connections for stalled consumers only.
+                if self._cancelled_stream_connections:
+                    for state_key in list(self._cancelled_stream_connections):
+                        if state_key[2] is node:
+                            consumer_node = state_key[0]
+                            consumer_status = self.node_tasks[consumer_node].status
+                            if isinstance(consumer_status, NodeTaskStatus.Stalled):
+                                logger.debug(f"🧹 Clearing cancelled stream connection {state_key} for stalled consumer")
+                                self._cancelled_stream_connections.discard(state_key)
+
                 # Remember how many times output data must be read
                 node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
 
@@ -800,14 +839,29 @@ class Flow:
             logger.debug(f"🔍 Output nodes of {out_node}: {all_output_nodes}")
 
             for output_node in all_output_nodes:
-                # Check if this output node has a streaming connection (minimum_run_level=1) to out_node
-                is_streaming_consumer = False
-                for input_port in output_node._input_ports.values():
-                    if (input_port.connected_output is not None and
-                        input_port.connected_output.node is out_node and
-                        input_port.minimum_run_level == 1):
-                        is_streaming_consumer = True
-                        break
+                # Check if this specific stream connection was cancelled
+                # Only skip if THIS specific (consumer, producer, stream) was cancelled
+                should_skip = False
+                if self._cancelled_stream_connections:  # Quick check before iterating
+                    for input_port_idx, input_port in output_node._input_ports.items():
+                        if (input_port.connected_output is not None and
+                            input_port.connected_output.node is out_node and
+                            input_port.minimum_run_level == 1):
+                            # This is a streaming connection from out_node to output_node
+                            state_key: StreamStateKey = (
+                                output_node,
+                                input_port_idx,
+                                out_node,
+                                input_port.connected_output.port_index,
+                                1,  # run_level
+                            )
+                            if state_key in self._cancelled_stream_connections:
+                                logger.debug(f"🔍 Skipping enqueue of {output_node} - this specific stream was cancelled")
+                                should_skip = True
+                                break
+
+                if should_skip:
+                    continue
 
                 nodes_to_enqueue.append(output_node)
                 get_current_flow_instrument().on_resolution_queue_put(self, output_node)
@@ -1373,6 +1427,8 @@ class FlowEventLoop(EventLoop):
             # === 2. CHECK FOR STREAM RESET ===
             if cmp_generation(producer_parent, desired_parent) > 0:
                 state.last_consumed_generation = None
+                # Clear cancellation state for this stream - new generation starts fresh
+                self.flow._cancelled_stream_connections.discard(state_key)
                 if len(producer_node.generation) == 1:
                     self.tasks.insert(0, (current_task, None, StopAsyncIteration()))
                     return True
@@ -1429,21 +1485,57 @@ class FlowEventLoop(EventLoop):
             # _node = command.node
             producer_node = command.producer_node
             stream = command.stream
+            consumer_node = stream.input.node
             current_task = current_task_packet[0]
 
             self.flow._cancelled_streams[producer_node].add(stream)
 
-            # # Resume the producer node so it can check for cancelled streams
-            # # The producer might be suspended waiting for the next generation
-            # if producer_node in self.flow.node_tasks:
-            #     producer_task = self.flow.node_tasks[producer_node][0]
-            #     # Remove the producer task if it's already in the queue to avoid duplicates
-            #     filtered_tasks = deque(
-            #         (t, ex, tb) for (t, ex, tb) in self.tasks if t != producer_task
-            #     )
-            #     self.tasks = filtered_tasks
-            #     # Insert producer task to run next
-            #     self.tasks.insert(0, (producer_task, None, None))
+            # Track this specific stream connection as cancelled
+            # This is more precise than tracking the consumer node globally
+            state_key: StreamStateKey = (
+                consumer_node,
+                stream.input.port_index,
+                producer_node,
+                stream.output.port_index,
+                stream.run_level,
+            )
+            self.flow._cancelled_stream_connections.add(state_key)
+
+            # Decrement the producer's barrier to unblock it.
+            # The producer may be blocked on `await node._barrier1.wait()` waiting
+            # for consumers to read. Since this consumer is cancelling instead of
+            # reading, we need to decrement the barrier so the producer can proceed
+            # to check `_cancelled_streams` and throw StreamCancelled.
+            producer_node._barrier1.countdown_nowait(self)
+
+            # Resume the producer node so it can check for cancelled streams
+            # and call athrow(StreamCancelled) on its internal generator.
+            # This is critical: if we don't resume the producer, the flow may
+            # terminate before the producer sees the cancellation.
+            #
+            # BUT: Don't resume if the producer has already completed this generation
+            # (has run_level=0 data). Cancelling after completion is a no-op.
+            producer_gen = producer_node.generation
+            producer_has_completed = (len(producer_gen) == 1 and
+                                      cast("DataGeneration", producer_gen) in producer_node._data)
+
+            if producer_has_completed:
+                logger.debug(f"🔒 Producer {producer_node} already completed, not resuming for cancel")
+            elif producer_node in self.flow.node_tasks:
+                status = self.flow.node_tasks[producer_node].status
+                if isinstance(status, NodeTaskStatus.WaitingForStartNextGeneration):
+                    # Producer is waiting for the next generation - resume it with cancel intent
+                    # The producer will check _cancelled_streams and call athrow
+                    producer_task = self.flow.node_tasks[producer_node][0]
+
+                    # Update bookkeeping like ResumeNodesCommand does
+                    self.flow._active_nodes.add(producer_node)
+                    self.flow._pending_node_completions += 1
+                    logger.debug(f"Active nodes: {self.flow.active_nodes} (Cancel-resume {producer_node}), pending now {self.flow._pending_node_completions}")
+                    self.flow.set_node_status(producer_node, NodeTaskStatus.Queued())
+
+                    # Add producer to task queue - it will see cancelled_streams and call athrow
+                    self.tasks.append((producer_task, None, None))
 
             # Immediately resume the current task. The order probably doesn't matter here, but
             # I'm worried about nodes in the resolution queue being executed in a surprising order.
