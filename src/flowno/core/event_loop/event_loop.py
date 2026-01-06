@@ -142,7 +142,14 @@ class EventLoop:
         logger.warning(f"Active tasks in queue: {len(self.tasks)}")
         logger.warning(f"Sleeping tasks: {len(self.sleeping)}")
         logger.warning(f"Tasks waiting on network I/O: {len(self.waiting_on_network)}")
-        logger.warning(f"Tasks waiting on queues: {len(self.tasks_waiting_on_a_queue)}")
+
+        # Count tasks waiting on synchronization primitives
+        event_waiter_count = sum(len(waiters) for waiters in self.event_waiters.values())
+        lock_waiter_count = sum(len(waiters) for waiters in self.lock_waiters.values())
+        condition_waiter_count = sum(len(waiters) for waiters in self.condition_waiters.values())
+        logger.warning(f"Tasks waiting on events: {event_waiter_count}")
+        logger.warning(f"Tasks waiting on locks: {lock_waiter_count}")
+        logger.warning(f"Tasks waiting on conditions: {condition_waiter_count}")
 
         # Task details
         if self.tasks:
@@ -176,17 +183,50 @@ class EventLoop:
                     f"  ... and {len(self.waiting_on_network) - 5} more network tasks"
                 )
 
-        # Queue waiting tasks
-        if self.tasks_waiting_on_a_queue:
-            logger.warning("=== QUEUE WAITING TASKS ===")
-            for task in list(self.tasks_waiting_on_a_queue)[
-                :5
-            ]:  # Show first 5 queue tasks
-                logger.warning(f"  Task: {task}")
-            if len(self.tasks_waiting_on_a_queue) > 5:
-                logger.warning(
-                    f"  ... and {len(self.tasks_waiting_on_a_queue) - 5} more queue tasks"
-                )
+        # Event waiting tasks
+        if event_waiter_count > 0:
+            logger.warning("=== EVENT WAITING TASKS ===")
+            shown = 0
+            for event, waiters in self.event_waiters.items():
+                for task in waiters:
+                    if shown >= 5:
+                        break
+                    logger.warning(f"  Task: {task} (waiting on {event})")
+                    shown += 1
+                if shown >= 5:
+                    break
+            if event_waiter_count > 5:
+                logger.warning(f"  ... and {event_waiter_count - 5} more event waiters")
+
+        # Lock waiting tasks
+        if lock_waiter_count > 0:
+            logger.warning("=== LOCK WAITING TASKS ===")
+            shown = 0
+            for lock, waiters in self.lock_waiters.items():
+                for task in waiters:
+                    if shown >= 5:
+                        break
+                    logger.warning(f"  Task: {task} (waiting on {lock})")
+                    shown += 1
+                if shown >= 5:
+                    break
+            if lock_waiter_count > 5:
+                logger.warning(f"  ... and {lock_waiter_count - 5} more lock waiters")
+
+        # Condition waiting tasks
+        if condition_waiter_count > 0:
+            logger.warning("=== CONDITION WAITING TASKS ===")
+            shown = 0
+            for condition, waiters in self.condition_waiters.items():
+                for task in waiters:
+                    if shown >= 5:
+                        break
+                    logger.warning(f"  Task: {task} (waiting on {condition})")
+                    shown += 1
+                if shown >= 5:
+                    break
+            if condition_waiter_count > 5:
+                logger.warning(f"  ... and {condition_waiter_count - 5} more condition waiters")
 
         # Task watching relationships
         watching_count = sum(len(watchers) for watchers in self.watching_task.values())

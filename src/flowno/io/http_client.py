@@ -781,6 +781,7 @@ class HttpClient:
 
         head = initial_body
         self._sse_buffer = b""
+        self._json_buffer = ""
 
         while True:
             trailing = await sock.recv(1024)
