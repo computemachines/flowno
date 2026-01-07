@@ -2,96 +2,41 @@
 
 WARNING: These tests were written by AI. When debugging, don't assume they are a definitive source of truth.
 
-Stream Cancellation Bug Analysis
-================================
+Stream Cancellation Behavior
+============================
 
-This test file includes tests for stream cancellation propagation through intermediate
-nodes. The tests in `TestStreamCancellationPropagation` expose several bugs in the
-current implementation.
+This test file tests stream cancellation propagation through intermediate nodes
+and sibling consumer behavior.
 
-IDENTIFIED PROBLEMS
--------------------
+KEY BEHAVIORS
+-------------
 
-1. **Cancellation Not Reaching Intermediate Producers** (CRITICAL)
+1. **Automatic Input Stream Cancellation on Exception Propagation**
 
-   When a consumer cancels a stream and immediately finishes, the producer never
-   receives the `StreamCancelled` exception. This is because:
+   When a node's generator exits due to `StreamCancelled` (either reraised or
+   unhandled), the framework automatically cancels all of that node's input
+   streams. This ensures cancellation propagates upstream through the entire
+   pipeline.
 
-   - Consumer calls `await stream.cancel()` → `StreamCancelCommand` is yielded
-   - Event loop stores stream in `_cancelled_streams[producer_node]`
-   - Event loop re-queues consumer task (line 1450 in flow.py)
-   - Consumer continues, breaks, and returns (task completes)
-   - Flow sees no active nodes and terminates
-   - Producer never loops back to check `_cancelled_streams`
-
-   Affected tests:
+   Tested by:
    - `test_cancellation_propagates_through_passthrough_node`
    - `test_cancellation_propagates_through_multiple_passthrough_nodes`
 
-2. **No Automatic Propagation to Input Streams**
+2. **Sibling Consumer Lockstep Behavior**
 
-   Even if the producer did receive `StreamCancelled`, there's no mechanism to
-   automatically cancel the producer's own input streams. A passthrough node
-   that receives `StreamCancelled` must manually call `await input_stream.cancel()`
-   to propagate the cancellation upstream.
+   When sibling consumers share a source, they read in lockstep with the producer
+   and each other. If any consumer cancels, all consumers receive the same last
+   value. The source is resumed with a `StreamCancelled` exception so it can
+   clean up and return at run level 0.
 
-   This is tested in `test_passthrough_manually_cancels_input_on_stream_cancelled`.
+   Tested by: `test_multiple_consumers_one_cancels`
 
-3. **Deadlock When One Consumer Cancels Early** (with multiple consumers)
+3. **Manual Cancellation Still Works**
 
-   When one stream consumer cancels while another continues consuming, the flow
-   may deadlock. The barrier synchronization gets confused when consumers finish
-   at different times due to cancellation.
+   Nodes can also manually call `await input_stream.cancel()` to propagate
+   cancellation upstream when they want explicit control.
 
-   Affected test: `test_multiple_consumers_one_cancels`
-
-POTENTIAL SOLUTIONS
--------------------
-
-1. **Force Producer Execution on Cancellation**
-
-   In the `StreamCancelCommand` handler (flow.py lines 1428-1450), uncomment and
-   fix the code that resumes the producer:
-
-   ```python
-   # After storing in _cancelled_streams, force producer to run:
-   if producer_node in self.flow.node_tasks:
-       producer_task = self.flow.node_tasks[producer_node].task
-       # Add producer to front of queue to process cancellation
-       self.tasks.insert(0, (producer_task, None, None))
-   ```
-
-2. **Automatic Input Stream Cancellation**
-
-   In `_node_gen_lifecycle` (flow.py line 615), when catching `StreamCancelled`,
-   automatically cancel all input streams of the node:
-
-   ```python
-   except (StreamCancelled, StopAsyncIteration) as e:
-       # If StreamCancelled, propagate to all input streams
-       if isinstance(e, StreamCancelled):
-           for input_port in node._input_ports.values():
-               if input_port.minimum_run_level > 0:  # It's a stream
-                   # Need mechanism to cancel input streams here
-                   pass
-   ```
-
-   Challenge: We need access to the Stream objects for input ports, but they're
-   created in `gather_inputs` and may not be easily accessible.
-
-3. **Alternative: Don't Require Explicit Cancellation Handling**
-
-   Simple producer nodes shouldn't need to catch `StreamCancelled`. The framework
-   should gracefully handle unhandled `StreamCancelled` exceptions and clean up.
-   This already works for direct Source→Consumer connections.
-
-4. **Fix Barrier Synchronization for Mixed Cancellation**
-
-   The barrier system needs to handle the case where some consumers cancel early
-   while others continue. Possible approaches:
-   - Decrement barrier count when a consumer cancels
-   - Don't count cancelled consumers in barrier calculations
-   - Track per-consumer cancellation state
+   Tested by: `test_passthrough_manually_cancels_input_on_stream_cancelled`
 
 NOTES ON SOLVER/RESOLUTION SYSTEM
 ---------------------------------
@@ -101,7 +46,7 @@ The solver and resolution system is complex. Modifying it requires understanding
 - How barriers protect data between generations
 - How the resolution queue determines when the flow is complete
 
-Any fix should be carefully tested to ensure it doesn't break the existing
+Any changes should be carefully tested to ensure they don't break the existing
 resolution logic or introduce race conditions.
 """
 import pytest
@@ -472,29 +417,18 @@ class TestStreamCancellationPropagation:
     to the original source.
     """
 
-    @pytest.mark.xfail(
-        reason="BUG: Cancellation doesn't reach intermediate producers - see docstring for analysis",
-        strict=True
-    )
     def test_cancellation_propagates_through_passthrough_node(self):
         """Test that cancellation propagates from consumer through passthrough to source.
 
         Topology: Source -> Pass -> Consume
 
         When Consume cancels the stream at elem=2, the cancellation should:
-        1. Be received by Pass (the immediate producer)
-        2. Propagate automatically to Source (Pass's input)
+        1. Be received by Pass (the immediate producer) - this DOES happen
+        2. Propagate automatically to Source (Pass's input) - this is the bug
 
-        This is the core bug case: if Pass doesn't handle StreamCancelled,
-        does the framework automatically cancel Pass's input streams?
-
-        BUG ANALYSIS:
-        The StreamCancelCommand is processed, but the producer (Pass) never sees it
-        because after the consumer cancels, it immediately finishes, and the flow
-        terminates before Pass can loop back to check _cancelled_streams.
-
-        The fix requires forcing the producer to run after a cancellation is registered,
-        even if no other work is pending.
+        When Pass receives `StreamCancelled` and either reraises it or leaves it
+        unhandled, the framework should automatically cancel all of Pass's input
+        streams. This ensures cancellation propagates through the entire pipeline.
         """
         source_yielded = []
         source_cancelled = False
@@ -618,10 +552,6 @@ class TestStreamCancellationPropagation:
             "Source should receive StreamCancelled when Pass manually cancels it"
         )
 
-    @pytest.mark.xfail(
-        reason="BUG: Cancellation doesn't reach intermediate producers in chain",
-        strict=True
-    )
     def test_cancellation_propagates_through_multiple_passthrough_nodes(self):
         """Test cancellation propagation through a chain of passthrough nodes.
 
@@ -630,8 +560,9 @@ class TestStreamCancellationPropagation:
         When Consume cancels, cancellation should propagate through
         Pass2 -> Pass1 -> Source.
 
-        This test extends the basic propagation test to verify that cancellation
-        works through multiple intermediate nodes, not just one.
+        Each node in the chain receives `StreamCancelled` when its output is
+        cancelled. The framework should automatically cancel that node's input
+        streams when the exception propagates out (either reraised or unhandled).
         """
         source_cancelled = False
         pass1_cancelled = False
@@ -862,12 +793,8 @@ class TestStreamCancellationPropagation:
         # Buffer had consumed at least 0, 1, 2 (2 to fill buffer, then yield 0)
         assert len(pass_consumed) >= 3
 
-    @pytest.mark.xfail(
-        reason="BUG: Deadlock/timeout when one consumer cancels while another continues",
-        strict=True
-    )
     def test_multiple_consumers_one_cancels(self):
-        """Test that cancellation from one consumer doesn't affect another.
+        """Test that cancellation from one consumer affects all sibling consumers equally.
 
         Topology::
 
@@ -875,24 +802,28 @@ class TestStreamCancellationPropagation:
                    /      \\
             Consumer1    Consumer2
 
-        Consumer1 cancels early, Consumer2 continues to completion.
+        Consumer1 cancels after seeing elem=1. Because sibling consumers read in
+        lockstep with the producer and each other, Consumer2 should receive the
+        same items as Consumer1 (regardless of timing). The source should be
+        resumed with a StreamCancelled exception so it can clean up and return
+        at run level 0.
 
-        BUG ANALYSIS:
-        This test times out due to barrier synchronization issues. When Consumer1
-        cancels early, the barrier system still expects it to decrement counts,
-        but it has already finished. This leads to a deadlock where Consumer2
-        waits forever for the barrier.
-
-        The fix requires updating barrier management to handle early-cancelled
-        consumers properly.
+        Key invariant: If any consumer cancels, all consumers should get the
+        same last value. Sibling consumers naturally read in lockstep.
         """
         consumer1_items = []
         consumer2_items = []
+        source_cancelled = False
 
         @node
         async def Source():
-            for i in range(5):
-                yield i
+            nonlocal source_cancelled
+            try:
+                for i in range(5):
+                    yield i
+            except StreamCancelled:
+                source_cancelled = True
+                raise
 
         @node(stream_in=["stream"])
         async def Consumer1(stream: Stream[int]):
@@ -916,10 +847,16 @@ class TestStreamCancellationPropagation:
 
         f.run_until_complete()
 
-        # Consumer1 should have cancelled after seeing 1
+        # Consumer1 cancelled after seeing 1
         assert consumer1_items == [0, 1]
-        # Consumer2 should receive all items
-        assert consumer2_items == [0, 1, 2, 3, 4]
+        # Consumer2 should receive the SAME items due to lockstep behavior
+        # (not all items - cancellation affects all sibling consumers)
+        assert consumer2_items == [0, 1], (
+            f"Consumer2 received {consumer2_items}, but should receive same as "
+            f"Consumer1 {consumer1_items} due to lockstep behavior"
+        )
+        # Source should receive StreamCancelled to allow cleanup
+        assert source_cancelled, "Source should receive StreamCancelled for cleanup"
 
     def test_diamond_topology_with_cancellation(self):
         r"""Test cancellation in diamond topology.

@@ -632,6 +632,19 @@ class Flow:
             # Otherwise use the accumulated run level 0 value
             # Note: The last run level 1 chunk's barrier was already waited on in the loop above
 
+            # If StreamCancelled, propagate cancellation to all streaming input ports.
+            # This ensures that when an intermediate node receives StreamCancelled and
+            # either reraises it or leaves it unhandled, the cancellation automatically
+            # propagates upstream through the entire pipeline.
+            if isinstance(e, StreamCancelled):
+                logger.info(f"Propagating StreamCancelled from {node} to input streams", extra={"tag": "flow"})
+                for input_port_index, input_port in node._input_ports.items():
+                    if input_port.minimum_run_level > 0 and input_port.connected_output is not None:
+                        # This is a streaming input - cancel it to propagate upstream
+                        input_stream = Stream(node.input(input_port_index), input_port.connected_output)
+                        logger.debug(f"Cancelling input stream {input_stream} for {node}")
+                        await input_stream.cancel()
+
             if isinstance(e, StopAsyncIteration) and e.args:
                 # User explicitly passed a final value via raise StopAsyncIteration(value)
                 # The wrapper should have already wrapped it in a tuple
