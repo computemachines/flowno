@@ -92,10 +92,14 @@ from collections.abc import Generator
 from types import coroutine
 from typing import cast
 
+from time import time
+
 from flowno.core.event_loop.instrumentation import (
     SocketConnectReadyMetadata,
     SocketConnectStartMetadata,
     SocketRecvDataMetadata,
+    SocketSendDataMetadata,
+    TLSHandshakeMetadata,
     get_current_instrument,
 )
 from typing_extensions import override
@@ -190,32 +194,39 @@ class SocketHandle:
     def sendAll(self, data: bytes) -> Generator[SocketSendCommand, None, None]:
         """
         Send all data to the socket.
-        
+
         This coroutine continues yielding SocketSendCommand until all data is sent.
-        
+
         Args:
             data: The bytes to send.
         """
         while data:
             yield SocketSendCommand(self)
             sent = self.socket.send(data)
+            get_current_instrument().on_socket_send_data(
+                SocketSendDataMetadata(socket_handle=self, data=data[:sent], bytes_sent=sent)
+            )
             data = data[sent:]
 
     @coroutine
     def send(self, data: bytes) -> Generator[SocketSendCommand, None, int]:
         """
         Send data to the socket.
-        
+
         Unlike sendAll, this sends data once and returns the number of bytes sent.
-        
+
         Args:
             data: The bytes to send.
-            
+
         Returns:
             The number of bytes sent.
         """
         yield SocketSendCommand(self)
-        return self.socket.send(data)
+        bytes_sent = self.socket.send(data)
+        get_current_instrument().on_socket_send_data(
+            SocketSendDataMetadata(socket_handle=self, data=data, bytes_sent=bytes_sent)
+        )
+        return bytes_sent
 
     @coroutine
     def recv(self, bufsize: int) -> Generator[SocketRecvCommand, None, bytes]:
@@ -275,12 +286,23 @@ class TLSSocketHandle(SocketHandle):
     def connect(self, address: _Address, /) -> None:
         """
         Connect to a remote socket and establish TLS/SSL connection.
-        
+
         Args:
             address: The address to connect to (host, port).
         """
+        start_time = time()
         self.socket.connect(address)
         self.socket = self.ssl_context.wrap_socket(self.socket, server_hostname=self.server_hostname)
+        # Report TLS handshake details
+        get_current_instrument().on_tls_handshake_complete(
+            TLSHandshakeMetadata(
+                socket_handle=self,
+                cipher=self.socket.cipher(),
+                version=self.socket.version(),
+                server_hostname=self.server_hostname,
+                start_time=start_time,
+            )
+        )
         
         
 __all__ = [

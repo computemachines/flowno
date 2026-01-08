@@ -95,6 +95,14 @@ class SocketRecvDataMetadata:
 
 
 @dataclass
+class SocketSendDataMetadata:
+    """Metadata for sent socket data."""
+    socket_handle: "SocketHandle"
+    data: bytes
+    bytes_sent: int  # Actual bytes accepted by kernel (may differ from len(data))
+
+
+@dataclass
 class SocketConnectStartMetadata:
     """Metadata for socket connection initiation."""
     socket_handle: "SocketHandle"
@@ -119,6 +127,17 @@ class SocketConnectReadyMetadata(SocketConnectStartMetadata):
             start_time=metadata.start_time,
             **kwargs,
         )
+
+
+@dataclass
+class TLSHandshakeMetadata:
+    """Metadata for completed TLS handshakes."""
+    socket_handle: "SocketHandle"
+    cipher: tuple[str, str, int] | None  # (cipher_name, protocol, bits)
+    version: str | None  # e.g., "TLSv1.3"
+    server_hostname: str | None
+    start_time: float
+    finish_time: float = field(default_factory=time)
 
 
 @dataclass
@@ -209,9 +228,27 @@ class EventLoopInstrument:
     def on_socket_recv_data(self, metadata: SocketRecvDataMetadata) -> None:
         """
         Called immediately after the actual bytes have been read.
-        
+
         Args:
             metadata: Metadata including the received bytes
+        """
+        pass
+
+    def on_socket_send_data(self, metadata: "SocketSendDataMetadata") -> None:
+        """
+        Called immediately after bytes have been sent to the kernel.
+
+        Args:
+            metadata: Metadata including the sent bytes and actual bytes_sent count
+        """
+        pass
+
+    def on_tls_handshake_complete(self, metadata: "TLSHandshakeMetadata") -> None:
+        """
+        Called after a TLS handshake completes successfully.
+
+        Args:
+            metadata: Metadata including cipher info and TLS version
         """
         pass
 
@@ -406,6 +443,22 @@ class PrintInstrument(EventLoopInstrument):
         self.print(f"[RECV-DATA] Got {chunk_len} bytes: {chunk_preview!r}")
         self.print(f"[RECV-DATA] FULL DATA:\n{metadata.data.decode()!r}")
 
+    @override
+    def on_socket_send_data(self, metadata: SocketSendDataMetadata) -> None:
+        data_len = len(metadata.data)
+        bytes_sent = metadata.bytes_sent
+        # Show first 50 bytes if textual
+        data_preview = metadata.data[:50].decode("utf-8", errors="replace")
+        self.print(f"[SEND-DATA] Sent {bytes_sent}/{data_len} bytes: {data_preview!r}")
+
+    @override
+    def on_tls_handshake_complete(self, metadata: TLSHandshakeMetadata) -> None:
+        duration = metadata.finish_time - metadata.start_time
+        cipher_info = metadata.cipher[0] if metadata.cipher else "unknown"
+        self.print(
+            f"[TLS] Handshake complete in {duration:.4f}s: {metadata.version}, {cipher_info}"
+        )
+
 
 class LogInstrument(PrintInstrument):
     """
@@ -434,15 +487,17 @@ def get_current_instrument() -> EventLoopInstrument:
 
 
 __all__ = [
-    "EventLoopInstrument", 
-    "PrintInstrument", 
+    "EventLoopInstrument",
+    "PrintInstrument",
     "LogInstrument",
     "InstrumentationMetadata",
     "ReadySocketInstrumentationMetadata",
     "SocketRecvDataMetadata",
+    "SocketSendDataMetadata",
     "SocketConnectStartMetadata",
     "SocketConnectReadyMetadata",
+    "TLSHandshakeMetadata",
     "TaskSendMetadata",
     "TaskThrowMetadata",
-    "get_current_instrument"
+    "get_current_instrument",
 ]
