@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-_current_instrument: ContextVar["EventLoopInstrument | None"] = ContextVar("_current_instrument", default=None)
+_instrument_stack: ContextVar[list["EventLoopInstrument"]] = ContextVar("_instrument_stack", default=[])
 
 
 @dataclass
@@ -157,11 +157,14 @@ class TaskThrowMetadata:
 class EventLoopInstrument:
     """
     Base class for event loop instrumentation.
-    
+
     This class provides hooks for various event loop operations. Subclasses can
     override these methods to implement custom monitoring or logging.
+
+    Instruments can be nested using context managers. When nested, all active
+    instruments receive events, with inner instruments firing before outer ones.
     """
-    _token: Token[Self | None] | None = None
+    _token: Token[list["EventLoopInstrument"]] | None = None
 
     def on_queue_get(self, queue: "AsyncQueue[T]", item: T, immediate: bool) -> None:
         """
@@ -366,9 +369,8 @@ class EventLoopInstrument:
         pass
 
     def __enter__(self: Self) -> Self:
-        # token to restore old value of instrument
-        # TODO: change to a list so I can use multiple instruments at the same time
-        self._token = _current_instrument.set(self)
+        stack = _instrument_stack.get()
+        self._token = _instrument_stack.set(stack + [self])
         return self
 
     def __exit__(
@@ -377,7 +379,8 @@ class EventLoopInstrument:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> bool:
-        _current_instrument.reset(self._token)
+        if self._token is not None:
+            _instrument_stack.reset(self._token)
         return False
 
 
@@ -463,10 +466,128 @@ class PrintInstrument(EventLoopInstrument):
 class LogInstrument(PrintInstrument):
     """
     Event loop instrument that logs information using the logging module.
-    
+
     This instrument uses the debug log level for all messages.
     """
     print = logger.debug
+
+
+class _CompositeInstrument(EventLoopInstrument):
+    """
+    Internal class that dispatches events to multiple instruments.
+
+    When multiple instruments are active (nested context managers), this class
+    wraps them and dispatches each event to all instruments in reverse order
+    (inner-most first, then outer).
+    """
+
+    def __init__(self, instruments: list[EventLoopInstrument]):
+        self._instruments = instruments
+
+    @override
+    def on_queue_get(self, queue: "AsyncQueue[T]", item: T, immediate: bool) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_queue_get(queue, item, immediate)
+
+    @override
+    def on_queue_put(self, queue: "AsyncQueue[T]", item: T, immediate: bool) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_queue_put(queue, item, immediate)
+
+    @override
+    def on_socket_connect_start(self, metadata: SocketConnectStartMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_connect_start(metadata)
+
+    @override
+    def on_socket_connect_ready(self, metadata: SocketConnectReadyMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_connect_ready(metadata)
+
+    @override
+    def on_socket_recv_start(self, metadata: InstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_recv_start(metadata)
+
+    @override
+    def on_socket_recv_ready(self, metadata: ReadySocketInstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_recv_ready(metadata)
+
+    @override
+    def on_socket_recv_data(self, metadata: SocketRecvDataMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_recv_data(metadata)
+
+    @override
+    def on_socket_send_data(self, metadata: SocketSendDataMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_send_data(metadata)
+
+    @override
+    def on_tls_handshake_complete(self, metadata: TLSHandshakeMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_tls_handshake_complete(metadata)
+
+    @override
+    def on_socket_send_start(self, metadata: InstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_send_start(metadata)
+
+    @override
+    def on_socket_send_ready(self, metadata: ReadySocketInstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_send_ready(metadata)
+
+    @override
+    def on_socket_accept_start(self, metadata: InstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_accept_start(metadata)
+
+    @override
+    def on_socket_accept_ready(self, metadata: ReadySocketInstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_accept_ready(metadata)
+
+    @override
+    def on_socket_close(self, metadata: InstrumentationMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_socket_close(metadata)
+
+    @override
+    def on_task_before_send(self, metadata: TaskSendMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_before_send(metadata)
+
+    @override
+    def on_task_after_send(self, metadata: TaskSendMetadata, command: "Command") -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_after_send(metadata, command)
+
+    @override
+    def on_task_before_throw(self, metadata: TaskThrowMetadata) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_before_throw(metadata)
+
+    @override
+    def on_task_after_throw(self, metadata: TaskThrowMetadata, command: "Command") -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_after_throw(metadata, command)
+
+    @override
+    def on_task_completed(self, task: "RawTask[Command, Any, Any]", result: Any) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_completed(task, result)
+
+    @override
+    def on_task_error(self, task: "RawTask[Command, Any, Any]", exception: Exception) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_error(task, exception)
+
+    @override
+    def on_task_cancelled(self, task: "RawTask[Command, Any, Any]", exception: Exception) -> None:
+        for instrument in reversed(self._instruments):
+            instrument.on_task_cancelled(task, exception)
 
 
 EMPTY_INSTRUMENT: Final[EventLoopInstrument] = EventLoopInstrument()
@@ -475,15 +596,19 @@ EMPTY_INSTRUMENT: Final[EventLoopInstrument] = EventLoopInstrument()
 def get_current_instrument() -> EventLoopInstrument:
     """
     Get the current instrumentation context.
-    
+
+    When multiple instruments are active (nested context managers), returns a
+    composite that dispatches to all of them (inner-most first).
+
     Returns:
-        The currently active instrument or an empty instrument if none is active.
+        The currently active instrument(s) or an empty instrument if none is active.
     """
-    instrument = _current_instrument.get()
-    if instrument:
-        return instrument
-    else:
+    stack = _instrument_stack.get()
+    if not stack:
         return EMPTY_INSTRUMENT
+    if len(stack) == 1:
+        return stack[0]
+    return _CompositeInstrument(stack)
 
 
 __all__ = [

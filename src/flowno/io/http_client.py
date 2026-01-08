@@ -248,24 +248,20 @@ class HttpClient:
         ...     )
         ...     print(f"Status: {response.status_code}")
     """
-    def __init__(
-        self,
-        headers: Headers | None = None,
-        http_logger: "HttpLoggingInstrument | None" = None,
-    ):
+    def __init__(self, headers: Headers | None = None):
         """
         Initialize a new HTTP client.
 
         Args:
             headers: Default headers to include in all requests
-            http_logger: Optional HTTP traffic logger for diagnostics
         """
         self.override_headers: Headers = headers or Headers()
         self.json_decoder: json.JSONDecoder = json.JSONDecoder()
         self.json_encoder: json.JSONEncoder = json.JSONEncoder()
         self._sse_buffer: bytes = b""
         self._json_buffer: str = ""
-        self._http_logger: "HttpLoggingInstrument | None" = http_logger
+        # HTTP logger looked up from context per-request
+        self._http_logger: "HttpLoggingInstrument | None" = None
         # Tracking state for current request (reset per request)
         self._current_conn_id: str | None = None
         self._stream_start_time: float = 0
@@ -283,6 +279,9 @@ class HttpClient:
         self._json_seq = 0
         self._total_stream_bytes = 0
         self._done_received = False
+        # Look up HTTP logger from context for this request
+        from flowno.io.http_logging import get_current_http_logger
+        self._http_logger = get_current_http_logger()
         if self._http_logger:
             self._current_conn_id = self._http_logger.get_conn_id(sock)
 

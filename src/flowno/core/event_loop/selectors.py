@@ -303,8 +303,8 @@ class TLSSocketHandle(SocketHandle):
                 start_time=start_time,
             )
         )
-        
-        
+
+
 __all__ = [
     "SocketHandle",
     "TLSSocketHandle",

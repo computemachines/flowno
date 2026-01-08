@@ -31,12 +31,14 @@ from __future__ import annotations
 
 import logging
 import os
+from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from logging.handlers import RotatingFileHandler
 from time import time
+from types import TracebackType
 from typing import TYPE_CHECKING
 
-from typing_extensions import override
+from typing_extensions import Self, override
 
 from flowno.core.event_loop.instrumentation import (
     EventLoopInstrument,
@@ -50,6 +52,11 @@ from flowno.core.event_loop.instrumentation import (
 
 if TYPE_CHECKING:
     from flowno.core.event_loop.selectors import SocketHandle
+
+# Dedicated context var for HttpLoggingInstrument lookup
+_current_http_logger: ContextVar["HttpLoggingInstrument | None"] = ContextVar(
+    "_current_http_logger", default=None
+)
 
 
 @dataclass
@@ -88,6 +95,8 @@ class HttpLoggingInstrument(EventLoopInstrument):
         [2026-01-08T10:58:26.712] [conn-0001] RECV bytes=128 total=128 latency_ms=162
     """
 
+    _http_token: Token["HttpLoggingInstrument | None"] | None = None
+
     def __init__(self, logger: logging.Logger | None = None):
         """
         Initialize the HTTP logging instrument.
@@ -99,6 +108,23 @@ class HttpLoggingInstrument(EventLoopInstrument):
         self._connections: dict[int, ConnectionState] = {}  # fd -> state
         self._pending_connects: dict[int, SocketConnectStartMetadata] = {}  # fd -> start metadata
         self._conn_counter = 0
+
+    def __enter__(self: Self) -> Self:
+        # Register in the instrument stack (for socket-level events)
+        super().__enter__()
+        # Also set our dedicated context var (for HttpClient lookup)
+        self._http_token = _current_http_logger.set(self)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool:
+        if self._http_token is not None:
+            _current_http_logger.reset(self._http_token)
+        return super().__exit__(exc_type, exc_val, exc_tb)
 
     def _get_fd(self, sock_handle: SocketHandle) -> int:
         """Get file descriptor from socket handle."""
@@ -353,9 +379,23 @@ def get_http_logging_instrument() -> HttpLoggingInstrument | None:
     return None
 
 
+def get_current_http_logger() -> HttpLoggingInstrument | None:
+    """
+    Get the current HTTP logging instrument from context, if any.
+
+    This is used by HttpClient to find the active HttpLoggingInstrument
+    without requiring it to be passed as a constructor argument.
+
+    Returns:
+        The currently active HttpLoggingInstrument, or None if none is active.
+    """
+    return _current_http_logger.get()
+
+
 __all__ = [
     "ConnectionState",
     "HttpLoggingInstrument",
     "configure_file_logger",
+    "get_current_http_logger",
     "get_http_logging_instrument",
 ]
