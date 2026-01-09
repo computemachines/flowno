@@ -170,6 +170,8 @@ class HttpLoggingInstrument(EventLoopInstrument):
             host=str(host),
             port=int(port),
             start_time=metadata.start_time,
+            last_recv_time=metadata.finish_time,
+            last_send_time=metadata.finish_time,
         )
         self._connections[fd] = state
 

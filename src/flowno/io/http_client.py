@@ -644,9 +644,10 @@ class HttpClient:
         if self._http_logger and self._current_conn_id:
             content_type = response_headers.get("Content-Type")
             transfer_encoding = response_headers.get("Transfer-Encoding")
+            status_parts = status.split()
             self._http_logger.log_response_headers(
                 self._current_conn_id,
-                int(status.split()[1]) if len(status.split()) > 1 else 0,
+                int(status_parts[1]) if len(status_parts) > 1 else 0,
                 content_type if isinstance(content_type, str) else None,
                 transfer_encoding if isinstance(transfer_encoding, str) else None,
                 content_length,

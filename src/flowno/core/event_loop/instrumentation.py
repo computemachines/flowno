@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-_instrument_stack: ContextVar[list["EventLoopInstrument"]] = ContextVar("_instrument_stack", default=[])
+_instrument_stack: ContextVar[list["EventLoopInstrument"] | None] = ContextVar("_instrument_stack", default=None)
 
 
 @dataclass
@@ -369,7 +369,7 @@ class EventLoopInstrument:
         pass
 
     def __enter__(self: Self) -> Self:
-        stack = _instrument_stack.get()
+        stack = _instrument_stack.get() or []
         self._token = _instrument_stack.set(stack + [self])
         return self
 
