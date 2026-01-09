@@ -42,6 +42,7 @@ from typing_extensions import Self, override
 
 from flowno.core.event_loop.instrumentation import (
     EventLoopInstrument,
+    InstrumentationMetadata,
     ReadySocketInstrumentationMetadata,
     SocketConnectReadyMetadata,
     SocketConnectStartMetadata,
@@ -255,6 +256,13 @@ class HttpLoggingInstrument(EventLoopInstrument):
         wait_ms = (metadata.finish_time - metadata.start_time) * 1000
         if wait_ms > 100:  # Only log significant waits
             self._log(conn.conn_id, "RECV_READY", wait_ms=f"{wait_ms:.1f}")
+
+    @override
+    def on_socket_close(self, metadata: InstrumentationMetadata) -> None:
+        """Clean up connection state when socket closes."""
+        fd = self._get_fd(metadata.socket_handle)
+        self._pending_connects.pop(fd, None)
+        self._connections.pop(fd, None)
 
     # === HTTP protocol-level logging methods ===
     # These are called directly from http_client.py
