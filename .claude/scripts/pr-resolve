@@ -1,0 +1,285 @@
+#!/bin/bash
+set -euo pipefail
+
+# pr-resolve: Reply to a PR review thread and resolve it
+#
+# Usage:
+#   pr-resolve <thread-id> <commit-sha> [--yes]    # Link to commit
+#   pr-resolve <thread-id> --issue <number> [--yes] # Link to issue
+#
+# Safety features:
+#   - Validates thread ID format
+#   - Verifies commit exists in local repo (when using commit mode)
+#   - Verifies thread exists and fetches context
+#   - Shows preview before posting (unless --yes)
+#   - Won't re-resolve already resolved threads
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+die() {
+    echo -e "${RED}Error: $1${NC}" >&2
+    exit 1
+}
+
+warn() {
+    echo -e "${YELLOW}Warning: $1${NC}" >&2
+}
+
+info() {
+    echo -e "${BLUE}$1${NC}"
+}
+
+success() {
+    echo -e "${GREEN}$1${NC}"
+}
+
+# Parse arguments
+THREAD_ID=""
+COMMIT_SHA=""
+ISSUE_NUMBER=""
+AUTO_YES=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --yes|-y)
+            AUTO_YES=true
+            shift
+            ;;
+        --issue|-i)
+            if [[ -z "${2:-}" ]]; then
+                die "--issue requires an issue number"
+            fi
+            ISSUE_NUMBER="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage:"
+            echo "  pr-resolve <thread-id> <commit-sha> [--yes]     # Link to commit"
+            echo "  pr-resolve <thread-id> --issue <number> [--yes]  # Link to issue"
+            echo ""
+            echo "Reply to a PR review thread and resolve it."
+            echo ""
+            echo "Arguments:"
+            echo "  thread-id    GitHub thread ID (starts with PRRT_)"
+            echo "  commit-sha   Git commit SHA (full or abbreviated)"
+            echo ""
+            echo "Options:"
+            echo "  --issue, -i  Link to issue number instead of commit"
+            echo "  --yes, -y    Skip confirmation prompt"
+            echo "  --help, -h   Show this help"
+            exit 0
+            ;;
+        *)
+            if [[ -z "$THREAD_ID" ]]; then
+                THREAD_ID="$1"
+            elif [[ -z "$COMMIT_SHA" && -z "$ISSUE_NUMBER" ]]; then
+                COMMIT_SHA="$1"
+            else
+                die "Unexpected argument: $1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate required arguments
+[[ -z "$THREAD_ID" ]] && die "Missing required argument: thread-id"
+[[ -z "$COMMIT_SHA" && -z "$ISSUE_NUMBER" ]] && die "Missing required argument: commit-sha or --issue"
+[[ -n "$COMMIT_SHA" && -n "$ISSUE_NUMBER" ]] && die "Cannot specify both commit-sha and --issue"
+
+# Validate thread ID format
+if [[ ! "$THREAD_ID" =~ ^PRRT_ ]]; then
+    die "Invalid thread ID format. Expected PRRT_*, got: $THREAD_ID"
+fi
+
+# Mode-specific validation and setup
+if [[ -n "$COMMIT_SHA" ]]; then
+    # Commit mode
+    MODE="commit"
+
+    # Validate commit exists locally
+    if ! git cat-file -t "$COMMIT_SHA" &>/dev/null; then
+        die "Commit not found in local repository: $COMMIT_SHA"
+    fi
+
+    # Get full commit SHA and short version
+    FULL_SHA=$(git rev-parse "$COMMIT_SHA")
+    SHORT_SHA=$(git rev-parse --short "$COMMIT_SHA")
+
+    # Get commit subject for context
+    COMMIT_SUBJECT=$(git log -1 --format='%s' "$FULL_SHA")
+
+    # Compose the reply message (full SHA for GitHub auto-linking)
+    REPLY_MESSAGE="Fixed in ${FULL_SHA}
+-bot"
+    PREVIEW_LINE1="Fixed in ${SHORT_SHA} (linked)"
+    PREVIEW_LINE2="-bot"
+    CONTEXT_LINE="Commit: $SHORT_SHA - $COMMIT_SUBJECT"
+else
+    # Issue mode
+    MODE="issue"
+
+    # Validate issue number is numeric
+    if [[ ! "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then
+        die "Invalid issue number: $ISSUE_NUMBER"
+    fi
+
+    # Compose the reply message
+    REPLY_MESSAGE="Issue #${ISSUE_NUMBER}
+-bot"
+    PREVIEW_LINE1="Issue #${ISSUE_NUMBER} (linked)"
+    PREVIEW_LINE2="-bot"
+    CONTEXT_LINE="Links to: Issue #${ISSUE_NUMBER}"
+fi
+
+# Verify gh CLI is authenticated
+if ! gh auth status &>/dev/null; then
+    die "GitHub CLI not authenticated. Run 'gh auth login' first."
+fi
+
+# Fetch thread details to verify it exists and get context
+info "Fetching thread details..."
+
+THREAD_QUERY='
+query($id: ID!) {
+  node(id: $id) {
+    ... on PullRequestReviewThread {
+      id
+      isResolved
+      path
+      line
+      pullRequest {
+        number
+        repository {
+          nameWithOwner
+        }
+      }
+      comments(first: 1) {
+        nodes {
+          body
+        }
+      }
+    }
+  }
+}'
+
+THREAD_RESULT=$(gh api graphql -f query="$THREAD_QUERY" -f id="$THREAD_ID" 2>&1) || {
+    die "Failed to fetch thread details. Is the thread ID correct?\n\nAPI response: $THREAD_RESULT"
+}
+
+# Parse thread details (use 'tostring' for boolean to avoid false being treated as empty)
+IS_RESOLVED=$(echo "$THREAD_RESULT" | jq -r '.data.node.isResolved | tostring // "null"')
+THREAD_PATH=$(echo "$THREAD_RESULT" | jq -r '.data.node.path // empty')
+THREAD_LINE=$(echo "$THREAD_RESULT" | jq -r '.data.node.line // "N/A"')
+PR_NUMBER=$(echo "$THREAD_RESULT" | jq -r '.data.node.pullRequest.number // empty')
+REPO_NAME=$(echo "$THREAD_RESULT" | jq -r '.data.node.pullRequest.repository.nameWithOwner // empty')
+FIRST_COMMENT=$(echo "$THREAD_RESULT" | jq -r '.data.node.comments.nodes[0].body // empty' | head -c 100)
+
+# Validate we got valid data
+[[ "$IS_RESOLVED" == "null" ]] && die "Thread not found or not a review thread: $THREAD_ID"
+[[ -z "$PR_NUMBER" ]] && die "Could not determine PR number for thread"
+
+# Check if already resolved
+if [[ "$IS_RESOLVED" == "true" ]]; then
+    warn "Thread is already resolved. Nothing to do."
+    exit 0
+fi
+
+# Show preview
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+info "Repository:    $REPO_NAME"
+info "PR:            #$PR_NUMBER"
+info "File:          $THREAD_PATH:$THREAD_LINE"
+echo ""
+echo "Original comment (truncated):"
+echo -e "  ${YELLOW}${FIRST_COMMENT}...${NC}"
+echo ""
+echo "Your reply will be:"
+echo -e "  ${GREEN}${PREVIEW_LINE1}${NC}"
+echo -e "  ${GREEN}${PREVIEW_LINE2}${NC}"
+echo ""
+echo "$CONTEXT_LINE"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Confirm unless --yes
+if [[ "$AUTO_YES" != "true" ]]; then
+    read -p "Post reply and resolve thread? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+fi
+
+# Post the reply
+info "Posting reply..."
+
+REPLY_MUTATION='
+mutation($threadId: ID!, $body: String!) {
+  addPullRequestReviewThreadReply(input: {
+    pullRequestReviewThreadId: $threadId,
+    body: $body
+  }) {
+    comment {
+      id
+      url
+    }
+  }
+}'
+
+REPLY_RESULT=$(gh api graphql -f query="$REPLY_MUTATION" -f threadId="$THREAD_ID" -f body="$REPLY_MESSAGE" 2>&1) || {
+    die "Failed to post reply.\n\nAPI response: $REPLY_RESULT"
+}
+
+COMMENT_URL=$(echo "$REPLY_RESULT" | jq -r '.data.addPullRequestReviewThreadReply.comment.url // empty')
+
+if [[ -z "$COMMENT_URL" ]]; then
+    die "Reply may have failed. Unexpected response:\n$REPLY_RESULT"
+fi
+
+success "Reply posted: $COMMENT_URL"
+
+# Resolve the thread
+info "Resolving thread..."
+
+RESOLVE_MUTATION='
+mutation($threadId: ID!) {
+  resolveReviewThread(input: {
+    threadId: $threadId
+  }) {
+    thread {
+      isResolved
+    }
+  }
+}'
+
+RESOLVE_RESULT=$(gh api graphql -f query="$RESOLVE_MUTATION" -f threadId="$THREAD_ID" 2>&1) || {
+    warn "Failed to resolve thread. Reply was posted but thread remains unresolved."
+    warn "You can resolve it manually or retry."
+    warn "API response: $RESOLVE_RESULT"
+    exit 1
+}
+
+RESOLVED=$(echo "$RESOLVE_RESULT" | jq -r '.data.resolveReviewThread.thread.isResolved // empty')
+
+if [[ "$RESOLVED" != "true" ]]; then
+    warn "Thread may not be resolved. Unexpected response:\n$RESOLVE_RESULT"
+    exit 1
+fi
+
+success "Thread resolved!"
+echo ""
+echo "Summary:"
+echo "  - Reply: $COMMENT_URL"
+echo "  - Thread: Resolved"
+if [[ "$MODE" == "commit" ]]; then
+    echo "  - Commit: $SHORT_SHA"
+else
+    echo "  - Issue: #$ISSUE_NUMBER"
+fi
