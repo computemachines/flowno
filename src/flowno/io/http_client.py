@@ -636,7 +636,7 @@ class HttpClient:
 
         status, response_headers, initial_body = await self._receive_headers(sock)
 
-        # Validate Content-Length early (crashes on malformed value - intentional)
+        # Validate Content-Length early: missing header yields None; malformed value crashes intentionally
         content_length_str = response_headers.get("Content-Length")
         content_length = int(content_length_str) if content_length_str else None
 
