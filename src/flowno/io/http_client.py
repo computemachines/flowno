@@ -636,12 +636,14 @@ class HttpClient:
 
         status, response_headers, initial_body = await self._receive_headers(sock)
 
+        # Validate Content-Length early (crashes on malformed value - intentional)
+        content_length_str = response_headers.get("Content-Length")
+        content_length = int(content_length_str) if content_length_str else None
+
         # Log HEADERS event
         if self._http_logger and self._current_conn_id:
             content_type = response_headers.get("Content-Type")
             transfer_encoding = response_headers.get("Transfer-Encoding")
-            content_length_str = response_headers.get("Content-Length")
-            content_length = int(content_length_str) if content_length_str else None
             self._http_logger.log_response_headers(
                 self._current_conn_id,
                 int(status.split()[1]) if len(status.split()) > 1 else 0,
