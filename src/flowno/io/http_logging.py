@@ -102,9 +102,13 @@ class HttpLoggingInstrument(EventLoopInstrument):
         Initialize the HTTP logging instrument.
 
         Args:
-            logger: Logger to use. If None, creates one named "flowno.http_traffic".
+            logger: Logger to use. If None, creates one named "flowno.http_traffic"
+                with propagate=False to avoid duplicating logs to parent handlers.
         """
-        self._logger = logger or logging.getLogger("flowno.http_traffic")
+        if logger is None:
+            logger = logging.getLogger("flowno.http_traffic")
+            logger.propagate = False
+        self._logger = logger
         self._connections: dict[int, ConnectionState] = {}  # fd -> state
         self._pending_connects: dict[int, SocketConnectStartMetadata] = {}  # fd -> start metadata
         self._conn_counter = 0
