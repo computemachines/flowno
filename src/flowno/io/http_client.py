@@ -50,15 +50,19 @@ import json
 import logging
 import re
 import zlib
+from time import time
 
 from collections.abc import AsyncGenerator, AsyncIterator, Generator
 from dataclasses import dataclass
-from typing import Any, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar
 from urllib.parse import urlparse
 
 from flowno import SocketHandle, socket
 from flowno.io.headers import Headers
 from typing_extensions import TypeIs
+
+if TYPE_CHECKING:
+    from flowno.io.http_logging import HttpLoggingInstrument
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -247,7 +251,7 @@ class HttpClient:
     def __init__(self, headers: Headers | None = None):
         """
         Initialize a new HTTP client.
-        
+
         Args:
             headers: Default headers to include in all requests
         """
@@ -256,6 +260,43 @@ class HttpClient:
         self.json_encoder: json.JSONEncoder = json.JSONEncoder()
         self._sse_buffer: bytes = b""
         self._json_buffer: str = ""
+        # HTTP logger looked up from context per-request
+        self._http_logger: "HttpLoggingInstrument | None" = None
+        # Tracking state for current request (reset per request)
+        self._current_conn_id: str | None = None
+        self._stream_start_time: float = 0
+        self._chunk_seq: int = 0
+        self._sse_seq: int = 0
+        self._json_seq: int = 0
+        self._total_stream_bytes: int = 0
+        self._done_received: bool = False
+
+    def _reset_stream_tracking(self, sock: SocketHandle) -> None:
+        """Reset tracking state for a new streaming request."""
+        self._stream_start_time = time()
+        self._chunk_seq = 0
+        self._sse_seq = 0
+        self._json_seq = 0
+        self._total_stream_bytes = 0
+        self._done_received = False
+        # Look up HTTP logger from context for this request
+        from flowno.io.http_logging import get_current_http_logger
+        self._http_logger = get_current_http_logger()
+        if self._http_logger:
+            self._current_conn_id = self._http_logger.get_conn_id(sock)
+
+    def _log_stream_end(self) -> None:
+        """Log the end of a streaming response."""
+        if self._http_logger and self._current_conn_id:
+            duration_ms = (time() - self._stream_start_time) * 1000
+            self._http_logger.log_stream_end(
+                self._current_conn_id,
+                self._total_stream_bytes,
+                self._chunk_seq,
+                self._sse_seq,
+                duration_ms,
+                self._done_received,
+            )
 
     async def get(self, url: str) -> Response:
         """
@@ -565,6 +606,9 @@ class HttpClient:
         sock = socket(use_tls=use_tls, server_hostname=host)
         sock.connect((host, port))
 
+        # Reset stream tracking and get connection ID
+        self._reset_stream_tracking(sock)
+
         request = f"{method} {path} HTTP/1.1\r\n"
         request = request.encode("utf-8")
 
@@ -581,10 +625,33 @@ class HttpClient:
         headers.merge(self.override_headers)
         request += headers.stringify().encode("utf-8") + b"\r\n\r\n" + (data or b"")
 
+        # Log REQUEST event
+        if self._http_logger and self._current_conn_id:
+            self._http_logger.log_request(
+                self._current_conn_id, method, url, len(data) if data else 0
+            )
+
         sent = await sock.send(request)
         assert sent == len(request), f"Sent {sent} bytes, expected {len(request)}"
 
         status, response_headers, initial_body = await self._receive_headers(sock)
+
+        # Validate Content-Length early: missing header yields None; malformed value crashes intentionally
+        content_length_str = response_headers.get("Content-Length")
+        content_length = int(content_length_str) if content_length_str else None
+
+        # Log HEADERS event
+        if self._http_logger and self._current_conn_id:
+            content_type = response_headers.get("Content-Type")
+            transfer_encoding = response_headers.get("Transfer-Encoding")
+            status_parts = status.split()
+            self._http_logger.log_response_headers(
+                self._current_conn_id,
+                int(status_parts[1]) if len(status_parts) > 1 else 0,
+                content_type if isinstance(content_type, str) else None,
+                transfer_encoding if isinstance(transfer_encoding, str) else None,
+                content_length,
+            )
 
         async def body_generator():
             body = self._stream_read(sock, initial_body)
@@ -644,13 +711,13 @@ class HttpClient:
     def _split_chunks_to_message_json(self, chunk: bytes) -> Generator[Any, None, None]:
         """
         Split SSE chunks into JSON objects.
-        
+
         This method processes Server-Sent Events (SSE) data, extracting and parsing
         JSON objects from the data fields.
-        
+
         Args:
             chunk: Raw bytes from the SSE stream
-            
+
         Yields:
             Parsed JSON objects from the SSE stream
         """
@@ -671,8 +738,23 @@ class HttpClient:
                 continue
 
             json_str = event[len("data: "):].strip()
-            if json_str == "[DONE]":
+
+            # Log SSE event
+            self._sse_seq += 1
+            is_done = json_str == "[DONE]"
+
+            if is_done:
+                self._done_received = True
+                if self._http_logger and self._current_conn_id:
+                    self._http_logger.log_sse_event(
+                        self._current_conn_id, self._sse_seq, len(json_str), True, done=True
+                    )
                 break
+
+            if self._http_logger and self._current_conn_id:
+                self._http_logger.log_sse_event(
+                    self._current_conn_id, self._sse_seq, len(json_str), True
+                )
 
             # Buffering for incomplete JSON
             self._json_buffer += json_str
@@ -680,12 +762,28 @@ class HttpClient:
             while self._json_buffer:
                 try:
                     message, idx = self.json_decoder.raw_decode(self._json_buffer)
+                    # Log successful JSON parse
+                    self._json_seq += 1
+                    if self._http_logger and self._current_conn_id:
+                        self._http_logger.log_json_parse(
+                            self._current_conn_id, self._json_seq, idx, True
+                        )
                     yield message
                     self._json_buffer = self._json_buffer[idx:].lstrip()
                 except json.JSONDecodeError as e:
                     if e.pos == len(self._json_buffer):
                         # Incomplete JSON, keep accumulating
                         break
+                    # Log failed JSON parse
+                    self._json_seq += 1
+                    if self._http_logger and self._current_conn_id:
+                        self._http_logger.log_json_parse(
+                            self._current_conn_id,
+                            self._json_seq,
+                            len(self._json_buffer),
+                            False,
+                            str(e),
+                        )
                     logger.error(f"Error decoding JSON: {repr(self._json_buffer)}")
                     raise
 
@@ -783,42 +881,56 @@ class HttpClient:
         self._sse_buffer = b""
         self._json_buffer = ""
 
-        while True:
-            trailing = await sock.recv(1024)
-            if trailing == b"":  # server closed connection
-                break
-            head += trailing
-
-            # head must now contain at least one byte
-            while b"\r\n" not in head:
-                # the first time \r\n is found, it must be immediately after the chunk size
+        try:
+            while True:
                 trailing = await sock.recv(1024)
-                if trailing == b"":
-                    raise Exception("Server closed connection before sending chunk size")
+                if trailing == b"":  # server closed connection
+                    break
                 head += trailing
-                
-            chunk_size_hex, body = head.split(b"\r\n", 1)
-            if chunk_size_hex == b"":
-                break
-            chunk_size = int(chunk_size_hex, 16)
 
-            while chunk_size > len(body):
-                remaining_chunk = await sock.recv(chunk_size - len(body))
-                if remaining_chunk == b"":
-                    raise Exception("Server closed connection before sending full chunk")
-                body += remaining_chunk
+                # head must now contain at least one byte
+                while b"\r\n" not in head:
+                    # the first time \r\n is found, it must be immediately after the chunk size
+                    trailing = await sock.recv(1024)
+                    if trailing == b"":
+                        raise Exception("Server closed connection before sending chunk size")
+                    head += trailing
 
-            complete_chunk = body[:chunk_size]
-            yield complete_chunk
-            head = body[chunk_size:]
+                chunk_size_hex, body = head.split(b"\r\n", 1)
+                if chunk_size_hex == b"":
+                    break
+                chunk_size = int(chunk_size_hex, 16)
 
-            while not head.startswith(b"\r\n"):
-                trailing = await sock.recv(1024)
-                if trailing == b"":
-                    raise Exception("Server closed connection before sending chunk terminator")
-                head += trailing
-            head = head[2:]  # remove the terminator
-            # now head should be empty or contain the start of the next chunk
+                while chunk_size > len(body):
+                    remaining_chunk = await sock.recv(chunk_size - len(body))
+                    if remaining_chunk == b"":
+                        raise Exception("Server closed connection before sending full chunk")
+                    body += remaining_chunk
+
+                complete_chunk = body[:chunk_size]
+                actual_size = len(complete_chunk)
+
+                # Log CHUNK event
+                self._chunk_seq += 1
+                self._total_stream_bytes += actual_size
+                if self._http_logger and self._current_conn_id:
+                    self._http_logger.log_chunk(
+                        self._current_conn_id, self._chunk_seq, chunk_size, actual_size
+                    )
+
+                yield complete_chunk
+                head = body[chunk_size:]
+
+                while not head.startswith(b"\r\n"):
+                    trailing = await sock.recv(1024)
+                    if trailing == b"":
+                        raise Exception("Server closed connection before sending chunk terminator")
+                    head += trailing
+                head = head[2:]  # remove the terminator
+                # now head should be empty or contain the start of the next chunk
+        finally:
+            # Log END event when stream completes (success or error)
+            self._log_stream_end()
 
     async def _receive_all(self, sock: SocketHandle) -> bytes:
         """
