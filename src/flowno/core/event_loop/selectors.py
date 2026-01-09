@@ -290,17 +290,26 @@ class TLSSocketHandle(SocketHandle):
         Args:
             address: The address to connect to (host, port).
         """
-        start_time = time()
+        # TCP connection phase - with instrumentation
+        tcp_metadata = SocketConnectStartMetadata(
+            socket_handle=self, immediate=True, target_address=address
+        )
+        get_current_instrument().on_socket_connect_start(tcp_metadata)
         self.socket.connect(address)
+        get_current_instrument().on_socket_connect_ready(
+            SocketConnectReadyMetadata.from_instrumentation_metadata(tcp_metadata)
+        )
+
+        # TLS handshake phase - separate timing
+        tls_start = time()
         self.socket = self.ssl_context.wrap_socket(self.socket, server_hostname=self.server_hostname)
-        # Report TLS handshake details
         get_current_instrument().on_tls_handshake_complete(
             TLSHandshakeMetadata(
                 socket_handle=self,
                 cipher=self.socket.cipher(),
                 version=self.socket.version(),
                 server_hostname=self.server_hostname,
-                start_time=start_time,
+                start_time=tls_start,
             )
         )
 
