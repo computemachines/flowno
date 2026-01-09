@@ -224,7 +224,7 @@ class SocketHandle:
         yield SocketSendCommand(self)
         bytes_sent = self.socket.send(data)
         get_current_instrument().on_socket_send_data(
-            SocketSendDataMetadata(socket_handle=self, data=data, bytes_sent=bytes_sent)
+            SocketSendDataMetadata(socket_handle=self, data=data[:bytes_sent], bytes_sent=bytes_sent)
         )
         return bytes_sent
 
