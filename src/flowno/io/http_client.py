@@ -53,7 +53,7 @@ import zlib
 from time import time
 
 from collections.abc import AsyncGenerator, AsyncIterator, Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar
 from urllib.parse import urlparse
 
@@ -66,6 +66,27 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StreamingContext:
+    """
+    Per-request state for streaming operations.
+
+    This context holds all the mutable state needed for a single streaming request,
+    ensuring that concurrent streaming requests on the same HttpClient instance
+    don't interfere with each other.
+    """
+    sse_buffer: bytes = field(default_factory=lambda: b"")
+    json_buffer: str = field(default_factory=lambda: "")
+    chunk_seq: int = 0
+    sse_seq: int = 0
+    json_seq: int = 0
+    total_stream_bytes: int = 0
+    done_received: bool = False
+    stream_start_time: float = field(default_factory=time)
+    conn_id: str | None = None
+    http_logger: "HttpLoggingInstrument | None" = None
 
 
 @dataclass
@@ -229,18 +250,22 @@ class HTTPException(Exception):
 class HttpClient:
     """
     HTTP client compatible with Flowno's event loop.
-    
+
     This client allows making both regular and streaming HTTP requests.
     It supports custom headers, JSON serialization, and automatic handling
     of compressed responses.
-    
+
+    The client is safe for concurrent streaming requests. Each streaming request
+    maintains its own isolated state through a StreamingContext, allowing multiple
+    streams to operate simultaneously on the same client instance without interference.
+
     Example:
         >>> async def main():
         ...     # Create client with custom headers
         ...     headers = Headers()
         ...     headers.set("Authorization", "Bearer my_token")
         ...     client = HttpClient(headers=headers)
-        ...     
+        ...
         ...     # Make a POST request with JSON data
         ...     response = await client.post(
         ...         "https://httpbin.org/post",
@@ -258,44 +283,28 @@ class HttpClient:
         self.override_headers: Headers = headers or Headers()
         self.json_decoder: json.JSONDecoder = json.JSONDecoder()
         self.json_encoder: json.JSONEncoder = json.JSONEncoder()
-        self._sse_buffer: bytes = b""
-        self._json_buffer: str = ""
-        # HTTP logger looked up from context per-request
-        self._http_logger: "HttpLoggingInstrument | None" = None
-        # Tracking state for current request (reset per request)
-        self._current_conn_id: str | None = None
-        self._stream_start_time: float = 0
-        self._chunk_seq: int = 0
-        self._sse_seq: int = 0
-        self._json_seq: int = 0
-        self._total_stream_bytes: int = 0
-        self._done_received: bool = False
 
-    def _reset_stream_tracking(self, sock: SocketHandle) -> None:
-        """Reset tracking state for a new streaming request."""
-        self._stream_start_time = time()
-        self._chunk_seq = 0
-        self._sse_seq = 0
-        self._json_seq = 0
-        self._total_stream_bytes = 0
-        self._done_received = False
+    def _create_streaming_context(self, sock: SocketHandle) -> StreamingContext:
+        """Create a new streaming context for a request."""
+        ctx = StreamingContext()
         # Look up HTTP logger from context for this request
         from flowno.io.http_logging import get_current_http_logger
-        self._http_logger = get_current_http_logger()
-        if self._http_logger:
-            self._current_conn_id = self._http_logger.get_conn_id(sock)
+        ctx.http_logger = get_current_http_logger()
+        if ctx.http_logger:
+            ctx.conn_id = ctx.http_logger.get_conn_id(sock)
+        return ctx
 
-    def _log_stream_end(self) -> None:
+    def _log_stream_end(self, ctx: StreamingContext) -> None:
         """Log the end of a streaming response."""
-        if self._http_logger and self._current_conn_id:
-            duration_ms = (time() - self._stream_start_time) * 1000
-            self._http_logger.log_stream_end(
-                self._current_conn_id,
-                self._total_stream_bytes,
-                self._chunk_seq,
-                self._sse_seq,
+        if ctx.http_logger and ctx.conn_id:
+            duration_ms = (time() - ctx.stream_start_time) * 1000
+            ctx.http_logger.log_stream_end(
+                ctx.conn_id,
+                ctx.total_stream_bytes,
+                ctx.chunk_seq,
+                ctx.sse_seq,
                 duration_ms,
-                self._done_received,
+                ctx.done_received,
             )
 
     async def get(self, url: str) -> Response:
@@ -606,8 +615,8 @@ class HttpClient:
         sock = socket(use_tls=use_tls, server_hostname=host)
         sock.connect((host, port))
 
-        # Reset stream tracking and get connection ID
-        self._reset_stream_tracking(sock)
+        # Create streaming context for this request
+        ctx = self._create_streaming_context(sock)
 
         request = f"{method} {path} HTTP/1.1\r\n"
         request = request.encode("utf-8")
@@ -626,9 +635,9 @@ class HttpClient:
         request += headers.stringify().encode("utf-8") + b"\r\n\r\n" + (data or b"")
 
         # Log REQUEST event
-        if self._http_logger and self._current_conn_id:
-            self._http_logger.log_request(
-                self._current_conn_id, method, url, len(data) if data else 0
+        if ctx.http_logger and ctx.conn_id:
+            ctx.http_logger.log_request(
+                ctx.conn_id, method, url, len(data) if data else 0
             )
 
         sent = await sock.send(request)
@@ -641,12 +650,12 @@ class HttpClient:
         content_length = int(content_length_str) if content_length_str else None
 
         # Log HEADERS event
-        if self._http_logger and self._current_conn_id:
+        if ctx.http_logger and ctx.conn_id:
             content_type = response_headers.get("Content-Type")
             transfer_encoding = response_headers.get("Transfer-Encoding")
             status_parts = status.split()
-            self._http_logger.log_response_headers(
-                self._current_conn_id,
+            ctx.http_logger.log_response_headers(
+                ctx.conn_id,
                 int(status_parts[1]) if len(status_parts) > 1 else 0,
                 content_type if isinstance(content_type, str) else None,
                 transfer_encoding if isinstance(transfer_encoding, str) else None,
@@ -654,7 +663,7 @@ class HttpClient:
             )
 
         async def body_generator():
-            body = self._stream_read(sock, initial_body)
+            body = self._stream_read(sock, initial_body, ctx)
 
             # each chunk yielded by _stream_read is a contains one or more `message lines`
             # message lines are separated by `\r\ndata: ` and are grouped into messages by `\n\n` or `\r\n` depending on the implementation
@@ -667,7 +676,7 @@ class HttpClient:
                 decompressed_chunk = self._decompress_chunk(chunk, response_headers)
                 content_type = response_headers.get("Content-Type")
                 if isinstance(content_type, str) and content_type.startswith("text/event-stream"):
-                    for message in self._split_chunks_to_message_json(decompressed_chunk):
+                    for message in self._split_chunks_to_message_json(decompressed_chunk, ctx):
                         yield message
                 else:
                     yield decompressed_chunk
@@ -683,7 +692,9 @@ class HttpClient:
             )
         else:
             logger.warning(f"Status not OK: {status!r}", extra={"tag": "http"})
-            body_result = await self._receive_remainder(sock, initial_body, response_headers)
+            # Create a separate context for error response streaming
+            error_ctx = self._create_streaming_context(sock)
+            body_result = await self._receive_remainder(sock, initial_body, response_headers, error_ctx)
 
             if isinstance(body_result, AsyncGenerator):
                 # Chunked error response - return streaming body with decompression
@@ -708,7 +719,7 @@ class HttpClient:
                     body=decompressed_body,
                 )
 
-    def _split_chunks_to_message_json(self, chunk: bytes) -> Generator[Any, None, None]:
+    def _split_chunks_to_message_json(self, chunk: bytes, ctx: StreamingContext) -> Generator[Any, None, None]:
         """
         Split SSE chunks into JSON objects.
 
@@ -717,21 +728,22 @@ class HttpClient:
 
         Args:
             chunk: Raw bytes from the SSE stream
+            ctx: Streaming context holding buffer state
 
         Yields:
             Parsed JSON objects from the SSE stream
         """
-        self._sse_buffer += chunk
+        ctx.sse_buffer += chunk
 
         # Match both \r\n\r\n and \n\n as delimiters
         pattern = re.compile(rb"(\r\n\r\n|\n\n)")
 
         while True:
-            match = pattern.search(self._sse_buffer)
+            match = pattern.search(ctx.sse_buffer)
             if not match:
                 break  # Exit if no complete message is found
 
-            event_bytes, self._sse_buffer = self._sse_buffer.split(match.group(0), 1)
+            event_bytes, ctx.sse_buffer = ctx.sse_buffer.split(match.group(0), 1)
             event = event_bytes.decode("utf-8", errors="replace")
 
             if not event.startswith("data: "):
@@ -740,51 +752,51 @@ class HttpClient:
             json_str = event[len("data: "):].strip()
 
             # Log SSE event
-            self._sse_seq += 1
+            ctx.sse_seq += 1
             is_done = json_str == "[DONE]"
 
             if is_done:
-                self._done_received = True
-                if self._http_logger and self._current_conn_id:
-                    self._http_logger.log_sse_event(
-                        self._current_conn_id, self._sse_seq, len(json_str), True, done=True
+                ctx.done_received = True
+                if ctx.http_logger and ctx.conn_id:
+                    ctx.http_logger.log_sse_event(
+                        ctx.conn_id, ctx.sse_seq, len(json_str), True, done=True
                     )
                 break
 
-            if self._http_logger and self._current_conn_id:
-                self._http_logger.log_sse_event(
-                    self._current_conn_id, self._sse_seq, len(json_str), True
+            if ctx.http_logger and ctx.conn_id:
+                ctx.http_logger.log_sse_event(
+                    ctx.conn_id, ctx.sse_seq, len(json_str), True
                 )
 
             # Buffering for incomplete JSON
-            self._json_buffer += json_str
+            ctx.json_buffer += json_str
 
-            while self._json_buffer:
+            while ctx.json_buffer:
                 try:
-                    message, idx = self.json_decoder.raw_decode(self._json_buffer)
+                    message, idx = self.json_decoder.raw_decode(ctx.json_buffer)
                     # Log successful JSON parse
-                    self._json_seq += 1
-                    if self._http_logger and self._current_conn_id:
-                        self._http_logger.log_json_parse(
-                            self._current_conn_id, self._json_seq, idx, True
+                    ctx.json_seq += 1
+                    if ctx.http_logger and ctx.conn_id:
+                        ctx.http_logger.log_json_parse(
+                            ctx.conn_id, ctx.json_seq, idx, True
                         )
                     yield message
-                    self._json_buffer = self._json_buffer[idx:].lstrip()
+                    ctx.json_buffer = ctx.json_buffer[idx:].lstrip()
                 except json.JSONDecodeError as e:
-                    if e.pos == len(self._json_buffer):
+                    if e.pos == len(ctx.json_buffer):
                         # Incomplete JSON, keep accumulating
                         break
                     # Log failed JSON parse
-                    self._json_seq += 1
-                    if self._http_logger and self._current_conn_id:
-                        self._http_logger.log_json_parse(
-                            self._current_conn_id,
-                            self._json_seq,
-                            len(self._json_buffer),
+                    ctx.json_seq += 1
+                    if ctx.http_logger and ctx.conn_id:
+                        ctx.http_logger.log_json_parse(
+                            ctx.conn_id,
+                            ctx.json_seq,
+                            len(ctx.json_buffer),
                             False,
                             str(e),
                         )
-                    logger.error(f"Error decoding JSON: {repr(self._json_buffer)}")
+                    logger.error(f"Error decoding JSON: {repr(ctx.json_buffer)}")
                     raise
 
     def _decompress_chunk(self, chunk: bytes, headers: Headers) -> bytes:
@@ -824,7 +836,7 @@ class HttpClient:
         return body
 
     async def _receive_remainder(
-        self, sock: SocketHandle, initial_body: bytes, headers: Headers
+        self, sock: SocketHandle, initial_body: bytes, headers: Headers, ctx: StreamingContext | None = None
     ) -> bytes | AsyncGenerator[bytes, None]:
         """
         Receive the remaining response body after headers.
@@ -835,6 +847,7 @@ class HttpClient:
             sock: The socket to read from
             initial_body: Any body data that was read with the headers
             headers: Response headers
+            ctx: Optional streaming context for chunked responses
 
         Returns:
             Complete response body for fixed-length responses,
@@ -845,7 +858,9 @@ class HttpClient:
         is_chunked = headers.get("Transfer-Encoding") == "chunked"
 
         if is_chunked:
-            return self._stream_read(sock, initial_body)
+            if ctx is None:
+                ctx = StreamingContext()  # Create a temporary context for error responses
+            return self._stream_read(sock, initial_body, ctx)
         elif content_length:
             # Handle Content-Length specified responses
             assert isinstance(content_length, str), "Content-length header is not a string"
@@ -868,7 +883,7 @@ class HttpClient:
                 body += remaining_chunk
             return body
 
-    async def _stream_read(self, sock: SocketHandle, initial_body: bytes) -> AsyncGenerator[bytes, None]:
+    async def _stream_read(self, sock: SocketHandle, initial_body: bytes, ctx: StreamingContext) -> AsyncGenerator[bytes, None]:
         # content-length is ignored if transfer-encoding is chunked
         # we need to start reading chunks from initial body then continuing to read from socket
         # the initial may be empty and may or may not contain a complete number of chunks.
@@ -878,8 +893,6 @@ class HttpClient:
         # run in a loop, yielding chunks until the server closes the connection
 
         head = initial_body
-        self._sse_buffer = b""
-        self._json_buffer = ""
 
         try:
             while True:
@@ -911,11 +924,11 @@ class HttpClient:
                 actual_size = len(complete_chunk)
 
                 # Log CHUNK event
-                self._chunk_seq += 1
-                self._total_stream_bytes += actual_size
-                if self._http_logger and self._current_conn_id:
-                    self._http_logger.log_chunk(
-                        self._current_conn_id, self._chunk_seq, chunk_size, actual_size
+                ctx.chunk_seq += 1
+                ctx.total_stream_bytes += actual_size
+                if ctx.http_logger and ctx.conn_id:
+                    ctx.http_logger.log_chunk(
+                        ctx.conn_id, ctx.chunk_seq, chunk_size, actual_size
                     )
 
                 yield complete_chunk
@@ -930,7 +943,7 @@ class HttpClient:
                 # now head should be empty or contain the start of the next chunk
         finally:
             # Log END event when stream completes (success or error)
-            self._log_stream_end()
+            self._log_stream_end(ctx)
 
     async def _receive_all(self, sock: SocketHandle) -> bytes:
         """

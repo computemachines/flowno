@@ -24,3 +24,4 @@ formal-verification/specs/modules/*.cfg
 formal-verification/specs/*.old
 .DS_Store
 .claude/settings.local.json
+.ork/

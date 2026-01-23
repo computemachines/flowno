@@ -46,7 +46,6 @@ def test_get_stream():
     assert isinstance(response, OkStreamingResponse)
 
 
-@pytest.mark.skip
 def test_multiple_concurrent_streams():
     client = HttpClient()
 
