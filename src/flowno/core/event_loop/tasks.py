@@ -45,7 +45,7 @@ from .types import RawTask
 if TYPE_CHECKING:
     from .event_loop import EventLoop  # Only import during type checking
 
-from .commands import Command, JoinCommand
+from .commands import CancelCommand, Command, JoinCommand
 
 _T_co = TypeVar("_T_co", covariant=True)
 
@@ -74,15 +74,44 @@ class TaskHandle(Generic[_T_co]):
         self.event_loop = event_loop
         self.raw_task = raw_task
 
-    def cancel(self) -> bool:
+    def cancel(
+        self,
+    ) -> Generator[CancelCommand[_T_co], object, _T_co]:
         """
-        Cancel this task if it's still running.
-        
+        Cancel this task and wait for it to complete.
+
+        This method immediately initiates cancellation of the task and returns
+        an awaitable that can be used to wait for the cancellation to complete
+        and retrieve any return value from the cancelled task.
+
+        The cancelled task will receive a TaskCancelled exception. If you await
+        the returned value, you will receive:
+        - The value returned by the task (e.g., from finally block or except handler)
+        - None if the task let TaskCancelled propagate (successful cancellation)
+        - Any other exception raised during cleanup
+
         Returns:
-            True if the task was successfully cancelled, False if it was
-            already finished or had an error.
+            An awaitable that resolves to the cancelled task's result.
+
+        Raises:
+            Exception: Any exception that was raised by the cancelled task during cleanup
+                      (only when awaited).
+
+        Note:
+            Even if you don't await the return value, the task will still be cancelled.
+            Awaiting allows you to wait for cleanup to complete and get any return value.
         """
-        return self.event_loop.cancel(self.raw_task)
+        # Immediately initiate cancellation (fire-and-forget for non-awaited case)
+        self.event_loop.cancel(self.raw_task)
+
+        # Return an awaitable that yields CancelCommand for the event loop to handle
+        # The CancelCommand handler will wait for the task to finish and return its result
+        @coroutine
+        def _wait_for_cancellation() -> Generator[CancelCommand[_T_co], object, _T_co]:
+            received = yield CancelCommand(self)
+            return cast(_T_co, received)
+
+        return _wait_for_cancellation()
 
     @property
     def is_finished(self) -> bool:
