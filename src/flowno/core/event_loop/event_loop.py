@@ -23,7 +23,7 @@ import socket
 import threading
 from collections import defaultdict, deque
 from timeit import default_timer as timer
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Callable, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
     Command,
@@ -73,24 +73,30 @@ _current_task: ContextVar[RawTask[Command, Any, Any] | None] = ContextVar("_curr
 def current_task() -> RawTask[Command, Any, Any] | None:
     """
     Get the currently executing task in the event loop.
-    
+
     Returns:
         The currently executing task, or None if called outside a task context.
     """
     return _current_task.get()
 
-_current_event_loop: "EventLoop | None" = None
+# Thread-local storage for the current event loop
+_thread_local = threading.local()
 
 def current_event_loop() -> "EventLoop | None":
     """
-    Get the currently executing EventLoop instance.
-    
+    Get the currently executing EventLoop instance for this thread.
+
+    Each thread can have its own event loop. This function returns the
+    event loop for the calling thread.
+
     Returns:
-        The current EventLoop instance, or None if not in an EventLoop context.
+        The current EventLoop instance for this thread, or None if not in an EventLoop context.
     """
-    global _current_event_loop
-    
-    return _current_event_loop
+    return getattr(_thread_local, 'event_loop', None)
+
+def _set_current_event_loop(loop: "EventLoop | None") -> None:
+    """Set the current event loop for this thread."""
+    _thread_local.event_loop = loop
 
 class EventLoop:
     """
@@ -125,6 +131,8 @@ class EventLoop:
             None,
         )
         self._signal_handlers_installed = False
+        # Lock for thread-safe task queue operations
+        self._tasks_lock = threading.Lock()
 
     def _dump_debug_info(self, reason: str = "Signal received") -> None:
         """
@@ -314,23 +322,33 @@ class EventLoop:
         Create a new task handle for the given raw task and enqueue
         the task in the event loop's task queue.
 
+        This method is thread-safe and can be called from any thread.
+        If called from a different thread than the event loop's thread,
+        the event loop will be woken up to process the new task.
+
         Args:
             raw_task: The raw task to create a handle for.
 
         Returns:
             A TaskHandle object representing the created task.
         """
-        self.tasks.append((raw_task, None, None))
-
-        # If called from another thread, wake up the event loop
-        if (
+        is_other_thread = (
             self._loop_thread is not None
             and threading.current_thread() != self._loop_thread
-        ):
+        )
+
+        if is_other_thread:
+            # Use lock for thread-safe access
+            with self._tasks_lock:
+                self.tasks.append((raw_task, None, None))
+            # Wake up the event loop after releasing the lock
             try:
                 self._wakeup_writer.send(b"\x00")
             except (BlockingIOError, socket.error):
                 pass
+        else:
+            # Same thread, no lock needed
+            self.tasks.append((raw_task, None, None))
 
         return TaskHandle(self, raw_task)
 
@@ -738,8 +756,7 @@ class EventLoop:
         wait_for_spawned_tasks: bool = True,
         _debug_max_wait_time: float | None = None,
     ):
-        global _current_event_loop
-        _current_event_loop = self
+        _set_current_event_loop(self)
         
         try:
             self._debug_max_wait_time = _debug_max_wait_time
@@ -830,7 +847,8 @@ class EventLoop:
                     self.tasks.append((task, None, None))
 
                 if self.tasks:
-                    task_packet = self.tasks.popleft()
+                    with self._tasks_lock:
+                        task_packet = self.tasks.popleft()
                     
                     # Set the current task before executing
                     token = _current_task.set(task_packet[0])
@@ -882,7 +900,7 @@ class EventLoop:
                     finally:
                         # Reset the context after task execution
                         _current_task.reset(token)
-            
+
             if join and root_task in self.finished:
                 return cast(_ReturnT, self.finished[root_task])
             elif join and root_task in self.exceptions:
@@ -890,4 +908,4 @@ class EventLoop:
             elif join:
                 raise RuntimeError("Event loop exited without completing the root task.")
         finally:
-            _current_event_loop = None
+            _set_current_event_loop(None)

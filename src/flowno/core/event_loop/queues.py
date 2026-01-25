@@ -59,6 +59,7 @@ Examples:
 from __future__ import annotations
 
 import logging
+import threading
 from collections import deque
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -104,6 +105,8 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
         self._lock = Lock()
         self._not_empty = Condition(self._lock)
         self._not_full = Condition(self._lock)
+        # Thread-safe lock for cross-thread operations
+        self._thread_lock = threading.Lock()
         logger.debug(f"AsyncQueue created: {self}")
 
     @property
@@ -231,11 +234,93 @@ class AsyncQueue(Generic[_T], AsyncIterator[_T]):
     def is_closed(self) -> bool:
         """
         Check if the queue is closed.
-        
+
         Returns:
             True if the queue is closed, False otherwise
         """
         return self.closed
+
+    def put_threadsafe(self, item: _T, target_loop: "EventLoop") -> None:
+        """
+        Put an item into the queue from any thread.
+
+        This method is thread-safe and can be called from threads that are
+        different from the event loop's thread. It uses threading primitives
+        to safely add items and wake up waiting tasks.
+
+        Args:
+            item: The item to put into the queue
+            target_loop: The event loop that manages this queue's waiters
+
+        Raises:
+            QueueClosedError: If the queue is closed
+
+        Examples:
+            >>> from flowno import EventLoop, AsyncQueue
+            >>> from flowno.core.event_loop.threading import spawn_thread
+            >>> import time
+            >>>
+            >>> async def worker(queue: AsyncQueue, loop: EventLoop):
+            ...     for i in range(3):
+            ...         time.sleep(0.1)
+            ...         queue.put_threadsafe(i, loop)
+            ...     queue.close_threadsafe(loop)
+            >>>
+            >>> async def main():
+            ...     from flowno.core.event_loop import current_event_loop
+            ...     loop = current_event_loop()
+            ...     queue = AsyncQueue()
+            ...     handle = spawn_thread(worker, args=(queue, loop))
+            ...     results = []
+            ...     async for item in queue:
+            ...         results.append(item)
+            ...     await handle.join()
+            ...     return results
+        """
+        with self._thread_lock:
+            if self._closed:
+                raise QueueClosedError("Cannot put item into closed queue")
+
+            self.items.append(item)
+            get_current_instrument().on_queue_put(queue=self, item=item, immediate=True)
+            logger.debug(f"AsyncQueue.put_threadsafe {item} into {self}")
+
+            # Wake up waiters through the target event loop
+            self._not_empty.notify_nowait(target_loop)
+
+        # Wake up the event loop if it's sleeping
+        try:
+            target_loop._wakeup_writer.send(b"\x00")
+        except (BlockingIOError, OSError):
+            pass
+
+    def close_threadsafe(self, target_loop: "EventLoop") -> None:
+        """
+        Close the queue from any thread.
+
+        This method is thread-safe and can be called from threads that are
+        different from the event loop's thread. It closes the queue and
+        wakes up all waiting tasks.
+
+        Args:
+            target_loop: The event loop that manages this queue's waiters
+
+        Examples:
+            >>> # In a worker thread:
+            >>> queue.close_threadsafe(main_event_loop)
+        """
+        logger.debug(f"AsyncQueue.close_threadsafe called on {self}")
+        with self._thread_lock:
+            self._closed = True
+            # Wake up all waiters so they can see the queue is closed
+            self._not_empty.notify_all_nowait(target_loop)
+            self._not_full.notify_all_nowait(target_loop)
+
+        # Wake up the event loop if it's sleeping
+        try:
+            target_loop._wakeup_writer.send(b"\x00")
+        except (BlockingIOError, OSError):
+            pass
 
     def __len__(self) -> int:
         """
