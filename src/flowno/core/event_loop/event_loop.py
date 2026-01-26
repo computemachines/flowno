@@ -991,7 +991,10 @@ class EventLoop:
                         self._on_task_cancelled(task_packet[0], e)
                         # Resume watchers - cancel waiters get None, join waiters get the exception
                         for watcher in self.watching_task[task_packet[0]]:
-                            if watcher in self.cancel_waiters[task_packet[0]]:
+                            if (
+                                task_packet[0] in self.cancel_waiters
+                                and watcher in self.cancel_waiters[task_packet[0]]
+                            ):
                                 # This is a cancel waiter - successful cancellation returns None
                                 self.tasks.append((watcher, None, None))
                             else:
