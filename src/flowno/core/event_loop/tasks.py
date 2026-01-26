@@ -84,22 +84,25 @@ class TaskHandle(Generic[_T_co]):
         an awaitable that can be used to wait for the cancellation to complete
         and retrieve any return value from the cancelled task.
 
-        The cancelled task will receive a TaskCancelled exception. If you await
-        the returned value, you will receive:
+        If the task is still running, it will receive a TaskCancelled exception.
+        If the task has already finished, errored, or been cancelled, this method
+        returns the existing result or exception without sending TaskCancelled.
+
+        When awaited, you will receive:
         - The value returned by the task (e.g., from finally block or except handler)
         - None if the task let TaskCancelled propagate (successful cancellation)
-        - Any other exception raised during cleanup
+        - Any other exception raised during cleanup or prior to cancellation
 
         Returns:
-            An awaitable that resolves to the cancelled task's result.
+            An awaitable that resolves to the task's result.
 
         Raises:
-            Exception: Any exception that was raised by the cancelled task during cleanup
-                      (only when awaited).
+            Exception: Any exception that was raised by the task (only when awaited).
 
         Note:
-            Even if you don't await the return value, the task will still be cancelled.
-            Awaiting allows you to wait for cleanup to complete and get any return value.
+            Even if you don't await the return value, running tasks will still be
+            cancelled. Awaiting allows you to wait for cleanup to complete and get
+            any return value.
         """
         # Immediately initiate cancellation (fire-and-forget for non-awaited case)
         self.event_loop.cancel(self.raw_task)
