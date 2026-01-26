@@ -546,40 +546,8 @@ class EventLoop:
                 # Mark as pending cancellation
                 self.pending_cancellation.add(command.task_handle.raw_task)
 
-                # Remove the task from sleeping heap if it's there
-                # (We need to wake it up immediately to process the cancellation)
-                self.sleeping = [
-                    (wake_time, task)
-                    for wake_time, task in self.sleeping
-                    if task != command.task_handle.raw_task
-                ]
-                heapq.heapify(self.sleeping)
-
-                # Remove from network waiting list if it's there
-                if command.task_handle.raw_task in self.waiting_on_network:
-                    self.waiting_on_network.remove(command.task_handle.raw_task)
-                    # Also need to unregister from selector
-                    # Find and unregister the socket associated with this task
-                    for key in list(sel.get_map().values()):
-                        metadata = cast(InstrumentationMetadata, key.data)
-                        if metadata._task == command.task_handle.raw_task:
-                            sel.unregister(key.fileobj)
-                            break
-
-                # Remove from synchronization primitive waiters if present
-                # (event_waiters, lock_waiters, condition_waiters)
-                for event, waiters in self.event_waiters.items():
-                    if command.task_handle.raw_task in waiters:
-                        waiters.discard(command.task_handle.raw_task)
-                        break
-                for lock, waiters in self.lock_waiters.items():
-                    if command.task_handle.raw_task in waiters:
-                        waiters.remove(command.task_handle.raw_task)
-                        break
-                for condition, waiters in self.condition_waiters.items():
-                    if command.task_handle.raw_task in waiters:
-                        waiters.discard(command.task_handle.raw_task)
-                        break
+                # Remove from all wait states so it can process cancellation immediately
+                self._remove_task_from_wait_states(command.task_handle.raw_task)
 
                 # Inject the exception into the target task
                 self.tasks.append(
@@ -752,6 +720,49 @@ class EventLoop:
             return False
         return True
 
+    def _remove_task_from_wait_states(self, raw_task: RawTask[Command, Any, Any]) -> None:
+        """
+        Remove a task from all wait states (sleeping, network, synchronization primitives).
+
+        This is used during task cancellation to ensure the task is no longer waiting
+        on any resource and can be immediately scheduled to process the cancellation.
+
+        Args:
+            raw_task: The task to remove from wait states.
+        """
+        # Remove from sleeping heap if present
+        self.sleeping = [
+            (wake_time, task)
+            for wake_time, task in self.sleeping
+            if task != raw_task
+        ]
+        heapq.heapify(self.sleeping)
+
+        # Remove from network waiting list if it's there
+        if raw_task in self.waiting_on_network:
+            self.waiting_on_network.remove(raw_task)
+            # Also need to unregister from selector
+            # Find and unregister the socket associated with this task
+            for key in list(sel.get_map().values()):
+                metadata = cast(InstrumentationMetadata, key.data)
+                if metadata._task == raw_task:
+                    sel.unregister(key.fileobj)
+                    break
+
+        # Remove from synchronization primitive waiters if present
+        # (event_waiters, lock_waiters, condition_waiters)
+        for event, waiters in self.event_waiters.items():
+            if raw_task in waiters:
+                waiters.discard(raw_task)
+                break
+        for lock, waiters in self.lock_waiters.items():
+            if raw_task in waiters:
+                waiters.remove(raw_task)
+                break
+        for condition, waiters in self.condition_waiters.items():
+            if raw_task in waiters:
+                waiters.discard(raw_task)
+                break
 
     def cancel(self, raw_task: RawTask[Command, Any, Any]) -> bool:
         """
@@ -773,38 +784,8 @@ class EventLoop:
         # Mark cancellation as pending
         self.pending_cancellation.add(raw_task)
 
-        # Remove the task from sleeping heap if it's there
-        self.sleeping = [
-            (wake_time, task)
-            for wake_time, task in self.sleeping
-            if task != raw_task
-        ]
-        heapq.heapify(self.sleeping)
-
-        # Remove from network waiting list if it's there
-        if raw_task in self.waiting_on_network:
-            self.waiting_on_network.remove(raw_task)
-            # Also need to unregister from selector
-            for key in list(sel.get_map().values()):
-                metadata = cast(InstrumentationMetadata, key.data)
-                if metadata._task == raw_task:
-                    sel.unregister(key.fileobj)
-                    break
-
-        # Remove from synchronization primitive waiters if present
-        # (event_waiters, lock_waiters, condition_waiters)
-        for event, waiters in self.event_waiters.items():
-            if raw_task in waiters:
-                waiters.discard(raw_task)
-                break
-        for lock, waiters in self.lock_waiters.items():
-            if raw_task in waiters:
-                waiters.remove(raw_task)
-                break
-        for condition, waiters in self.condition_waiters.items():
-            if raw_task in waiters:
-                waiters.discard(raw_task)
-                break
+        # Remove the task from all wait states so it can process cancellation immediately
+        self._remove_task_from_wait_states(raw_task)
 
         # Inject the cancellation exception
         self.tasks.append((raw_task, None, TaskCancelled(TaskHandle(self, raw_task))))
