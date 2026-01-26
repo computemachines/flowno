@@ -152,13 +152,18 @@ class EventWaitCommand(Command):
     Wait for an event to be set (one-shot signal).
 
     :param event: The Event synchronization primitive to wait on.
+    :param timeout: Optional absolute time when the wait should timeout. If None,
+        wait indefinitely.
 
     .. note::
-       This command blocks the task until the event is set. If the event is
-       already set when this command is issued, the task resumes immediately.
+       This command blocks the task until the event is set or the timeout expires.
+       If the event is already set when this command is issued, the task resumes
+       immediately. When the task resumes, it receives True if the event was set,
+       or False if the timeout expired.
     """
 
     event: Any  # Event type from synchronization.py
+    timeout: float | None = None  # Absolute time for timeout, or None for no timeout
 
 
 @dataclass

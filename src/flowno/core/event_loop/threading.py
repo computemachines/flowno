@@ -124,9 +124,14 @@ class ThreadHandle(Generic[_T]):
             for loop, waiters in all_waiters.items():
                 # Decrement the waiting counter for woken tasks
                 loop._waiting_on_sync_primitives -= len(waiters)
+                for waiter in waiters:
+                    # Cancel any pending timeout for this waiter
+                    if waiter in loop._event_wait_timeouts:
+                        loop._event_wait_timeouts[waiter]["cancelled"] = True
+                        del loop._event_wait_timeouts[waiter]
                 with loop._tasks_lock:
                     for waiter in waiters:
-                        loop.tasks.append((waiter, None, None))
+                        loop.tasks.append((waiter, True, None))  # True = event was set
                 try:
                     loop._wakeup_writer.send(b"\x00")
                 except (BlockingIOError, OSError):
@@ -146,9 +151,14 @@ class ThreadHandle(Generic[_T]):
             for loop, waiters in all_waiters.items():
                 # Decrement the waiting counter for woken tasks
                 loop._waiting_on_sync_primitives -= len(waiters)
+                for waiter in waiters:
+                    # Cancel any pending timeout for this waiter
+                    if waiter in loop._event_wait_timeouts:
+                        loop._event_wait_timeouts[waiter]["cancelled"] = True
+                        del loop._event_wait_timeouts[waiter]
                 with loop._tasks_lock:
                     for waiter in waiters:
-                        loop.tasks.append((waiter, None, None))
+                        loop.tasks.append((waiter, True, None))  # True = event was set
                 try:
                     loop._wakeup_writer.send(b"\x00")
                 except (BlockingIOError, OSError):
@@ -176,24 +186,15 @@ class ThreadHandle(Generic[_T]):
             Exception: Any exception raised by the thread's async function.
         """
         from flowno.core.event_loop.event_loop import current_event_loop
-        from flowno.core.event_loop.primitives import sleep
 
         # Record the caller's event loop so the worker thread can wake it
         self._caller_loop = current_event_loop()
 
-        if timeout is not None:
-            # With timeout, we need to use polling since Event.wait doesn't support timeout
-            poll_interval = 0.01  # 10ms polling
-            waited = 0.0
+        # Wait for the thread to complete, with optional timeout
+        completed = await self._completed_event.wait(timeout=timeout)
 
-            while not self._completed_threading.is_set():
-                if waited >= timeout:
-                    raise TimeoutError(f"Thread did not complete within {timeout} seconds")
-                await sleep(poll_interval)
-                waited += poll_interval
-        else:
-            # No timeout - use efficient Event-based waiting
-            await self._completed_event.wait()
+        if not completed:
+            raise TimeoutError(f"Thread did not complete within {timeout} seconds")
 
         if self._exception is not None:
             raise self._exception

@@ -460,3 +460,125 @@ def test_all_primitives_coordination(event_loop):
 
     result = event_loop.run_until_complete(main(), join=True)
     assert result == 3
+
+
+# ============================================================================
+# Event Timeout Tests (5 tests)
+# ============================================================================
+
+def test_event_wait_timeout_expires(event_loop):
+    """Test that event.wait() with timeout returns False when timeout expires"""
+
+    async def main():
+        event = Event()
+
+        # Wait with a short timeout - should return False since event is never set
+        result = await event.wait(timeout=0.01)
+
+        return result
+
+    result = event_loop.run_until_complete(main(), join=True)
+    assert result is False
+
+
+def test_event_wait_timeout_event_set(event_loop):
+    """Test that event.wait() with timeout returns True when event is set before timeout"""
+
+    async def main():
+        event = Event()
+        results = []
+
+        async def setter():
+            await event.set()
+            results.append("set")
+
+        # Spawn setter which runs immediately
+        s = await spawn(setter())
+
+        # Wait with a long timeout - event will be set before timeout
+        result = await event.wait(timeout=10.0)
+        results.append(f"wait_result={result}")
+
+        await s.join()
+        return results
+
+    result = event_loop.run_until_complete(main(), join=True)
+    assert "set" in result
+    assert "wait_result=True" in result
+
+
+def test_event_wait_timeout_already_set(event_loop):
+    """Test that wait(timeout) returns True immediately if event is already set"""
+
+    async def main():
+        event = Event()
+        await event.set()
+
+        # This should return True immediately (fast path)
+        result = await event.wait(timeout=0.001)
+
+        return result
+
+    result = event_loop.run_until_complete(main(), join=True)
+    assert result is True
+
+
+def test_event_wait_no_timeout_returns_true(event_loop):
+    """Test that wait() without timeout returns True when event is set"""
+
+    async def main():
+        event = Event()
+
+        async def setter():
+            await event.set()
+
+        s = await spawn(setter())
+        result = await event.wait()  # No timeout
+        await s.join()
+
+        return result
+
+    result = event_loop.run_until_complete(main(), join=True)
+    assert result is True
+
+
+def test_event_wait_timeout_multiple_waiters(event_loop):
+    """Test multiple waiters with different timeouts"""
+
+    async def main():
+        event = Event()
+        results = []
+
+        async def waiter_short():
+            result = await event.wait(timeout=0.01)
+            results.append(f"short={result}")
+
+        async def waiter_long():
+            result = await event.wait(timeout=10.0)
+            results.append(f"long={result}")
+
+        async def setter():
+            # Use a small delay (via multiple spawn/joins) before setting
+            # This gives the short waiter time to timeout
+            from flowno import sleep
+            await sleep(0.05)
+            await event.set()
+            results.append("set")
+
+        # Short timeout waiter - will timeout
+        ws = await spawn(waiter_short())
+        # Long timeout waiter - will be woken by event
+        wl = await spawn(waiter_long())
+        # Setter - sets event after short timeout expires
+        s = await spawn(setter())
+
+        await ws.join()
+        await wl.join()
+        await s.join()
+
+        return results
+
+    result = event_loop.run_until_complete(main(), join=True)
+    assert "short=False" in result  # Timed out
+    assert "long=True" in result    # Event was set
+    assert "set" in result

@@ -63,6 +63,8 @@ from collections import deque
 from typing import Optional, Generator, TYPE_CHECKING, Any
 from types import coroutine
 
+from timeit import default_timer as timer
+
 from flowno.core.event_loop.commands import (
     EventWaitCommand,
     EventSetCommand,
@@ -381,21 +383,48 @@ class Event:
             return self._sync.has_waiters()
         return bool(self._simple_waiters)
 
-    @coroutine
-    def _wait_impl(self) -> Generator[EventWaitCommand, None, None]:
-        """Internal coroutine for waiting on the event."""
-        yield EventWaitCommand(event=self)
+    def _remove_waiter(self, loop: "EventLoop", task: "RawTask[Command, Any, Any]") -> bool:
+        """
+        Remove a waiting task from this event.
 
-    async def wait(self) -> None:
+        Args:
+            loop: The event loop the task belongs to
+            task: The task to remove
+
+        Returns:
+            True if the task was found and removed, False otherwise.
+        """
+        if self._sync is not None:
+            return self._sync.remove_waiter(loop, task)
+        elif self._simple_waiters is not None:
+            if task in self._simple_waiters:
+                self._simple_waiters.discard(task)
+                return True
+        return False
+
+    @coroutine
+    def _wait_impl(self, timeout: float | None = None) -> Generator[EventWaitCommand, bool, bool]:
+        """Internal coroutine for waiting on the event."""
+        end_time = (timer() + timeout) if timeout is not None else None
+        result: bool = yield EventWaitCommand(event=self, timeout=end_time)
+        return result
+
+    async def wait(self, timeout: float | None = None) -> bool:
         """
         Wait for the event to be set.
 
-        If the event is already set, return immediately.
-        Otherwise, block until another task calls set().
+        If the event is already set, return immediately with True.
+        Otherwise, block until another task calls set() or the timeout expires.
+
+        Args:
+            timeout: Optional timeout in seconds. If None, wait indefinitely.
+
+        Returns:
+            True if the event was set, False if the timeout expired.
         """
         if self._set:
-            return  # Fast path: event already set
-        await self._wait_impl()
+            return True  # Fast path: event already set
+        return await self._wait_impl(timeout)
 
     @coroutine
     def _set_impl(self) -> Generator[EventSetCommand, None, None]:

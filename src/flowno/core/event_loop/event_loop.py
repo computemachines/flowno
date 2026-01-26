@@ -108,7 +108,10 @@ class EventLoop:
 
     def __init__(self) -> None:
         self.tasks: deque[RawTaskPacket[Command, Any, object, Exception]] = deque()
-        self.sleeping: list[tuple[Time, RawTask[SleepCommand, None, DeltaTime]]] = []
+        # Sleeping heap entries: (end_time, task, timeout_info)
+        # timeout_info is None for regular sleeps, or a dict with {"cancelled": bool, "event": Event}
+        # for event wait timeouts. The dict is mutable so we can mark it cancelled when event is set.
+        self.sleeping: list[tuple[Time, RawTask[Command, Any, Any], dict[str, Any] | None]] = []
         self.watching_task: defaultdict[
             RawTask[Command, object, object], list[RawTask[Command, object, object]]
         ] = defaultdict(list)
@@ -118,6 +121,8 @@ class EventLoop:
         # automatic upgrade to thread-safe storage when cross-thread access is detected.
         # We track the count of waiting tasks to know when the loop can exit.
         self._waiting_on_sync_primitives: int = 0
+        # Track event wait timeouts so we can cancel them when the event is set
+        self._event_wait_timeouts: dict[RawTask[Command, Any, Any], dict[str, Any]] = {}
         self.finished: dict[RawTask[Command, Any, Any], object] = {}
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
@@ -473,7 +478,7 @@ class EventLoop:
                 self.tasks.append((current_task_packet[0], None, None))
             else:
                 heapq.heappush(
-                    self.sleeping, (command.end_time, current_task_packet[0])
+                    self.sleeping, (command.end_time, current_task_packet[0], None)
                 )
 
         elif isinstance(command, SocketAcceptCommand):
@@ -534,11 +539,21 @@ class EventLoop:
         elif isinstance(command, EventWaitCommand):
             # Wait for an event to be set
             if command.event._set:
-                # Event already set - immediate resume
-                # This should not actually reach the event loop, but just in case
-                self.tasks.append((current_task_packet[0], None, None))
+                # Event already set - immediate resume with True
+                self.tasks.append((current_task_packet[0], True, None))
+            elif command.timeout is not None:
+                # Event not set, but we have a timeout
+                # Add task to both event waiters AND sleeping heap
+                command.event._add_waiter(self, current_task_packet[0])
+                self._waiting_on_sync_primitives += 1
+                # Create timeout info dict (mutable so we can cancel it)
+                timeout_info: dict[str, Any] = {"cancelled": False, "event": command.event}
+                heapq.heappush(
+                    self.sleeping, (command.timeout, current_task_packet[0], timeout_info)
+                )
+                self._event_wait_timeouts[current_task_packet[0]] = timeout_info
             else:
-                # Event not set - block task (delegate to Event's waiter management)
+                # Event not set, no timeout - block indefinitely
                 command.event._add_waiter(self, current_task_packet[0])
                 self._waiting_on_sync_primitives += 1
         elif isinstance(command, EventSetCommand):
@@ -548,14 +563,19 @@ class EventLoop:
             for loop, waiters in all_waiters.items():
                 # Decrement counter for each waiter woken
                 loop._waiting_on_sync_primitives -= len(waiters)
+                for waiter in waiters:
+                    # Cancel any pending timeout for this waiter
+                    if waiter in loop._event_wait_timeouts:
+                        loop._event_wait_timeouts[waiter]["cancelled"] = True
+                        del loop._event_wait_timeouts[waiter]
                 if loop is self:
                     for waiter in waiters:
-                        self.tasks.append((waiter, None, None))
+                        self.tasks.append((waiter, True, None))  # True = event was set
                 else:
                     # Cross-thread: schedule on other loop
                     with loop._tasks_lock:
                         for waiter in waiters:
-                            loop.tasks.append((waiter, None, None))
+                            loop.tasks.append((waiter, True, None))  # True = event was set
                     try:
                         loop._wakeup_writer.send(b"\x00")
                     except (BlockingIOError, OSError):
@@ -831,8 +851,24 @@ class EventLoop:
                     self.waiting_on_network.remove(data._task)
 
                 while self.sleeping and self.sleeping[0][0] <= timer():
-                    _, task = heapq.heappop(self.sleeping)
-                    self.tasks.append((task, None, None))
+                    _, task, timeout_info = heapq.heappop(self.sleeping)
+                    if timeout_info is not None:
+                        # This is an event wait with timeout
+                        if timeout_info["cancelled"]:
+                            # Event was set before timeout - skip this entry
+                            continue
+                        # Timeout expired - remove from event waiters and resume with False
+                        event = timeout_info["event"]
+                        removed = event._remove_waiter(self, task)
+                        if removed:
+                            self._waiting_on_sync_primitives -= 1
+                        # Clean up timeout tracking
+                        if task in self._event_wait_timeouts:
+                            del self._event_wait_timeouts[task]
+                        self.tasks.append((task, False, None))  # False = timeout expired
+                    else:
+                        # Regular sleep - resume with None
+                        self.tasks.append((task, None, None))
 
                 if self.tasks:
                     with self._tasks_lock:
