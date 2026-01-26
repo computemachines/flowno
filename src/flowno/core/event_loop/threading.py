@@ -44,12 +44,16 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar, TYPE_CHECKING
 from types import coroutine
 from typing import Generator
 
 from flowno.core.event_loop.commands import Command
 from flowno.core.event_loop.types import RawTask
+from flowno.core.event_loop.synchronization import Event
+
+if TYPE_CHECKING:
+    from flowno.core.event_loop.event_loop import EventLoop
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +66,9 @@ class ThreadHandle(Generic[_T]):
 
     This handle allows the calling code to wait for the thread to complete
     and retrieve its result or exception.
+
+    The join() method uses a Flowno Event for efficient cross-thread
+    notification, avoiding polling overhead.
 
     Attributes:
         thread: The underlying Python thread
@@ -79,7 +86,12 @@ class ThreadHandle(Generic[_T]):
         self._thread = thread
         self._result: _T | None = None
         self._exception: BaseException | None = None
-        self._completed = threading.Event()
+        # Use Flowno Event for cross-thread notification (no polling!)
+        self._completed_event = Event()
+        # Also keep threading.Event for synchronous checking
+        self._completed_threading = threading.Event()
+        # Store the calling event loop when join() is first called
+        self._caller_loop: "EventLoop | None" = None
 
     @property
     def thread(self) -> threading.Thread:
@@ -94,29 +106,64 @@ class ThreadHandle(Generic[_T]):
     @property
     def is_finished(self) -> bool:
         """Check if the thread has completed."""
-        return self._completed.is_set()
+        return self._completed_threading.is_set()
 
     @property
     def is_error(self) -> bool:
         """Check if the thread completed with an exception."""
-        return self._completed.is_set() and self._exception is not None
+        return self._completed_threading.is_set() and self._exception is not None
 
-    def _set_result(self, result: _T) -> None:
+    def _set_result(self, result: _T, source_loop: "EventLoop") -> None:
         """Set the result and mark as completed. Called by the thread."""
         self._result = result
-        self._completed.set()
+        self._completed_threading.set()
+        # Signal the Flowno Event, waking any waiters across threads
+        if self._caller_loop is not None:
+            all_waiters = self._completed_event.set_nowait(source_loop)
+            # Wake all waiters
+            for loop, waiters in all_waiters.items():
+                # Decrement the waiting counter for woken tasks
+                loop._waiting_on_sync_primitives -= len(waiters)
+                with loop._tasks_lock:
+                    for waiter in waiters:
+                        loop.tasks.append((waiter, None, None))
+                try:
+                    loop._wakeup_writer.send(b"\x00")
+                except (BlockingIOError, OSError):
+                    pass
+        else:
+            # No caller loop yet, just mark as set
+            self._completed_event._set = True
 
-    def _set_exception(self, exception: BaseException) -> None:
+    def _set_exception(self, exception: BaseException, source_loop: "EventLoop") -> None:
         """Set the exception and mark as completed. Called by the thread."""
         self._exception = exception
-        self._completed.set()
+        self._completed_threading.set()
+        # Signal the Flowno Event, waking any waiters across threads
+        if self._caller_loop is not None:
+            all_waiters = self._completed_event.set_nowait(source_loop)
+            # Wake all waiters
+            for loop, waiters in all_waiters.items():
+                # Decrement the waiting counter for woken tasks
+                loop._waiting_on_sync_primitives -= len(waiters)
+                with loop._tasks_lock:
+                    for waiter in waiters:
+                        loop.tasks.append((waiter, None, None))
+                try:
+                    loop._wakeup_writer.send(b"\x00")
+                except (BlockingIOError, OSError):
+                    pass
+        else:
+            # No caller loop yet, just mark as set
+            self._completed_event._set = True
 
     async def join(self, timeout: float | None = None) -> _T:
         """
         Wait for the thread to complete and return its result.
 
-        This is an async method that polls the thread status without blocking
-        the event loop.
+        This method uses a cross-thread Event for efficient notification,
+        avoiding polling overhead. The calling task is suspended until
+        the thread completes, without busy-waiting.
 
         Args:
             timeout: Maximum time to wait in seconds. If None, wait indefinitely.
@@ -128,16 +175,25 @@ class ThreadHandle(Generic[_T]):
             TimeoutError: If timeout is reached before the thread completes.
             Exception: Any exception raised by the thread's async function.
         """
+        from flowno.core.event_loop.event_loop import current_event_loop
         from flowno.core.event_loop.primitives import sleep
 
-        poll_interval = 0.01  # 10ms polling
-        waited = 0.0
+        # Record the caller's event loop so the worker thread can wake it
+        self._caller_loop = current_event_loop()
 
-        while not self._completed.is_set():
-            if timeout is not None and waited >= timeout:
-                raise TimeoutError(f"Thread did not complete within {timeout} seconds")
-            await sleep(poll_interval)
-            waited += poll_interval
+        if timeout is not None:
+            # With timeout, we need to use polling since Event.wait doesn't support timeout
+            poll_interval = 0.01  # 10ms polling
+            waited = 0.0
+
+            while not self._completed_threading.is_set():
+                if waited >= timeout:
+                    raise TimeoutError(f"Thread did not complete within {timeout} seconds")
+                await sleep(poll_interval)
+                waited += poll_interval
+        else:
+            # No timeout - use efficient Event-based waiting
+            await self._completed_event.wait()
 
         if self._exception is not None:
             raise self._exception
@@ -215,10 +271,10 @@ def spawn_thread(
             coro = target(*args, **kwargs)
             # Run it in the event loop
             result = loop.run_until_complete(coro, join=True)
-            handle._set_result(result)
+            handle._set_result(result, loop)
         except BaseException as e:
             logger.exception(f"Thread raised exception: {e}")
-            handle._set_exception(e)
+            handle._set_exception(e, loop)
 
     thread = threading.Thread(target=thread_runner, daemon=daemon)
     handle._thread = thread
