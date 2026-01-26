@@ -9,7 +9,7 @@ Tests for advanced scenarios like:
 """
 
 import pytest
-from flowno import sleep, spawn, Event, Lock, AsyncQueue
+from flowno import sleep, spawn, Event, Lock, AsyncQueue, Condition
 from flowno.core.event_loop.event_loop import EventLoop
 from flowno.core.event_loop.tasks import TaskCancelled
 
@@ -112,6 +112,39 @@ class TestCancelTaskInVariousStates:
         loop = EventLoop()
         result = loop.run_until_complete(main(), join=True)
         assert result == "cancelled while waiting on queue"
+        assert cancelled_flag == [True]
+
+    def test_cancel_task_waiting_on_condition(self):
+        """Cancel a task that's blocked waiting on a condition variable.
+
+        This tests the edge case where a task is cancelled while waiting on a
+        Condition. When waiting on a Condition, the task releases the associated
+        lock before blocking. When cancelled, the __aexit__ of the async with
+        block will try to release the lock, but the task no longer owns it.
+        The event loop should handle this gracefully (not assert).
+        """
+        condition = Condition()
+        cancelled_flag = []
+
+        async def condition_waiter():
+            try:
+                async with condition:
+                    # This releases the lock and waits
+                    await condition.wait()
+                    return "should not reach"
+            except TaskCancelled:
+                cancelled_flag.append(True)
+                return "cancelled while waiting on condition"
+
+        async def main():
+            handle = await spawn(condition_waiter())
+            await sleep(0.01)  # Let it start waiting on condition
+            result = await handle.cancel()
+            return result
+
+        loop = EventLoop()
+        result = loop.run_until_complete(main(), join=True)
+        assert result == "cancelled while waiting on condition"
         assert cancelled_flag == [True]
 
 
