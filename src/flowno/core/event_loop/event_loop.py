@@ -23,7 +23,7 @@ import socket
 import threading
 from collections import defaultdict, deque
 from timeit import default_timer as timer
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Callable, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
     Command,
@@ -73,24 +73,30 @@ _current_task: ContextVar[RawTask[Command, Any, Any] | None] = ContextVar("_curr
 def current_task() -> RawTask[Command, Any, Any] | None:
     """
     Get the currently executing task in the event loop.
-    
+
     Returns:
         The currently executing task, or None if called outside a task context.
     """
     return _current_task.get()
 
-_current_event_loop: "EventLoop | None" = None
+# Thread-local storage for the current event loop
+_thread_local = threading.local()
 
 def current_event_loop() -> "EventLoop | None":
     """
-    Get the currently executing EventLoop instance.
-    
+    Get the currently executing EventLoop instance for this thread.
+
+    Each thread can have its own event loop. This function returns the
+    event loop for the calling thread.
+
     Returns:
-        The current EventLoop instance, or None if not in an EventLoop context.
+        The current EventLoop instance for this thread, or None if not in an EventLoop context.
     """
-    global _current_event_loop
-    
-    return _current_event_loop
+    return getattr(_thread_local, 'event_loop', None)
+
+def _set_current_event_loop(loop: "EventLoop | None") -> None:
+    """Set the current event loop for this thread."""
+    _thread_local.event_loop = loop
 
 class EventLoop:
     """
@@ -102,15 +108,21 @@ class EventLoop:
 
     def __init__(self) -> None:
         self.tasks: deque[RawTaskPacket[Command, Any, object, Exception]] = deque()
-        self.sleeping: list[tuple[Time, RawTask[SleepCommand, None, DeltaTime]]] = []
+        # Sleeping heap entries: (end_time, task, timeout_info)
+        # timeout_info is None for regular sleeps, or a dict with {"cancelled": bool, "event": Event}
+        # for event wait timeouts. The dict is mutable so we can mark it cancelled when event is set.
+        self.sleeping: list[tuple[Time, RawTask[Command, Any, Any], dict[str, Any] | None]] = []
         self.watching_task: defaultdict[
             RawTask[Command, object, object], list[RawTask[Command, object, object]]
         ] = defaultdict(list)
         self.waiting_on_network: list[RawTask[SocketCommand, Any, Any]] = []
-        # Synchronization primitive waiters
-        self.event_waiters: defaultdict[Any, set[RawTask[Command, Any, Any]]] = defaultdict(set)
-        self.lock_waiters: defaultdict[Any, deque[RawTask[Command, Any, Any]]] = defaultdict(deque)
-        self.condition_waiters: defaultdict[Any, set[RawTask[Command, Any, Any]]] = defaultdict(set)
+        # Note: Synchronization primitive waiters are now managed BY the primitives themselves
+        # (Event, Lock, Condition). This enables zero-overhead single-loop usage with
+        # automatic upgrade to thread-safe storage when cross-thread access is detected.
+        # We track the count of waiting tasks to know when the loop can exit.
+        self._waiting_on_sync_primitives: int = 0
+        # Track event wait timeouts so we can cancel them when the event is set
+        self._event_wait_timeouts: dict[RawTask[Command, Any, Any], dict[str, Any]] = {}
         self.finished: dict[RawTask[Command, Any, Any], object] = {}
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
@@ -125,6 +137,8 @@ class EventLoop:
             None,
         )
         self._signal_handlers_installed = False
+        # Lock for thread-safe task queue operations
+        self._tasks_lock = threading.Lock()
 
     def _dump_debug_info(self, reason: str = "Signal received") -> None:
         """
@@ -143,13 +157,9 @@ class EventLoop:
         logger.warning(f"Sleeping tasks: {len(self.sleeping)}")
         logger.warning(f"Tasks waiting on network I/O: {len(self.waiting_on_network)}")
 
-        # Count tasks waiting on synchronization primitives
-        event_waiter_count = sum(len(waiters) for waiters in self.event_waiters.values())
-        lock_waiter_count = sum(len(waiters) for waiters in self.lock_waiters.values())
-        condition_waiter_count = sum(len(waiters) for waiters in self.condition_waiters.values())
-        logger.warning(f"Tasks waiting on events: {event_waiter_count}")
-        logger.warning(f"Tasks waiting on locks: {lock_waiter_count}")
-        logger.warning(f"Tasks waiting on conditions: {condition_waiter_count}")
+        # Note: Synchronization primitive waiters are now tracked BY the primitives
+        # themselves, not by the event loop. We can't easily enumerate them here.
+        logger.warning("(Sync primitive waiters are tracked by primitives, not shown here)")
 
         # Task details
         if self.tasks:
@@ -182,51 +192,6 @@ class EventLoop:
                 logger.warning(
                     f"  ... and {len(self.waiting_on_network) - 5} more network tasks"
                 )
-
-        # Event waiting tasks
-        if event_waiter_count > 0:
-            logger.warning("=== EVENT WAITING TASKS ===")
-            shown = 0
-            for event, waiters in self.event_waiters.items():
-                for task in waiters:
-                    if shown >= 5:
-                        break
-                    logger.warning(f"  Task: {task} (waiting on {event})")
-                    shown += 1
-                if shown >= 5:
-                    break
-            if event_waiter_count > 5:
-                logger.warning(f"  ... and {event_waiter_count - 5} more event waiters")
-
-        # Lock waiting tasks
-        if lock_waiter_count > 0:
-            logger.warning("=== LOCK WAITING TASKS ===")
-            shown = 0
-            for lock, waiters in self.lock_waiters.items():
-                for task in waiters:
-                    if shown >= 5:
-                        break
-                    logger.warning(f"  Task: {task} (waiting on {lock})")
-                    shown += 1
-                if shown >= 5:
-                    break
-            if lock_waiter_count > 5:
-                logger.warning(f"  ... and {lock_waiter_count - 5} more lock waiters")
-
-        # Condition waiting tasks
-        if condition_waiter_count > 0:
-            logger.warning("=== CONDITION WAITING TASKS ===")
-            shown = 0
-            for condition, waiters in self.condition_waiters.items():
-                for task in waiters:
-                    if shown >= 5:
-                        break
-                    logger.warning(f"  Task: {task} (waiting on {condition})")
-                    shown += 1
-                if shown >= 5:
-                    break
-            if condition_waiter_count > 5:
-                logger.warning(f"  ... and {condition_waiter_count - 5} more condition waiters")
 
         # Task watching relationships
         watching_count = sum(len(watchers) for watchers in self.watching_task.values())
@@ -297,12 +262,8 @@ class EventLoop:
         for _watched_task, watching_tasks in self.watching_task.items():
             if watching_tasks:
                 return True
-        # Check synchronization primitive waiters
-        if any(self.event_waiters.values()):
-            return True
-        if any(self.lock_waiters.values()):
-            return True
-        if any(self.condition_waiters.values()):
+        # Tasks waiting on synchronization primitives are tracked via counter
+        if self._waiting_on_sync_primitives > 0:
             return True
         return False
 
@@ -314,23 +275,33 @@ class EventLoop:
         Create a new task handle for the given raw task and enqueue
         the task in the event loop's task queue.
 
+        This method is thread-safe and can be called from any thread.
+        If called from a different thread than the event loop's thread,
+        the event loop will be woken up to process the new task.
+
         Args:
             raw_task: The raw task to create a handle for.
 
         Returns:
             A TaskHandle object representing the created task.
         """
-        self.tasks.append((raw_task, None, None))
-
-        # If called from another thread, wake up the event loop
-        if (
+        is_other_thread = (
             self._loop_thread is not None
             and threading.current_thread() != self._loop_thread
-        ):
+        )
+
+        if is_other_thread:
+            # Use lock for thread-safe access
+            with self._tasks_lock:
+                self.tasks.append((raw_task, None, None))
+            # Wake up the event loop after releasing the lock
             try:
                 self._wakeup_writer.send(b"\x00")
             except (BlockingIOError, socket.error):
                 pass
+        else:
+            # Same thread, no lock needed
+            self.tasks.append((raw_task, None, None))
 
         return TaskHandle(self, raw_task)
 
@@ -507,7 +478,7 @@ class EventLoop:
                 self.tasks.append((current_task_packet[0], None, None))
             else:
                 heapq.heappush(
-                    self.sleeping, (command.end_time, current_task_packet[0])
+                    self.sleeping, (command.end_time, current_task_packet[0], None)
                 )
 
         elif isinstance(command, SocketAcceptCommand):
@@ -568,18 +539,47 @@ class EventLoop:
         elif isinstance(command, EventWaitCommand):
             # Wait for an event to be set
             if command.event._set:
-                # Event already set - immediate resume
-                # This should not actually reach the event loop, but just in case
-                self.tasks.append((current_task_packet[0], None, None))
+                # Event already set - immediate resume with True
+                self.tasks.append((current_task_packet[0], True, None))
+            elif command.timeout is not None:
+                # Event not set, but we have a timeout
+                # Add task to both event waiters AND sleeping heap
+                command.event._add_waiter(self, current_task_packet[0])
+                self._waiting_on_sync_primitives += 1
+                # Create timeout info dict (mutable so we can cancel it)
+                timeout_info: dict[str, Any] = {"cancelled": False, "event": command.event}
+                heapq.heappush(
+                    self.sleeping, (command.timeout, current_task_packet[0], timeout_info)
+                )
+                self._event_wait_timeouts[current_task_packet[0]] = timeout_info
             else:
-                # Event not set - block task
-                self.event_waiters[command.event].add(current_task_packet[0])
+                # Event not set, no timeout - block indefinitely
+                command.event._add_waiter(self, current_task_packet[0])
+                self._waiting_on_sync_primitives += 1
         elif isinstance(command, EventSetCommand):
-            # Set event and wake all waiting tasks
-            command.event._set = True
-            for waiter in self.event_waiters[command.event]:
-                self.tasks.append((waiter, None, None))
-            self.event_waiters[command.event].clear()
+            # Set event and wake all waiting tasks (delegate to Event)
+            all_waiters = command.event.set_nowait(self)
+            # Schedule all waiters from this loop
+            for loop, waiters in all_waiters.items():
+                # Decrement counter for each waiter woken
+                loop._waiting_on_sync_primitives -= len(waiters)
+                for waiter in waiters:
+                    # Cancel any pending timeout for this waiter
+                    if waiter in loop._event_wait_timeouts:
+                        loop._event_wait_timeouts[waiter]["cancelled"] = True
+                        del loop._event_wait_timeouts[waiter]
+                if loop is self:
+                    for waiter in waiters:
+                        self.tasks.append((waiter, True, None))  # True = event was set
+                else:
+                    # Cross-thread: schedule on other loop
+                    with loop._tasks_lock:
+                        for waiter in waiters:
+                            loop.tasks.append((waiter, True, None))  # True = event was set
+                    try:
+                        loop._wakeup_writer.send(b"\x00")
+                    except (BlockingIOError, OSError):
+                        pass
             self.tasks.append((current_task_packet[0], None, None))
         elif isinstance(command, LockAcquireCommand):
             # Acquire lock (mutual exclusion)
@@ -589,18 +589,30 @@ class EventLoop:
                 command.lock._owner = current_task_packet[0]
                 self.tasks.append((current_task_packet[0], None, None))
             else:
-                # Lock held - block in FIFO queue
-                self.lock_waiters[command.lock].append(current_task_packet[0])
+                # Lock held - block in FIFO queue (delegate to Lock's waiter management)
+                command.lock._add_waiter(self, current_task_packet[0])
+                self._waiting_on_sync_primitives += 1
         elif isinstance(command, LockReleaseCommand):
             # Release lock (must be owner)
             assert command.lock._owner == current_task_packet[0], \
                 f"Lock release by non-owner: {current_task_packet[0]} != {command.lock._owner}"
 
-            if self.lock_waiters[command.lock]:
+            # Try to get next waiter (delegate to Lock's waiter management)
+            waiter_loop, waiter = command.lock._pop_any_waiter()
+            if waiter is not None:
                 # Wake next waiter in FIFO order, transfer ownership
-                waiter = self.lock_waiters[command.lock].popleft()
                 command.lock._owner = waiter
-                self.tasks.append((waiter, None, None))
+                waiter_loop._waiting_on_sync_primitives -= 1
+                if waiter_loop is self:
+                    self.tasks.append((waiter, None, None))
+                else:
+                    # Cross-thread: schedule on other loop
+                    with waiter_loop._tasks_lock:
+                        waiter_loop.tasks.append((waiter, None, None))
+                    try:
+                        waiter_loop._wakeup_writer.send(b"\x00")
+                    except (BlockingIOError, OSError):
+                        pass
             else:
                 # No waiters - unlock
                 command.lock._locked = False
@@ -614,14 +626,25 @@ class EventLoop:
             assert command.condition._lock._owner == current_task_packet[0], \
                 f"Condition wait by non-owner: {current_task_packet[0]} != {command.condition._lock._owner}"
 
-            # Atomically: add to condition waiters, release lock
-            self.condition_waiters[command.condition].add(current_task_packet[0])
+            # Atomically: add to condition waiters (delegate to Condition)
+            command.condition._add_waiter(self, current_task_packet[0])
+            self._waiting_on_sync_primitives += 1
 
             # Release the lock and wake next lock waiter if any
-            if self.lock_waiters[command.condition._lock]:
-                waiter = self.lock_waiters[command.condition._lock].popleft()
+            waiter_loop, waiter = command.condition._lock._pop_any_waiter()
+            if waiter is not None:
                 command.condition._lock._owner = waiter
-                self.tasks.append((waiter, None, None))
+                waiter_loop._waiting_on_sync_primitives -= 1
+                if waiter_loop is self:
+                    self.tasks.append((waiter, None, None))
+                else:
+                    # Cross-thread: schedule on other loop
+                    with waiter_loop._tasks_lock:
+                        waiter_loop.tasks.append((waiter, None, None))
+                    try:
+                        waiter_loop._wakeup_writer.send(b"\x00")
+                    except (BlockingIOError, OSError):
+                        pass
             else:
                 command.condition._lock._locked = False
                 command.condition._lock._owner = None
@@ -632,14 +655,17 @@ class EventLoop:
 
             if command.all:
                 # notify_all: move all condition waiters to lock waiters
-                for waiter in self.condition_waiters[command.condition]:
-                    self.lock_waiters[command.condition._lock].append(waiter)
-                self.condition_waiters[command.condition].clear()
+                # Note: We don't change the counter - they move from condition to lock waiting
+                all_waiters = command.condition._get_all_waiters()
+                for loop, waiters in all_waiters.items():
+                    for waiter in waiters:
+                        command.condition._lock._add_waiter(loop, waiter)
             else:
                 # notify: move one condition waiter to lock waiters
-                if self.condition_waiters[command.condition]:
-                    waiter = self.condition_waiters[command.condition].pop()
-                    self.lock_waiters[command.condition._lock].append(waiter)
+                # Note: We don't change the counter - they move from condition to lock waiting
+                waiter = command.condition._pop_waiter(self)
+                if waiter is not None:
+                    command.condition._lock._add_waiter(self, waiter)
 
             # Notifier continues
             self.tasks.append((current_task_packet[0], None, None))
@@ -738,8 +764,7 @@ class EventLoop:
         wait_for_spawned_tasks: bool = True,
         _debug_max_wait_time: float | None = None,
     ):
-        global _current_event_loop
-        _current_event_loop = self
+        _set_current_event_loop(self)
         
         try:
             self._debug_max_wait_time = _debug_max_wait_time
@@ -826,11 +851,28 @@ class EventLoop:
                     self.waiting_on_network.remove(data._task)
 
                 while self.sleeping and self.sleeping[0][0] <= timer():
-                    _, task = heapq.heappop(self.sleeping)
-                    self.tasks.append((task, None, None))
+                    _, task, timeout_info = heapq.heappop(self.sleeping)
+                    if timeout_info is not None:
+                        # This is an event wait with timeout
+                        if timeout_info["cancelled"]:
+                            # Event was set before timeout - skip this entry
+                            continue
+                        # Timeout expired - remove from event waiters and resume with False
+                        event = timeout_info["event"]
+                        removed = event._remove_waiter(self, task)
+                        if removed:
+                            self._waiting_on_sync_primitives -= 1
+                        # Clean up timeout tracking
+                        if task in self._event_wait_timeouts:
+                            del self._event_wait_timeouts[task]
+                        self.tasks.append((task, False, None))  # False = timeout expired
+                    else:
+                        # Regular sleep - resume with None
+                        self.tasks.append((task, None, None))
 
                 if self.tasks:
-                    task_packet = self.tasks.popleft()
+                    with self._tasks_lock:
+                        task_packet = self.tasks.popleft()
                     
                     # Set the current task before executing
                     token = _current_task.set(task_packet[0])
@@ -882,7 +924,7 @@ class EventLoop:
                     finally:
                         # Reset the context after task execution
                         _current_task.reset(token)
-            
+
             if join and root_task in self.finished:
                 return cast(_ReturnT, self.finished[root_task])
             elif join and root_task in self.exceptions:
@@ -890,4 +932,4 @@ class EventLoop:
             elif join:
                 raise RuntimeError("Event loop exited without completing the root task.")
         finally:
-            _current_event_loop = None
+            _set_current_event_loop(None)

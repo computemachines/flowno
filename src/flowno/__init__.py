@@ -29,6 +29,7 @@ from .core.event_loop.primitives import azip, exit, sleep, socket, spawn
 from .core.event_loop.queues import AsyncQueue
 from .core.event_loop.selectors import SocketHandle
 from .core.event_loop.synchronization import Condition, Event, Lock
+from .core.event_loop.threading import ThreadHandle, spawn_thread
 from .core.flow.flow import Flow, TerminateLimitReached, current_flow, current_node, current_context
 from .core.flow_hdl import FlowHDL
 from .core.flow_hdl_view import FlowHDLView
@@ -126,6 +127,7 @@ __all__ = [
     "azip",
     "exit",
     "spawn",
+    "spawn_thread",
     "sleep",
     "socket",
     "DraftNode",
@@ -140,6 +142,7 @@ __all__ = [
     "Condition",
     "Event",
     "Lock",
+    "ThreadHandle",
     "TerminateLimitReached",
     "current_event_loop",
     "current_flow",
