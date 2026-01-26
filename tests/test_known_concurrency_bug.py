@@ -51,7 +51,6 @@ class TestKnownConcurrencyBug:
     def setup_method(self):
         reset_test_state()
 
-    @pytest.mark.skip(reason="Known deadlock bug - hangs indefinitely")
     def test_binary_tree_streaming_deadlock(self):
         """
         Binary tree: 1 source, 2 level-1 nodes, 4 level-2 nodes, etc.
