@@ -43,6 +43,7 @@ class TestAwaitableCancel:
             try:
                 await sleep(10.0)  # Long sleep - will be cancelled
             except TaskCancelled:
+                # Task cancellation is expected in this test; ignore and allow finally to run.
                 pass
             finally:
                 return 42
