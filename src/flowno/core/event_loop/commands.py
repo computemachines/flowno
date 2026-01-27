@@ -242,6 +242,22 @@ class ConditionNotifyCommand(Command):
 
 
 @dataclass
+class CancelCommand(Generic[_T], Command):
+    """
+    Internal command to cancel a task and wait for its result.
+
+    :param task_handle: A handle to the task to cancel.
+
+    .. note::
+       This is used internally to implement the awaitable :meth:`TaskHandle.cancel` method.
+       Unlike the non-awaitable cancel, this suspends until the cancelled task finishes
+       and returns its result value.
+    """
+
+    task_handle: "TaskHandle[_T]"
+
+
+@dataclass
 class StreamCancelCommand(Command):
     """
     Internal command to cancel a stream, causing the producer to receive StreamCancelled.

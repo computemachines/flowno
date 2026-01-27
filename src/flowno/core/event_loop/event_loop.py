@@ -26,6 +26,7 @@ from timeit import default_timer as timer
 from typing import Any, Literal, TypeVar, cast
 
 from flowno.core.event_loop.commands import (
+    CancelCommand,
     Command,
     ConditionNotifyCommand,
     ConditionWaitCommand,
@@ -114,6 +115,12 @@ class EventLoop:
         self.finished: dict[RawTask[Command, Any, Any], object] = {}
         self.exceptions: dict[RawTask[Command, Any, Any], Exception] = {}
         self.cancelled: set[RawTask[Command, Any, Any]] = set()
+        # Track tasks with pending cancellation (TaskCancelled already queued)
+        self.pending_cancellation: set[RawTask[Command, Any, Any]] = set()
+        # Track which watchers are waiting due to cancel() vs join()
+        self.cancel_waiters: defaultdict[
+            RawTask[Command, object, object], set[RawTask[Command, object, object]]
+        ] = defaultdict(set)
         self._debug_max_wait_time: float | None = None
         self._loop_thread: threading.Thread | None = None
         self._wakeup_reader, self._wakeup_writer = socket.socketpair()
@@ -498,6 +505,68 @@ class EventLoop:
                     current_task_packet[0]
                 )
 
+        elif isinstance(command, CancelCommand):
+            command = cast(CancelCommand[object], command)
+            current_task_packet = cast(
+                TaskHandlePacket[CancelCommand[object], Any, Any, Exception],
+                current_task_packet,
+            )
+
+            # First, check if the task is already finished
+            if command.task_handle.is_finished:
+                # Task already finished - return its result
+                self.tasks.append(
+                    (
+                        current_task_packet[0],
+                        self.finished[command.task_handle.raw_task],
+                        None,
+                    )
+                )
+            elif command.task_handle.is_error or command.task_handle.is_cancelled:
+                # Task already has an error or is cancelled - return the exception
+                self.tasks.append(
+                    (
+                        current_task_packet[0],
+                        None,
+                        self.exceptions[command.task_handle.raw_task],
+                    )
+                )
+            elif command.task_handle.raw_task in self.pending_cancellation:
+                # Cancellation already in progress (from event_loop.cancel() call)
+                # Just add the canceller to the watching list to wait for completion
+                self.watching_task[command.task_handle.raw_task].append(
+                    current_task_packet[0]
+                )
+                # Track that this is a cancel waiter (not a join waiter)
+                self.cancel_waiters[command.task_handle.raw_task].add(
+                    current_task_packet[0]
+                )
+            else:
+                # Task is still running - cancel it by throwing TaskCancelled
+                # Mark as pending cancellation
+                self.pending_cancellation.add(command.task_handle.raw_task)
+
+                # Remove from all wait states so it can process cancellation immediately
+                self._remove_task_from_wait_states(command.task_handle.raw_task)
+
+                # Inject the exception into the target task
+                self.tasks.append(
+                    (
+                        command.task_handle.raw_task,
+                        None,
+                        TaskCancelled(command.task_handle),
+                    )
+                )
+                # Then, add the canceller to the watching list to wait for completion
+                # (Don't add the canceller to task queue - it should wait)
+                self.watching_task[command.task_handle.raw_task].append(
+                    current_task_packet[0]
+                )
+                # Track that this is a cancel waiter (not a join waiter)
+                self.cancel_waiters[command.task_handle.raw_task].add(
+                    current_task_packet[0]
+                )
+
         elif isinstance(command, SleepCommand):
             current_task_packet = cast(
                 TaskHandlePacket[SleepCommand, None, DeltaTime, Exception],
@@ -592,22 +661,26 @@ class EventLoop:
                 # Lock held - block in FIFO queue
                 self.lock_waiters[command.lock].append(current_task_packet[0])
         elif isinstance(command, LockReleaseCommand):
-            # Release lock (must be owner)
-            assert command.lock._owner == current_task_packet[0], \
-                f"Lock release by non-owner: {current_task_packet[0]} != {command.lock._owner}"
-
-            if self.lock_waiters[command.lock]:
-                # Wake next waiter in FIFO order, transfer ownership
-                waiter = self.lock_waiters[command.lock].popleft()
-                command.lock._owner = waiter
-                self.tasks.append((waiter, None, None))
+            # Release lock (must be owner, unless task was cancelled while waiting on condition)
+            # When a task is cancelled while waiting on a condition, it doesn't own the lock
+            # but the async with block will still try to release it in __aexit__
+            if command.lock._owner != current_task_packet[0]:
+                # Task doesn't own the lock - this can happen when cancelled while
+                # waiting on a condition. Just let the task continue without releasing.
+                self.tasks.append((current_task_packet[0], None, None))
             else:
-                # No waiters - unlock
-                command.lock._locked = False
-                command.lock._owner = None
+                if self.lock_waiters[command.lock]:
+                    # Wake next waiter in FIFO order, transfer ownership
+                    waiter = self.lock_waiters[command.lock].popleft()
+                    command.lock._owner = waiter
+                    self.tasks.append((waiter, None, None))
+                else:
+                    # No waiters - unlock
+                    command.lock._locked = False
+                    command.lock._owner = None
 
-            # Releaser continues
-            self.tasks.append((current_task_packet[0], None, None))
+                # Releaser continues
+                self.tasks.append((current_task_packet[0], None, None))
         elif isinstance(command, ConditionWaitCommand):
             # Wait on condition (atomically releases lock)
             # Must hold lock before calling wait
@@ -647,6 +720,49 @@ class EventLoop:
             return False
         return True
 
+    def _remove_task_from_wait_states(self, raw_task: RawTask[Command, Any, Any]) -> None:
+        """
+        Remove a task from all wait states (sleeping, network, synchronization primitives).
+
+        This is used during task cancellation to ensure the task is no longer waiting
+        on any resource and can be immediately scheduled to process the cancellation.
+
+        Args:
+            raw_task: The task to remove from wait states.
+        """
+        # Remove from sleeping heap if present
+        self.sleeping = [
+            (wake_time, task)
+            for wake_time, task in self.sleeping
+            if task != raw_task
+        ]
+        heapq.heapify(self.sleeping)
+
+        # Remove from network waiting list if it's there
+        if raw_task in self.waiting_on_network:
+            self.waiting_on_network.remove(raw_task)
+            # Also need to unregister from selector
+            # Find and unregister the socket associated with this task
+            for key in list(sel.get_map().values()):
+                metadata = cast(InstrumentationMetadata, key.data)
+                if metadata._task == raw_task:
+                    sel.unregister(key.fileobj)
+                    break
+
+        # Remove from synchronization primitive waiters if present
+        # (event_waiters, lock_waiters, condition_waiters)
+        for event, waiters in self.event_waiters.items():
+            if raw_task in waiters:
+                waiters.discard(raw_task)
+                break
+        for lock, waiters in self.lock_waiters.items():
+            if raw_task in waiters:
+                waiters.remove(raw_task)
+                break
+        for condition, waiters in self.condition_waiters.items():
+            if raw_task in waiters:
+                waiters.discard(raw_task)
+                break
 
     def cancel(self, raw_task: RawTask[Command, Any, Any]) -> bool:
         """
@@ -660,6 +776,18 @@ class EventLoop:
         """
         if raw_task in self.finished or raw_task in self.exceptions:
             return False
+
+        # Check if cancellation is already pending
+        if raw_task in self.pending_cancellation:
+            return True
+
+        # Mark cancellation as pending
+        self.pending_cancellation.add(raw_task)
+
+        # Remove the task from all wait states so it can process cancellation immediately
+        self._remove_task_from_wait_states(raw_task)
+
+        # Inject the cancellation exception
         self.tasks.append((raw_task, None, TaskCancelled(TaskHandle(self, raw_task))))
         return True
 
@@ -831,10 +959,10 @@ class EventLoop:
 
                 if self.tasks:
                     task_packet = self.tasks.popleft()
-                    
+
                     # Set the current task before executing
                     token = _current_task.set(task_packet[0])
-                    
+
                     try:
                         if task_packet[2] is not None:
                             self._on_task_before_throw(task_packet[0], task_packet[2])
@@ -851,15 +979,32 @@ class EventLoop:
                         for watcher in self.watching_task[task_packet[0]]:
                             self.tasks.append((watcher, returned_value, None))
                         del self.watching_task[task_packet[0]]
+                        # Clean up cancel waiters and pending cancellation tracking
+                        if task_packet[0] in self.cancel_waiters:
+                            del self.cancel_waiters[task_packet[0]]
+                        self.pending_cancellation.discard(task_packet[0])
                         if task_packet[0] == root_task and not wait_for_spawned_tasks:
                             return cast(_ReturnT, returned_value) if join else None
                     except TaskCancelled as e:
                         self.cancelled.add(task_packet[0])
                         self.exceptions[task_packet[0]] = e
                         self._on_task_cancelled(task_packet[0], e)
+                        # Resume watchers - cancel waiters get None, join waiters get the exception
                         for watcher in self.watching_task[task_packet[0]]:
-                            self.tasks.append((watcher, None, e))
+                            if (
+                                task_packet[0] in self.cancel_waiters
+                                and watcher in self.cancel_waiters[task_packet[0]]
+                            ):
+                                # This is a cancel waiter - successful cancellation returns None
+                                self.tasks.append((watcher, None, None))
+                            else:
+                                # This is a join waiter - propagate the exception
+                                self.tasks.append((watcher, None, e))
                         del self.watching_task[task_packet[0]]
+                        # Clean up cancel waiters and pending cancellation tracking
+                        if task_packet[0] in self.cancel_waiters:
+                            del self.cancel_waiters[task_packet[0]]
+                        self.pending_cancellation.discard(task_packet[0])
                         if task_packet[0] == root_task and not wait_for_spawned_tasks:
                             if join:
                                 raise e
@@ -872,6 +1017,10 @@ class EventLoop:
                         for watcher in self.watching_task[task_packet[0]]:
                             self.tasks.append((watcher, None, e))
                         del self.watching_task[task_packet[0]]
+                        # Clean up cancel waiters and pending cancellation tracking
+                        if task_packet[0] in self.cancel_waiters:
+                            del self.cancel_waiters[task_packet[0]]
+                        self.pending_cancellation.discard(task_packet[0])
                         if task_packet[0] == root_task and not wait_for_spawned_tasks:
                             if join:
                                 raise e
