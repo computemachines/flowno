@@ -34,6 +34,8 @@ from .core.flow_hdl import FlowHDL
 from .core.flow_hdl_view import FlowHDLView
 from .core.node_base import DraftNode, Stream, StreamCancelled
 from .core.group_node import DraftGroupNode
+from .core.types import SKIP
+from .conditional import PropagateIf
 from .decorators import node
 
 try:
@@ -145,4 +147,6 @@ __all__ = [
     "current_flow",
     "current_node",
     "current_context",
+    "SKIP",
+    "PropagateIf",
 ]

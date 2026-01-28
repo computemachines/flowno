@@ -40,7 +40,7 @@ from flowno.core.node_base import (
     SuperNode,
     StreamCancelled,
 )
-from flowno.core.types import DataGeneration, Generation, InputPortIndex, OutputPortIndex
+from flowno.core.types import DataGeneration, Generation, InputPortIndex, OutputPortIndex, SKIP
 from flowno.utilities.helpers import cmp_generation, clip_generation, inc_generation, main_generation, parent_generation, stitched_generation
 from flowno.utilities.logging import log_async
 from typing_extensions import Never, Unpack, override
@@ -749,6 +749,27 @@ class Flow:
                 positional_arg_values, defaulted_inputs = node.gather_inputs()
 
                 await node.count_down_upstream_latches(defaulted_inputs)
+
+                # Check if any input is SKIP - if so, propagate SKIP without executing
+                if any(arg is SKIP for arg in positional_arg_values):
+                    logger.debug(f"{node} received SKIP input, propagating SKIP")
+
+                    # Determine number of output ports and create SKIP tuple
+                    num_outputs = len(node._connected_output_nodes) if node._connected_output_nodes else 1
+                    skip_result = tuple(SKIP for _ in range(num_outputs))
+
+                    # Wait for barrier and push SKIP data
+                    with get_current_flow_instrument().on_barrier_node_write(self, node, skip_result, 0):
+                        await node._barrier0.wait()
+                    node.push_data(skip_result, 0)
+                    node._barrier0.set_count(len(node.get_output_nodes_by_run_level(0)))
+
+                    get_current_flow_instrument().on_node_emitted_data(self, node, skip_result, 0)
+
+                    # Still need to terminate check and enqueue downstream
+                    await self._terminate_if_reached_limit(node)
+                    await self._enqueue_output_nodes(node)
+                    continue  # Skip to next generation
 
                 try:
                     self.set_defaulted_inputs(node, defaulted_inputs)

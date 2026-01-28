@@ -393,6 +393,36 @@ class DraftNode(ABC, Generic[Unpack[_Ts], ReturnTupleT_co]):
                 nodes.append(input_port.connected_output.node)
         return nodes
 
+    def if_(
+        self,
+        condition: "DraftNode[Unpack[tuple[object, ...]], tuple[bool, ...]]",
+    ) -> "DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]]":
+        """Conditionally propagate this node's output based on a condition.
+
+        Creates a PropagateIf node that passes through this node's output when
+        the condition is True, or returns SKIP when the condition is False.
+        Downstream nodes receiving SKIP will also be skipped.
+
+        Args:
+            condition: A node that produces a boolean value. When True, this
+                node's output passes through. When False, SKIP is propagated.
+
+        Returns:
+            A new PropagateIf node wired between this node and the condition.
+
+        Example:
+            >>> with FlowHDL() as f:
+            ...     f.value = Constant(10)
+            ...     f.is_positive = IsPositive(f.value)
+            ...     f.result = Double(f.value.if_(f.is_positive))
+        """
+        from flowno.conditional import PropagateIf
+
+        return cast(
+            DraftNode[Unpack[tuple[object, ...]], tuple[object, ...]],
+            PropagateIf(self, condition),
+        )
+
     def _blank_finalized(self) -> "FinalizedNode[Unpack[_Ts], ReturnTupleT_co]":
         """Convert this draft node into a finalized node without connections."""
         return FinalizedNode(
