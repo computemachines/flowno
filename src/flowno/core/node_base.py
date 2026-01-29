@@ -39,6 +39,7 @@ from flowno.core.types import (
     InputPortIndex,
     OutputPortIndex,
     RunLevel,
+    SKIP,
 )
 from flowno.utilities.helpers import (
     clip_generation,
@@ -693,6 +694,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
     class GatheredInputs(NamedTuple):
         positional_args: "tuple[object | Stream[object], ...]"
         defaulted_ports: list[InputPortIndex]
+        should_skip: bool
 
     def call(
         self, *args: Unpack[_Ts]
@@ -711,13 +713,17 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
         a Stream object is used with reference to self.
 
         Returns:
-            tuple[object | Stream[object], ...]: The tuple of inputs for the
-            node to be passed as args to the call method.
+            GatheredInputs: A named tuple containing:
+                - positional_args: The tuple of inputs for the node
+                - defaulted_ports: List of port indices that used default values
+                - should_skip: True if any input is SKIP, indicating node should
+                  propagate SKIP without executing
         """
         # TODO: move this to finalized node class
         inputs: dict[InputPortIndex, object | Stream[object]] = dict()
 
         defaulted_ports: list[InputPortIndex] = []
+        should_skip = False
 
         for input_port_index, input_port in self._input_ports.items():
             logger.debug(f"Gathering input data for {self.input(input_port_index)}")
@@ -741,7 +747,20 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
             last_data = input_node.get_data(run_level=run_level)
             if last_data is None:
                 # The input is disconnected or the node is being 'forced'
-                #
+                # For streaming inputs (run_level > 0), check if producer has SKIP at run_level 0
+                # If so, pass SKIP through instead of requiring a default or creating a Stream
+                if run_level > 0:
+                    rl0_data = input_node.get_data(run_level=0)
+                    if rl0_data is not None:
+                        rl0_value = rl0_data[input_port.connected_output.port_index]
+                        if rl0_value is SKIP:
+                            logger.debug(
+                                f"Streaming input {DraftInputPortRef(self, input_port_index)} has SKIP at run level 0, propagating SKIP"
+                            )
+                            inputs[input_port_index] = SKIP
+                            should_skip = True
+                            continue
+
                 if self.has_default_for_input(input_port_index):
                     individual_last_data = input_port.default_value
                     defaulted_ports.append(input_port_index)
@@ -760,6 +779,9 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                 inputs[input_port_index] = Stream(self.input(input_port_index), input_port.connected_output)
             else:
                 inputs[input_port_index] = individual_last_data
+                # Check if this mono input is SKIP
+                if individual_last_data is SKIP:
+                    should_skip = True
 
             logger.debug(f"Input data for {DraftInputPortRef(self, input_port_index)}: {inputs[input_port_index]}")
 
@@ -771,7 +793,7 @@ class FinalizedNode(Generic[Unpack[_Ts], ReturnTupleT_co]):
                     positional_args.append(inputs[input_port_index])
                 else:
                     raise MissingDefaultError(self, input_port_index)
-        return self.GatheredInputs(tuple(positional_args), defaulted_ports)
+        return self.GatheredInputs(tuple(positional_args), defaulted_ports, should_skip)
     
     def debug_print(self) -> None:
         """

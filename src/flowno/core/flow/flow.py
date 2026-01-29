@@ -746,12 +746,12 @@ class Flow:
         while True:
             await _wait_for_start_next_generation(node, 0)
             with get_current_flow_instrument().node_lifecycle(self, node, run_level=0):
-                positional_arg_values, defaulted_inputs = node.gather_inputs()
+                positional_arg_values, defaulted_inputs, should_skip = node.gather_inputs()
 
                 await node.count_down_upstream_latches(defaulted_inputs)
 
                 # Check if any input is SKIP - if so, propagate SKIP without executing
-                if any(arg is SKIP for arg in positional_arg_values):
+                if should_skip:
                     logger.debug(f"{node} received SKIP input, propagating SKIP")
 
                     # Determine number of output ports and create SKIP tuple
