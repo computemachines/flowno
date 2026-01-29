@@ -2,10 +2,6 @@
 
 This module systematically tests the SKIP sentinel and PropagateIf node
 across different scenarios to verify correct conditional execution behavior.
-
-Known Limitations (documented but not yet resolved):
-- Streaming + SKIP: When a streaming producer is skipped, consumers may hang
-- Cycles + SKIP: Complex cycle interactions with SKIP may cause hangs
 """
 
 import pytest
@@ -259,12 +255,7 @@ class TestEdgeCases:
 # ============================================================================
 
 class TestCyclesWithSkip:
-    """Test SKIP behavior in cyclic graphs.
-
-    NOTE: Complex cycle + SKIP interactions may cause hangs.
-    These tests document expected behavior but some scenarios
-    may not work correctly yet.
-    """
+    """Test SKIP behavior in cyclic graphs."""
 
     def test_cycle_with_conditional_terminates(self):
         """Test conditional execution within a cycle with termination."""
@@ -309,26 +300,74 @@ async def SumStream(numbers: Stream[int]) -> int:
     return total
 
 
+@node
+async def StreamWithOffset(offset: int) -> AsyncGenerator[int, None]:
+    """Stream numbers with an offset."""
+    for i in range(3):
+        yield i + offset
+
+
 class TestStreamingWithSkip:
-    """Test SKIP behavior with streaming nodes.
+    """Test SKIP behavior with streaming nodes."""
 
-    NOTE: Streaming + SKIP has known limitations. When a streaming
-    producer is skipped, consumers may hang waiting for stream data.
-    These tests are marked as skipped until the limitation is resolved.
-    """
-
-    @pytest.mark.skip(reason="Streaming + SKIP not yet implemented - consumers may hang")
     def test_mono_to_stream_with_skip(self):
-        """Test mono node feeding into streaming consumer when mono outputs SKIP."""
-        # This is a trickier case - what happens when a streaming node's
-        # non-streaming input is SKIP?
-        pass
+        """Test mono node feeding into streaming producer when mono input is SKIP.
 
-    @pytest.mark.skip(reason="Streaming + SKIP not yet implemented - consumers may hang")
+        If a streaming node takes a Mono input, and that input is SKIP,
+        the streaming node itself should result in SKIP (it doesn't produce a stream).
+        Consequently, any consumer of that stream should also process SKIP.
+        """
+        with FlowHDL() as f:
+            f.offset = Constant(-10)
+            f.condition = IsPositive(f.offset)
+            f.guarded_offset = PropagateIf(f.offset, f.condition)
+
+            # StreamWithOffset takes a mono int. If guarded_offset is SKIP,
+            # stream should be SKIP.
+            f.stream = StreamWithOffset(f.guarded_offset)
+
+            # SumStream should receive SKIP and output SKIP
+            f.total = SumStream(f.stream)
+
+        f.run_until_complete()
+
+        assert f.guarded_offset.get_data()[0] is SKIP
+        assert f.stream.get_data()[0] is SKIP
+        assert f.total.get_data()[0] is SKIP
+
     def test_stream_to_mono_producer_skipped(self):
-        """Test when a streaming producer is conditionally skipped."""
-        # If the producer is skipped, the consumer should also be skipped
-        pass
+        """Test when a streaming producer is explicitly skipped using PropagateIf."""
+        with FlowHDL() as f:
+            f.trigger = Constant(-1)
+            f.condition = IsPositive(f.trigger)
+
+            f.raw_stream = StreamNumbers()
+
+            # Conditionally propagate the stream itself
+            # If condition is False, guarded_stream should be SKIP
+            f.guarded_stream = PropagateIf(f.raw_stream, f.condition)
+
+            f.total = SumStream(f.guarded_stream)
+
+        f.run_until_complete()
+
+        assert f.guarded_stream.get_data()[0] is SKIP
+        assert f.total.get_data()[0] is SKIP
+
+    def test_mono_to_stream_with_skip_sugar(self):
+        """Test .if_() syntax for mono to stream SKIP propagation."""
+        with FlowHDL() as f:
+            f.offset = Constant(-5)
+            f.condition = IsPositive(f.offset)
+
+            f.stream = StreamWithOffset(f.offset.if_(f.condition))
+
+            f.total = SumStream(f.stream)
+
+        f.run_until_complete()
+
+        assert f.stream.get_data()[0] is SKIP
+        assert f.total.get_data()[0] is SKIP
 
 
 # ============================================================================
