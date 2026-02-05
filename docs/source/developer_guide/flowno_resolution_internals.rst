@@ -42,9 +42,9 @@ optimal way to preserve the proper ordering of each node's neighbors.
 
 - **Event Loop**: The concurrency is provided by a custom event loop, not
   threads or ``asyncio``. It is a completely separate concurrency model. This is
-  emphasized because Flowno uses Python’s ``async/await`` syntax similarly to
-  Asyncio, but is incompatible with Asyncio. (see 
-  `Common Pitfalls <../flowno_pitfalls.md>`_)
+emphasized because Flowno uses Python's ``async/await`` syntax similarly to
+Asyncio, but is incompatible with Asyncio. (see 
+`Common Pitfalls <../flowno_pitfalls.md>`_)
 
 1.3 Types and Constructing Nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,7 +89,7 @@ example, ``SomeNode(SomeNode("hello"))`` tries to pass an integer output
    d = SomeNode(a)     # type error
 
 There is a ``connect`` method for forming connections after node instantiation,
-but typically you don’t need it.
+but typically you don't need it.
 
 1.5 FlowHDL Context
 ~~~~~~~~~~~~~~~~~~~
@@ -128,7 +128,7 @@ reversed.
 1.6 Executing the Flow
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The flow must be “finalized” before it can run. The ``with`` block raises an
+The flow must be "finalized" before it can run. The ``with`` block raises an
 exception if a nonexistent node output is connected or if a node was referenced
 but never defined. Exiting the block finalizes and replaces ``DraftNode`` objects
 with actual ``Node`` types:
@@ -183,7 +183,7 @@ Streaming-input Node:
 2.1 Basic Rule: Dependencies Run Before Dependents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Flowno, a node executes **when its inputs (dependencies) are “fresher” than
+In Flowno, a node executes **when its inputs (dependencies) are "fresher" than
 its own last run**. If an input is stale, Flowno recursively attempts to execute
 that stale input node first. The ``f.run_until_complete()`` method picks an
 arbitrary node to start.
@@ -273,7 +273,7 @@ Internally, it behaves similarly to explicit concurrency:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you have a DAG (Directed Acyclic Graph), a topological sort suffices. But
-when cycles exist, you need a mechanism to “break” them. In Flowno, that
+when cycles exist, you need a mechanism to "break" them. In Flowno, that
 mechanism is the *default argument* on at least one node input.
 
 **Example: Simple Feedback Loop**
@@ -289,7 +289,7 @@ mechanism is the *default argument* on at least one node input.
        f.b = MyNodeWithDefault(f.a)
        f.c = MyNode(f.b)
 
-In a multi-cycle network or with streaming data, Flowno’s scheduling becomes more
+In a multi-cycle network or with streaming data, Flowno's scheduling becomes more
 valuable.
 
 .. uml::
@@ -304,7 +304,7 @@ valuable.
 2.4 Basic Rule: Each Node Executes the Same Number of Times
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A key consequence of Flowno’s resolution algorithm is that **all nodes evaluate
+A key consequence of Flowno's resolution algorithm is that **all nodes evaluate
 the same number of times**. Even nodes that generate streaming data (run level 1
 data) ultimately produce final data at run level 0 in lockstep.
 
@@ -315,10 +315,10 @@ data) ultimately produce final data at run level 0 in lockstep.
 
    with FlowHDL() as f:
        f.a = MyNodeWithDefault(f.c)
-       f.b = MyNodeWithSelfLoop(f.a, f.c)
+       f.b = MyNodeWithSelfLoop(f.a, f.b)
        f.c = MyNode(f.b)
 
-       .. uml::
+.. uml::
 
    @startuml
    title Component Diagram (Data Flows)
@@ -331,7 +331,7 @@ data) ultimately produce final data at run level 0 in lockstep.
    c -> a
    @enduml
 
-   .. uml::
+.. uml::
 
    @startuml
    hide empty description
@@ -348,7 +348,7 @@ data) ultimately produce final data at run level 0 in lockstep.
 2.5 Basic Rule: Streams are Pipelined
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A node with a streaming output won’t continue until all consumers read its most
+A node with a streaming output won't continue until all consumers read its most
 recent output. If a consumer stalls, the producer is paused.
 
 .. code-block:: python
@@ -542,7 +542,7 @@ Below is the actual event flow as Flowno juggles control among these nodes:
    deactivate
    @enduml
 
-From a node’s perspective, it feels like:
+From a node's perspective, it feels like:
 
 .. uml::
 
@@ -585,6 +585,22 @@ in subflows later.)
   level 0; streaming data is run level 1.
 - ``node.generation``: A getter property that returns the highest generation
   produced by the node. Each run increments the generation.
+
+.. note::
+
+  Generation values are NOT compared purely lexicographically. Shorter tuples
+  are considered "greater than" longer tuples if all their elements are equal.
+  For example, ``(1,) > (1, 0)`` because ``(1,)`` represents a more complete
+  result at run level 0, while ``(1, 0)`` is a partial result that will be accumulated
+  into data with generation ``(1,)``.
+
+.. warning::
+
+  The generation of a node has **nothing** to do with the last consumed generation
+  of any streaming inputs. Yes, the resolution algorithm tends to keep these in
+  sync, but they are separate concepts.
+
+  That took a frustrating couple of months to finally decide on. Streaming was hard.
 
 3.2 Intuition
 ~~~~~~~~~~~~~

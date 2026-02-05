@@ -1,11 +1,13 @@
 # Flowno
 
 Flowno is a Python DSL for building concurrent, cyclic, and streaming
-[dataflow](https://en.wikipedia.org/wiki/Dataflow_programming) programs—ideal
+[dataflow](https://en.wikipedia.org/wiki/Dataflow_programming) programs - ideal
 for designing modular LLM agents. Inspired by no-code flowchart tools like
 [ComfyUI](https://github.com/comfyanonymous/ComfyUI), Flowno lets you describe
 workflows in code while handling complex dependency resolution (including cycles
 and streaming) behind the scenes.
+
+Basically it is yet another attempt at implementing "workflow" style programming.
 
 ## Key Features
 
@@ -16,16 +18,18 @@ and streaming) behind the scenes.
 
 - **Cycles & Streaming**  
   Unlike many workflow/flowchart/visual dataflow tools, Flowno supports cyclic
-  graphs and streaming outputs. Use default values to bootstrap cycles.
+  graphs and streaming edges. Use default values to bootstrap cycles.
 
 - **Concurrent By Default**  
   The Flowno runtime schedules nodes to run as soon as their inputs are ready.
   Flowno provides a set of basic non-blocking concurrency primitives.
 
-- **Type-Checked & Autocompleted**
-  Flowno is designed to work well with type checkers and IDEs to catch
-  incompatible connections between nodes.
-  
+- **~~Type-Checked & Autocompleted~~**
+
+  TODO
+
+  ~~Flowno works well with type checkers and IDEs to catch incompatible~~
+  ~~connections between nodes.~~
 
 
 ## Quickstart
@@ -97,7 +101,7 @@ with FlowHDL() as f:
 
 The context uses Python's `__getattr__` method to return placeholder objects when 
 accessing undefined attributes like `f.node_d`. These forward references are a core 
-feature of Flowno—they're not errors. However, each forward-referenced node must 
+feature of Flowno - they're not errors. However, each forward-referenced node must 
 eventually be defined in the flow (as shown in the last line for `f.node_d`). During 
 `__exit__`, the placeholders are resolved into proper node connections, and all 
 `DraftNode` instances are finalized into full `Node` objects.
@@ -148,7 +152,7 @@ classes - when you call a decorated node function, it returns a `DraftNode`
 instance.
 
 The `FlowHDL` context with its `f.node_name = Node()` syntax is an abuse of 
-Python's `__getattr__` method. However, this approach enables:
+Python's `__getattr__` method. However, this approach gets you:
 - LSP type checking support
 - Slightly better IDE autocomplete functionality
 - Forward references for natural cycle definitions
