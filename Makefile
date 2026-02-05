@@ -1,9 +1,8 @@
 .PHONY: docs docker dev clean
 
-# Build Sphinx documentation (uses uv to get sphinx dependencies)
+# Build Sphinx documentation
 docs:
-	uv run --with sphinx --with sphinx-rtd-theme --with plantweb \
-		sphinx-build -M html docs/source docs/build
+	uv run --group docs sphinx-build -M html docs/source docs/build
 
 # Build Docker image for documentation (requires docs to be built first)
 docker: docs

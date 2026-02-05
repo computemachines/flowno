@@ -46,5 +46,15 @@ where = ["src"]
 dev = [
     "pytest>=8.4.2",
     "pytest-timeout>=2.4.0",
+    "pytest-xdist",
+    "basedpyright",
+    "black",
+    "python-dotenv",
+]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "sphinx-autobuild",
+    "plantweb",
 ]
 
