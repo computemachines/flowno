@@ -1,3 +1,6 @@
+import tomllib
+from pathlib import Path
+
 import sphinx
 
 # Configuration file for the Sphinx documentation builder.
@@ -11,7 +14,11 @@ import sphinx
 project = "Flowno"
 copyright = "2025, Tyler Parker"
 author = "Tyler Parker"
-release = "0.1.3"
+
+# Read version from pyproject.toml (single source of truth)
+_pyproject = Path(__file__).parents[2] / "pyproject.toml"
+with open(_pyproject, "rb") as _f:
+    release = tomllib.load(_f)["project"]["version"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
