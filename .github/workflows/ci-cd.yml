@@ -30,9 +30,12 @@ jobs:
       - name: Run tests with timeout
         run: pytest --timeout=10
 
-  docs_build:
-    name: Build Documentation Package
+  docs_build_and_push:
+    name: Build and Push Documentation Image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -50,57 +53,34 @@ jobs:
 
       - name: Build Documentation
         working-directory: docs
-        run: make html #SPHINXOPTS="-W"
+        run: make html
 
-      - name: Package Documentation as DEB
-        run: make deb
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Upload Docs Artifact
-        uses: actions/upload-artifact@v4
+      - name: Log in to GitHub Container Registry
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
         with:
-          name: flowno-docs-deb
-          path: dist/*.deb
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  docs_deploy:
-    name: Deploy Documentation Package
-    runs-on: ubuntu-latest
-    needs: docs_build
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Download Docs Artifact
-        uses: actions/download-artifact@v4
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          name: flowno-docs-deb
+          images: ghcr.io/${{ github.repository }}-docs
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=
 
-      - name: Determine Deployment Package Name
-        id: get_deb_name
-        run: |
-          # Adjust the pattern if your .deb package name is different.
-          DEB_NAME=$(basename dist/flowno-docs_0.1.3_all.deb)
-          echo "DEB_NAME=$DEB_NAME" >> $GITHUB_ENV
-          echo "Package name is $DEB_NAME"
-
-      - name: Setup Private Key for Deployment
-        env:
-          PRIVKEYENCRYPTED: ${{ secrets.DEPLOY_PRIVKEY_GPG_PASSWORD }}
-        run: |
-          gpg --quiet --batch --yes --decrypt --passphrase="$PRIVKEYENCRYPTED" --output github_id_rsa deployment-ci/github_id_rsa.gpg
-          chmod 600 github_id_rsa
-
-      - name: Upload Documentation Package to Server
-        run: |
-          scp -P 48231 -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts $DEB_NAME root@computemachines.com:$DEB_NAME
-        env:
-          DEB_NAME: ${{ env.DEB_NAME }}
-
-      - name: Install Documentation Package on Server
-        run: |
-          ssh -p 48231 -T -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts root@computemachines.com dpkg -i $DEB_NAME
-        env:
-          DEB_NAME: ${{ env.DEB_NAME }}
-      - name: Reload Daemon and Restart Nginx
-        run: |
-          ssh -p 48231 -T -i github_id_rsa -o UserKnownHostsFile=deployment-ci/known_hosts root@computemachines.com "systemctl daemon-reload && systemctl restart nginx"
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: docs
+          push: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
