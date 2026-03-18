@@ -1,13 +1,14 @@
-from flowno import EventLoop, sleep
+from time import sleep
 
-async def my_sleeper(message: str):
+def my_sleeper(message: str):
     print("starting sleeper")
-    _ = await sleep(1)
+    sleep(1)
     print("done sleeping")
     print(f"message: {message}")
 
-async def main():
-    await my_sleeper("hello")
+def main():
+    thing = 1
+    my_sleeper("hello")
+    thing = thing + 1
+    my_sleeper(str(thing))
 
-el = EventLoop()
-el.run_until_complete(main())

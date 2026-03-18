@@ -315,10 +315,10 @@ data) ultimately produce final data at run level 0 in lockstep.
 
    with FlowHDL() as f:
        f.a = MyNodeWithDefault(f.c)
-       f.b = MyNodeWithSelfLoop(f.a, f.c)
+       f.b = MyNodeWithSelfLoop(f.a, f.b)
        f.c = MyNode(f.b)
 
-       .. uml::
+.. uml::
 
    @startuml
    title Component Diagram (Data Flows)
@@ -331,7 +331,7 @@ data) ultimately produce final data at run level 0 in lockstep.
    c -> a
    @enduml
 
-   .. uml::
+.. uml::
 
    @startuml
    hide empty description
