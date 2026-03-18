@@ -90,3 +90,13 @@ Do NOT use MCP servers for TLA+/PlusCal work - use command line tools.
 ## Naming Conventions
 
 Node names are capitalized (e.g., `Add`, `Print`) because they are factory functions that return `DraftNode` instances, similar to class constructors.
+
+## Shared Memories
+
+Project memories live in `.claude-memory/` in the repo so they travel across workstations via git. On each machine, create a symlink from the Claude Code project memory path to this directory:
+
+```bash
+ln -s /path/to/flowno/.claude-memory ~/.claude/projects/<project-slug>/memory
+```
+
+The project slug is the working directory path with slashes replaced by dashes (e.g., `-home-tparker-projects-flowno` or `-Users-tparker-projects-flowno`).
